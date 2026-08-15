@@ -1,380 +1,608 @@
-# CLAUDE CODE SKILLS - GUIA DE USO
+# CLAUDE CODE SKILLS - 6-PHASE AGENT FRAMEWORK
 **Projeto:** Salesforce Predictive Monitoring  
 **Data:** 2026-08-15  
-**Plataforma:** Claude Code
+**Framework:** Agent-Skills (Spec → Plan → Build → Test → Review → Ship)
 
 ---
 
-## 📌 O QUE SÃO SKILLS DO CLAUDE CODE?
+## 📌 OVERVIEW
 
-Skills são **recursos nativos da plataforma Claude Code** acessados via **slash commands** (`/comando`). Não são URLs públicas no GitHub - são ferramentas integradas no Claude Code web/desktop.
+Claude Code Skills are native platform resources accessed via slash commands (`/comando`). This document maps each skill to the 6-phase agent-skills framework, showing when and how to use each skill throughout the project lifecycle.
+
+**Framework Structure:**
+```
+Phase 1: SPEC       /spec       → Specification
+Phase 2: PLAN       /plan       → Planning & Architecture
+Phase 3: BUILD      /build      → Execution & Implementation
+Phase 4: TEST       /test       → Test-Driven Development
+Phase 5: REVIEW     /code-review → Code Audit (3 subagents)
+Phase 6: SHIP       /ship       → Pre-Launch Validation
+```
 
 ---
 
-## 🎯 SKILLS RECOMENDADAS PARA O PROJETO
+## 🎯 PHASE 1: SPECIFICATION (`/spec`)
 
-### 1. `/code-review` ⭐ CRÍTICA
+### Objective
+Define project requirements, scope, acceptance criteria, and validation strategy before any planning or coding.
 
-**O que faz:**  
-Revisa código para bugs, performance, test coverage, simplificações.
+### What it does
+Analyzes requirements, generates structured specifications, validates completeness, creates traceability matrix.
 
-**Como usar:**
-```
-/code-review                    # Revisa diff atual (low effort)
-/code-review medium             # Esforço médio (balanceado)
-/code-review high               # Esforço alto (análise completa)
-/code-review --comment          # Posta findings como comentários inline na PR
-```
-
-**Quando usar no projeto:**
-- ✅ **Fase 0:** Toda PR de Python (services/)
-- ✅ **Fase 1:** Validar integração MCP
-- ✅ **Fase 3:** HIGH effort para services/comparison/ (Prophet + Isolation Forest)
-- ✅ **Todas as fases:** Toda PR de backend
-
-**Exemplo prático Fase 0:**
+### How to use
 ```bash
-# Terminal - fazer commit com novo código
-git checkout -b feature/heuristic-v2
-# ... escreve services/heuristic/src/heuristic.py ...
-git add services/heuristic/src/heuristic.py
-git commit -m "feat: implement heuristic risk score calculation"
-
-# No Claude Code:
-/code-review medium --comment
-# Resultado: Claude posta findings inline na PR, você aplica sugestões
+/spec
+(Describe project goals, constraints, and success metrics)
 ```
 
-**Benefício para o projeto:**
-- Catch bugs antes de merge
-- Validar coverage ≥80%
-- Code style consistency
-- Performance suggestions
+### Salesforce PM Project Usage
+```
+Input:
+  "Criar sistema de monitoramento preditivo para Salesforce logs.
+   - Entrada: Logs via MCP Salesforce
+   - Processamento: Heurística (Phase 0) + ML (Phase 3)
+   - Saída: Risk scores + Alerts + Dashboard
+   - Timeline: 4-5 semanas
+   - Equipe: 3 pessoas
+   - Custo: $0/mês"
 
-**Acesso:** https://claude.ai/code
+Output (/spec generates):
+  ✓ Requirement categories (functional, non-functional, security, performance)
+  ✓ Acceptance criteria for each phase
+  ✓ Success metrics (test coverage, latency, uptime)
+  ✓ Risk identification
+  ✓ Traceability matrix (requirements → tests → code)
+  ✓ Definition of Done for each phase
+```
+
+### When to use
+- ✅ **Phase 1 START:** Once per project (before all other phases)
+- ✅ **Phase boundaries:** When scope changes
+
+### Outputs
+- **SPECIFICATION.md:** Consolidated requirements
+- **Acceptance criteria:** Testable, measurable requirements
+- **Traceability matrix:** Requirements ↔ Tests ↔ Code
+
+### Benefits
+- Clear, unambiguous requirements
+- All team members aligned
+- Foundation for all subsequent phases
+- Reduced rework
+
+### Checklist
+- [ ] All requirements documented
+- [ ] Acceptance criteria defined (SMART)
+- [ ] Success metrics identified
+- [ ] Risks acknowledged
+- [ ] Traceability matrix complete
+- [ ] Team alignment confirmed
 
 ---
 
-### 2. `/dataviz` ⭐ CRÍTICA PARA FRONTEND
+## 🎯 PHASE 2: PLANNING (`/plan`)
 
-**O que faz:**  
-Design de visualizações (cores, charts, acessibilidade, responsividade).
+### Objective
+Convert specifications into actionable plans with architecture, resource allocation, timeline, and risk mitigation.
 
-**Como usar:**
-```
-/dataviz
-(Descreva o componente que quer desenhar)
-```
+### What it does
+Creates implementation roadmap, identifies dependencies, allocates resources, generates architecture diagrams, defines milestones.
 
-**Quando usar no projeto:**
-- ✅ **Fase 0:** 1x (design do monitoring dashboard)
-  - Risk score gauge (0-1, circular)
-  - Line chart (histórico 30 dias)
-  - Alerts panel (severity badges)
-  - Health check banner
-
-**Exemplo prático Fase 0:**
-```
-Você (no Claude Code):
-  "Preciso de um dashboard com:
-   - Gauge circular para risk_score (0-1)
-   - Cores: verde (0-0.3), amarelo (0.3-0.7), vermelho (0.7-1)
-   - Line chart com 30 dias de histórico
-   - Alert badges: CRÍTICA=red, ALTA=orange, MÉDIA=yellow
-   - Responsivo: mobile (375px), tablet (768px), desktop (1920px)
-   - Dark mode support"
-
-Claude (via /dataviz):
-  ✓ Paleta de cores validada (light/dark)
-  ✓ Chart recommendations (Chart.js vs D3 vs Recharts)
-  ✓ Layout grid + breakpoints (Tailwind)
-  ✓ Accessibility checklist (WCAG 2.1 AA)
-  ✓ Contrast ratios validados
-  ✓ Mobile-first approach
+### How to use
+```bash
+/plan
+(Provide specification and project constraints)
 ```
 
-**Benefício para o projeto:**
-- Design profissional sem designer
-- Acessibilidade garantida
-- Dark mode automático
-- Responsividade validada
+### Salesforce PM Project Usage
+```
+Input (from /spec):
+  SPECIFICATION.md + Project constraints
 
-**Acesso:** https://claude.ai/code
+Output (/plan generates):
+  ✓ 6-phase roadmap (Phase 0-5, 4-5 weeks)
+  ✓ Phase breakdown:
+    - Phase 0 (3-4 days): Mock architecture + tests
+    - Phase 1 (5-7 days): Real Salesforce integration
+    - Phase 2-5 (4 weeks): Features (alerts, ML, feedback, hardening)
+  ✓ Resource allocation: Backend (3w), Frontend (2w), DevOps (1w)
+  ✓ Architecture: Micro-services (collector, heuristic, comparison, shared)
+  ✓ Tech stack: Python 3.10+, Node 18+, GitHub Actions
+  ✓ Risk mitigation: MCP failure handling, data growth, model accuracy
+  ✓ Cost analysis: $0/month (GitHub Actions, Pages, existing Salesforce)
+  ✓ Critical dependencies:
+    - Phase 0: pytest, Jest, Tailwind CSS, structlog
+    - Phase 1: MCP Salesforce, pandas
+    - Phase 3: Prophet, scikit-learn
+```
+
+### When to use
+- ✅ **Phase 2 START:** Once per phase (or scope change)
+- ✅ **After /spec:** Immediately after specification complete
+- ✅ **Re-plan:** If major blockers identified
+
+### Outputs
+- **PROJECT_ROADMAP_MASTER.md:** Timeline + milestones
+- **Architecture diagram:** Service boundaries
+- **Resource allocation:** Team capacity per phase
+- **Risk register:** Mitigation strategies
+
+### Benefits
+- Predictable timeline
+- Clear dependencies and critical path
+- Resource efficiency
+- Risk visibility
+- Stakeholder confidence
+
+### Checklist
+- [ ] All phases have milestones
+- [ ] Resource allocation realistic
+- [ ] Dependencies identified
+- [ ] Critical path visible
+- [ ] Risk mitigation strategies defined
+- [ ] Team capacity validated
 
 ---
 
-### 3. `/simplify` ⭐ IMPORTANTE
+## 🎯 PHASE 3: BUILD (`/build`)
 
-**O que faz:**  
-Refactora código para eliminar duplicação, simplificar logic, melhorar eficiência.
+### Objective
+Execute implementation based on plan. Generate scaffold, write production code, create test stubs, establish CI/CD.
 
-**Como usar:**
+### What it does
+Generates project scaffold, creates directory structure, writes implementation code, establishes build pipeline, generates initial tests.
+
+### How to use
+```bash
+/build
+(Describe what needs to be built, from specification and plan)
 ```
-/simplify
-(Executa no diff atual - mostra refactorings propostos)
+
+### Salesforce PM Project Usage
+```
+Input (from /spec + /plan):
+  "Build Phase 0 scaffold:
+   - services/collector/ (mock log generator)
+   - services/heuristic/ (risk score calculation)
+   - services/shared/ (common utilities)
+   - site/monitoring/ (mock dashboard)
+   - .github/workflows/ (test.yml + deploy.yml)
+   - tests/ (initial pytest + Jest structure)"
+
+Output (/build generates):
+  ✓ Project scaffold (directory structure)
+  ✓ services/collector/src/collector.py (mock data generation)
+  ✓ services/heuristic/src/heuristic.py (risk score logic)
+  ✓ services/shared/src/logger.py (JSON logging)
+  ✓ site/monitoring/index.html + dashboard.js (mock UI)
+  ✓ .github/workflows/test.yml (pytest + Jest CI)
+  ✓ services/*/tests/test_*.py (test stubs)
+  ✓ site/monitoring/tests/test-*.js (frontend test stubs)
+  ✓ pyproject.toml + requirements.txt (Phase 0 dependencies)
+  ✓ package.json + npm scripts (frontend setup)
+  ✓ Initial pre-commit hooks (.pre-commit-config.yaml)
 ```
 
-**Quando usar no projeto:**
-- ✅ **Fase 0:** Antes de escrever services/heuristic/src/heuristic.py
-- ✅ **Fase 1:** Limpeza geral de transformação Pandas
-- ✅ **Fase 3:** Antes de services/comparison/ (ML logic pode ficar complexa)
-- ✅ **Fase 4:** Cleanup de weekly_retrain.py
+### When to use
+- ✅ **Phase 3 START:** Once per phase
+- ✅ **After /plan:** Immediately after planning complete
+- ✅ **Feature branches:** When building new services
 
-**Exemplo prático Fase 1:**
-```python
-# Antes (repetitivo em services/heuristic/):
-def analyze(logs):
-    errors = []
-    for log in logs:
-        if log['status_code'] >= 500:
-            errors.append(log)
+### Outputs
+- **Project scaffold:** directories, files, git setup
+- **Source code:** implementation of core services
+- **Test structure:** test files, fixtures, conftest.py
+- **CI/CD pipeline:** GitHub Actions workflows
+- **Dependencies:** pyproject.toml, package.json
+
+### Benefits
+- Consistent project structure
+- All files created at once
+- Foundation for team work
+- CI/CD ready immediately
+- Reduced setup time
+
+### Checklist
+- [ ] All directories created
+- [ ] Source files generated
+- [ ] Test stubs present
+- [ ] CI/CD pipeline active
+- [ ] Dependencies installed
+- [ ] Team can build locally
+- [ ] No compilation errors
+
+---
+
+## 🎯 PHASE 4: TEST (`/test`)
+
+### Objective
+Ensure code meets specification through comprehensive testing (unit, integration, E2E). Close gaps between implementation and requirements.
+
+### What it does
+Generates test cases based on acceptance criteria, implements TDD cycle, validates coverage targets, identifies gaps, generates test reports.
+
+### How to use
+```bash
+/test
+(Describe what needs testing, from specification)
+```
+
+### Salesforce PM Project Usage
+```
+Input (from /spec + code):
+  "Test Phase 0 implementation:
+   - Requirement: All services output valid JSON
+   - Requirement: Risk score in range [0, 1]
+   - Requirement: Tests ≥80% backend, ≥70% frontend
+   - Requirement: Heuristic identifies 5 alert types
+   - Requirement: Dashboard loads in <2s"
+
+Output (/test generates):
+  ✓ Test cases (pytest + Jest):
+    - services/collector/tests/: Data generation tests
+    - services/heuristic/tests/: Risk score calculation tests
+    - services/shared/tests/: Logger + utilities tests
+    - site/monitoring/tests/: Dashboard component tests
+  ✓ Test fixtures (mock data):
+    - services/*/tests/fixtures/mock_logs.yaml
+    - services/*/tests/fixtures/mock_risks.yaml
+  ✓ Coverage report:
+    - Backend: 82% (exceeds 80% target)
+    - Frontend: 75% (exceeds 70% target)
+  ✓ Gap analysis:
+    - Missing: E2E test for collector → heuristic → dashboard
+    - Missing: Performance test for <2s dashboard load
+  ✓ Test report (pytest/Jest HTML report)
+  ✓ Pre-commit hooks (auto-run tests on commit)
+```
+
+### When to use
+- ✅ **Phase 4 START:** Once per phase
+- ✅ **After /build:** Immediately after implementation complete
+- ✅ **TDD cycle:** Generate tests, implement code, iterate
+
+### Outputs
+- **Test suite:** pytest + Jest test files
+- **Fixtures:** Mock data for testing
+- **Coverage report:** Line coverage by module
+- **Gap analysis:** Missing tests identified
+- **Test report:** Pass/fail results
+
+### Benefits
+- Confidence in implementation
+- Fast feedback loop (pre-commit validation)
+- Coverage targets met
+- Requirements verified
+- Regression prevention
+
+### Checklist
+- [ ] All acceptance criteria have tests
+- [ ] Coverage targets met (80/70)
+- [ ] All tests passing
+- [ ] Fixtures complete
+- [ ] Gap analysis addressed
+- [ ] Pre-commit hooks working
+- [ ] CI/CD test pipeline green
+
+---
+
+## 🎯 PHASE 5: REVIEW (`/code-review`)
+
+### Objective
+Audit code for bugs, security, performance, maintainability before shipping. Ensure production-readiness.
+
+### What it does
+Deep code analysis with 3 subagents (code reviewer, security auditor, test engineer). Identifies issues, suggests improvements, validates best practices.
+
+### How to use
+```bash
+/code-review              # Low effort (quick scan)
+/code-review medium       # Medium effort (balanced)
+/code-review high         # High effort (comprehensive)
+```
+
+### Salesforce PM Project Structure (3 Subagents)
+
+#### Subagent 1: Code Reviewer
+**Focus:** Bugs, performance, maintainability, style
+
+```
+/code-review high
+(Reviews services/heuristic/src/heuristic.py for risk score calculation)
+
+Validates:
+  ✓ No off-by-one errors in risk thresholds
+  ✓ Algorithm correctness (weights sum to 1.0)
+  ✓ Variable naming clarity
+  ✓ Function complexity (cyclomatic complexity < 10)
+  ✓ Docstring presence
+  ✓ Performance: O(n) vs O(n²) for large log sets
+  ✓ Error handling for edge cases
+```
+
+#### Subagent 2: Security Auditor
+**Focus:** Auth, injection, data exposure, compliance
+
+```
+/code-review high --security
+(Reviews MCP Salesforce integration for Phase 1)
+
+Validates:
+  ✓ No credentials hardcoded
+  ✓ Input sanitization (logs from Salesforce)
+  ✓ Rate limiting compliance (MCP built-in)
+  ✓ TLS/HTTPS for all external calls
+  ✓ No PII exposure in logs
+  ✓ Session management (if applicable)
+  ✓ Access control validation
+```
+
+#### Subagent 3: Test Engineer
+**Focus:** Test quality, coverage, edge cases
+
+```
+/code-review high --test
+(Reviews test suite for collector service)
+
+Validates:
+  ✓ Coverage: All code paths tested
+  ✓ Edge cases: Empty logs, malformed JSON
+  ✓ Fixtures: Representative test data
+  ✓ Mocking: External dependencies isolated
+  ✓ Assertions: Each test has clear assertion
+  ✓ Performance: Tests complete in <5s
+  ✓ Flakiness: No timing-dependent failures
+```
+
+### Salesforce PM Project Usage - Phase 0 Example
+
+```
+Phase 0: Review all pull requests with /code-review medium
+
+PR: feat/heuristic-v1
+  /code-review medium --comment
+  
+  Findings:
+    ✗ BUG: Risk score calculation uses weights [0.4, 0.3, 0.2, 0.1] = 1.0 ✓
+    ✗ PERF: O(n²) nested loop in alert detection → suggest vectorization
+    ✗ TEST: Missing edge case (empty logs list)
+    ✓ STYLE: Docstrings clear, names descriptive
+    ✓ SECURITY: No credentials exposed
     
-    slow = []
-    for log in logs:
-        if log['duration_ms'] > 1000:
-            slow.append(log)
+  Action: Fix perf issue, add edge case test, re-review
+```
+
+### When to use
+- ✅ **Phase 5 START:** Once per PR (before merge)
+- ✅ **Phase 0:** Every Python PR (services/)
+- ✅ **Phase 1:** MCP integration PRs
+- ✅ **Phase 3:** ML logic (Prophet, Isolation Forest)
+- ✅ **All phases:** All backend code
+
+### Outputs
+- **Findings:** Categorized by severity (bug, perf, style, security)
+- **Suggestions:** Specific code improvements
+- **Inline comments:** Line-by-line on GitHub
+- **Report:** Summary of issues and fixes applied
+
+### Benefits
+- Catch bugs before production
+- Knowledge transfer (code review as documentation)
+- Security vulnerabilities identified early
+- Performance regressions prevented
+- Test quality assured
+
+### Checklist
+- [ ] Code reviewer sign-off
+- [ ] Security auditor sign-off
+- [ ] Test engineer sign-off
+- [ ] All severity-critical issues fixed
+- [ ] Inline comments addressed
+- [ ] PR comments replied
+- [ ] Ready to merge
+
+---
+
+## 🎯 PHASE 6: SHIP (`/ship`)
+
+### Objective
+Final validation before deploying to production. Ensure system is ready, deployment pipeline works, rollback strategy exists.
+
+### What it does
+Final pre-launch checks, validates deployment pipeline, ensures monitoring/alerts active, confirms rollback procedure, generates deployment checklist.
+
+### How to use
+```bash
+/ship
+(Describe what's being deployed and environment)
+```
+
+### Salesforce PM Project Usage - Phase 0 Complete Example
+
+```
+Input:
+  "Deploy Phase 0 to GitHub Pages:
+   - Artifact: site/monitoring/ (static HTML/JS)
+   - Pipeline: .github/workflows/deploy.yml
+   - Environment: GitHub Pages (public)
+   - Success metric: Dashboard accessible at github.io
+   - Rollback: Revert commit, re-run workflow"
+
+Output (/ship generates):
+  ✓ Pre-deployment checklist:
+    - All tests passing? ✓
+    - Coverage targets met? ✓
+    - Code review approved? ✓
+    - Security scan clean? ✓
+    - Documentation updated? ✓
     
-    critical = []
-    for log in logs:
-        if log['status_code'] >= 500 and log['duration_ms'] > 1000:
-            critical.append(log)
-
-# No Claude Code:
-/simplify
-
-# Resultado Claude propõe:
-def analyze(logs):
-    errors = [l for l in logs if l['status_code'] >= 500]
-    slow = [l for l in logs if l['duration_ms'] > 1000]
-    critical = [l for l in logs if l['status_code'] >= 500 and l['duration_ms'] > 1000]
+  ✓ Deployment validation:
+    - GitHub Pages deployed? ✓
+    - Dashboard loads? ✓
+    - No 404 errors? ✓
+    - Dark mode works? ✓
+    - Responsive on mobile? ✓
+    
+  ✓ Monitoring setup:
+    - GitHub Actions logs viewable? ✓
+    - Workflow failure alerts configured? ✓
+    - Error tracking enabled? (Phase 5+)
+    
+  ✓ Rollback procedure:
+    - Previous deployment accessible? ✓
+    - Git history maintained? ✓
+    - Rollback time <5 min? ✓
+    
+  ✓ Post-deployment:
+    - Team notified? ✓
+    - Release notes published? ✓
+    - Status page updated? ✓
 ```
 
-**Benefício para o projeto:**
-- DRY principle (Don't Repeat Yourself)
-- Readability melhorada
-- Performance potencial
-- Menos bugs
+### Phase 1 Transition Example
 
-**Acesso:** https://claude.ai/code
+```
+Ship Phase 1 (MCP Salesforce integration):
+
+Pre-checks:
+  ✓ MCP Salesforce client tested locally
+  ✓ Rate limiting strategy validated
+  ✓ Data persistence to data/ branch working
+  ✓ Dashboard pulling live data (not mocks)
+  ✓ No credentials in code
+
+Deployment:
+  ✓ GitHub Actions: collect.yml (15-min cron) active
+  ✓ First data collection cycle complete
+  ✓ data/ branch has timestamp files (2026-08-16/risk_scores.json)
+  ✓ GitHub Pages dashboard updated with live data
+
+Monitoring:
+  ✓ Workflow history shows 2+ successful runs
+  ✓ Data freshness: last update <30 min ago
+  ✓ Error rate: 0% (no failed collections)
+
+Rollback:
+  ✓ Can revert to Phase 0 mock data in <5 min
+  ✓ Git history complete
+```
+
+### When to use
+- ✅ **Phase 6 START:** Once per phase completion (before release)
+- ✅ **Before any production change:** Deployment checklist
+- ✅ **After each phase:** Pre-launch validation
+
+### Outputs
+- **Pre-deployment checklist:** All green items
+- **Deployment validation:** System working
+- **Monitoring setup:** Alerts configured
+- **Rollback procedure:** Documented and tested
+- **Release notes:** Changelog for team
+
+### Benefits
+- Production deployments risk-free
+- Rollback capability confirmed
+- Team confidence high
+- Monitoring active from day 1
+- Zero-downtime deployments
+
+### Checklist
+- [ ] Pre-deployment checklist 100%
+- [ ] All tests passing in CI/CD
+- [ ] Code review approved
+- [ ] Security scan clean
+- [ ] Deployment pipeline executes
+- [ ] Monitoring alerts active
+- [ ] Rollback procedure tested
+- [ ] Release notes published
+- [ ] Team synchronized
 
 ---
 
-### 4. `/loop` (Monitoramento)
+## 📊 SKILLS BY PHASE - QUICK REFERENCE
 
-**O que faz:**  
-Executa um comando/prompt repetidamente em intervalo.
-
-**Como usar:**
-```
-/loop 5m /seu-comando-aqui
-/loop 10m /seu-prompt-aqui
-/loop stop
-```
-
-**Quando usar no projeto:**
-- ⚠️ **Fase 0 APENAS:** Para validar que workflow roda continuamente
-
-**Exemplo prático Fase 0:**
-```
-/loop 5m
-Verifique se o último workflow `monitoring-collect.yml` rodou com sucesso
-nos últimos 5 minutos, validando:
-- Coleta de dados mock completa
-- JSON output foi gerado
-- Arquivo contém risk_score válido (0-1)
-```
-
-**Duração:** 1 hora (validação inicial)
-
-**Benefício para o projeto:**
-- Detectar se workflow parou
-- Validar dados sendo gerados
-- Identificar erros rapidinho
-
-**Acesso:** https://claude.ai/code
+| Phase | Skill | Command | Duration | Frequency |
+|-------|-------|---------|----------|-----------|
+| 1: SPEC | `/spec` | `/spec` | 2-4 hours | Once/project |
+| 2: PLAN | `/plan` | `/plan` | 3-6 hours | Once/phase |
+| 3: BUILD | `/build` | `/build` | 8-16 hours | Once/phase |
+| 4: TEST | `/test` | `/test` | 6-12 hours | Once/phase |
+| 5: REVIEW | `/code-review` | `/code-review medium` | 1-2 hours/PR | Every PR |
+| 6: SHIP | `/ship` | `/ship` | 2-4 hours | Once/phase |
 
 ---
 
-### 5. `/claude-api` (Opcional, Fase 5+)
+## 🎯 PHASE WORKFLOW EXAMPLE
 
-**O que faz:**  
-Referência de Claude API (models, pricing, features, SDKs).
+### Phase 0 Complete Workflow (3-4 days)
 
-**Como usar:**
+**Day 1: Spec + Plan**
 ```
-/claude-api
-(Descreva o que quer fazer com Claude API)
-```
-
-**Quando usar no projeto:**
-- ⚠️ **Fase 5 APENAS:** Se decidir usar Claude para análise inteligente
-  - Exemplo: LLM analisa logs anômalos e sugere causa raiz
-  - Exemplo: Claude refina thresholds da heurística baseado em histórico
-
-**Não aplicável agora (Fase 0-4).**
-
-**Acesso:** https://claude.ai/code
-
----
-
-## 📊 SKILLS POR FASE - QUANDO USAR
-
-### Fase 0 (Scaffold + Mocks)
-```
-/code-review low              ← Validar estrutura inicial
-/dataviz                      ← Design dashboard mockup (1x)
-/loop 5m                      ← Monitor workflow continuidade (1 hora)
+/spec                        ← Define Phase 0 requirements (2h)
+  → Generates: SPECIFICATION.md (Phases 0-5)
+  
+/plan                        ← Create Phase 0 roadmap (2h)
+  → Generates: PROJECT_ROADMAP_MASTER.md
 ```
 
-### Fase 1 (Coleta Real + Heurística)
+**Day 2: Build**
 ```
-/code-review medium           ← PR de collector + heuristic
-/dataviz (refinement)         ← Ajustar dashboard com dados reais
-/simplify                     ← Limpar heuristic.py se necessário
-```
-
-### Fase 2 (Alertas + Notificações)
-```
-/code-review medium           ← Notification logic
-/dataviz                      ← Severity colors no dashboard
+/build                       ← Scaffold Phase 0 (8h)
+  → services/collector/, services/heuristic/, services/shared/
+  → site/monitoring/ (mock dashboard)
+  → .github/workflows/ (test.yml, deploy.yml)
+  → Initial tests (stubs)
 ```
 
-### Fase 3 (Modo Sombra ML)
+**Day 3: Test**
 ```
-/code-review high             ← Prophet + Isolation Forest
-/simplify                     ← Refactor comparison logic
-```
-
-### Fase 4 (Feedback Loop)
-```
-/code-review medium           ← Retrain logic
-/dataviz (refinement)         ← Feedback UX
+/test                        ← Implement tests (6h)
+  → Complete test suite
+  → Coverage: 82% backend, 75% frontend
+  → All tests passing
 ```
 
-### Fase 5 (Hardening)
+**Day 3-4: Review**
 ```
-/code-review high             ← Error handling + retry
-/simplify                     ← Cleanup geral
-/claude-api (opcional)        ← Se usar LLM em produção
-```
-
----
-
-## 🎯 COMO ACESSAR SKILLS DO CLAUDE CODE
-
-### Via Web
-1. Abra https://claude.ai/code
-2. Digite `/` (slash) para ver skills disponíveis
-3. Digite `/code-review` (ou outra skill)
-4. Pressione Tab ou Enter
-
-### Via Desktop
-- Claude Code Desktop (offline também)
-- Mesmos comandos `/` 
-- Atalho: cmd+k (Mac) ou ctrl+k (Windows/Linux)
-
-### Autocomplete
-- Pressione `/` e espere sugestões
-- Use Tab para navegar
-- Enter para selecionar
-
----
-
-## 💡 DICAS DE USO
-
-### Dica 1: /code-review é Iterativo
-```
-Primeira rodada: /code-review low      (encontra problemas óbvios)
-Segunda rodada:  /code-review medium   (refine)
-Terceira rodada: /code-review high     (análise completa)
+/code-review high            ← Code audit (2-4h)
+  → All services reviewed
+  → All findings addressed
+  → Security validated
 ```
 
-### Dica 2: /dataviz Cria Baseline
+**Day 4: Ship**
 ```
-/dataviz
-  ↓ Gera: palette.md com cores validadas
-  ↓ Gera: Recomendações de chart types
-  ↓ Gera: Accessibility checklist
-  ↓ Você implementa com essa base (em site/monitoring/)
-```
-
-### Dica 3: /simplify é Seguro
-```
-Não apaga código - só propõe refactors
-Você revisa antes de aceitar
-Ótimo para antes de escrever código novo
-```
-
-### Dica 4: /loop Monitora Fase 0
-```
-/loop 5m (por 1 hora)
-  ↓ Detecta se workflow parou
-  ↓ Valida que JSON tá sendo gerado
-  ↓ Se parar, você vê o erro imediatamente
+/ship                        ← Pre-launch (1-2h)
+  → GitHub Pages deploy validated
+  → Dashboard live (mock data)
+  → Monitoring configured
+  → Phase 0 complete ✓
 ```
 
 ---
 
-## ✅ CHECKLIST: SKILLS SETUP
+## 🔗 INTEGRATION WITH PROJECT DOCUMENTATION
 
-- [ ] Acesso ao Claude Code confirmado (https://claude.ai/code)
-- [ ] `/code-review` testado (rode em diff simples)
-- [ ] `/dataviz` testado (rode em design mockup)
-- [ ] `/simplify` testado (rode em código duplicado)
-- [ ] `/loop` entendido (para Fase 0 validation)
-- [ ] Equipe estudou esta documentação
+- **FRAMEWORK_AGENT_SKILLS_REFERENCE.md:** Agnóstic framework reference (reusable for other projects)
+- **SPECIFICATION.md:** Project-specific requirements (Phase 1 output)
+- **PROJECT_ROADMAP_MASTER.md:** Project-specific timeline (Phase 2 output)
+- **FASE_0_IMPLEMENTATION_GUIDE.md:** Step-by-step Phase 0 execution guide
 
 ---
 
-## 🔗 LINKS IMPORTANTES
+## ✅ SKILLS SETUP CHECKLIST
 
-- **Claude Code Web:** https://claude.ai/code
-- **Claude Code Desktop:** Baixar em claude.ai
-- **Claude API Docs:** https://claude.ai/docs (se usar /claude-api)
-- **Seu Repositório:** https://github.com/brunotrolo/Salesforce_PredictiveMonitoring
-
----
-
-## ❓ FAQ - SKILLS DO CLAUDE CODE
-
-**P: Posso usar skills sem internet?**  
-R: Sim, com Claude Code Desktop (offline). Skills rodam na máquina local.
-
-**P: As skills têm custo adicional?**  
-R: Não, estão incluídas na subscrição Claude Code.
-
-**P: Preciso de conta GitHub?**  
-R: Sim, para integração com repositórios (já tem!).
-
-**P: Posso usar skills em qualquer IDE?**  
-R: Não, apenas em Claude Code (web ou desktop).
-
-**P: E se a skill não funcionar?**  
-R: Tente digitar `/` novamente, ou reinicie Claude Code.
-
-**P: Qual skill uso para testes?**  
-R: `/code-review high` foca em test coverage.
-
-**P: Qual skill uso para design?**  
-R: `/dataviz` para visualizações.
-
-**P: Posso rodar /loop 24/7?**  
-R: Sim, mas use para validações (Fase 0). Depois use CI/CD real (GitHub Actions).
+- [ ] Access to Claude Code confirmed (https://claude.ai/code)
+- [ ] `/spec` available and tested
+- [ ] `/plan` available and tested
+- [ ] `/build` available and tested
+- [ ] `/test` available and tested
+- [ ] `/code-review` available and tested
+- [ ] `/ship` available and tested
+- [ ] Team read this document
+- [ ] Phase 1 (Spec) can begin
 
 ---
 
-## 🚀 PRÓXIMO: COMEÇAR FASE 0
+**Claude Code Skills are ready. Begin Phase 1: SPECIFICATION.**
 
-1. ✅ Abrir: https://claude.ai/code
-2. ✅ Testar: `/code-review` em um diff simples
-3. ✅ Testar: `/dataviz` descrevendo um componente
-4. ✅ Confirmar: Tudo funciona
-5. ✅ Começar: Fase 0 seguindo docs/FASE_0_IMPLEMENTATION_GUIDE.md
-
----
-
-**Skills do Claude Code estão prontas para usar!**
-
-Durante Fase 0, use `/code-review` em cada PR e `/dataviz` uma vez para o dashboard.
-
-Dúvidas? Acesse https://claude.ai/code ou crie issue no repositório.
