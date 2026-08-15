@@ -13,6 +13,101 @@ Framework estruturado com **6 fases** e **24 skills** para desenvolvimento com a
 
 ---
 
+## ⚡ COMO IMPORTAR E USAR AGENT SKILLS
+
+### Instalação das Skills (Addy Osmani)
+
+Este projeto utiliza **24 production-grade engineering skills** do repositório [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills).
+
+#### Para Claude Code (Recomendado)
+```bash
+# Via CLI Claude Code
+claude install-plugin addyosmani/agent-skills
+
+# Ou via marketplace
+# Acesse: https://claude.ai/code > Marketplace > agent-skills
+```
+
+#### Via npm (Qualquer agente)
+```bash
+npx skills add addyosmani/agent-skills
+```
+
+### Skills Disponíveis por Fase
+
+| Fase | Skill ID | Nome | Uso |
+|------|----------|------|-----|
+| **SPEC** | `/interview-me` | Interview Me | Extrair requisitos do projeto |
+| | `/idea-refine` | Idea Refine | Refinar e validar ideias |
+| | `/spec-driven-development` | SDD | Crear spec.md estruturada |
+| **PLAN** | `/planning-and-task-breakdown` | Planning | Decompor em tasks e fases |
+| **BUILD** | `/incremental-implementation` | Incremental Build | Implementar fase a fase |
+| | `/test-driven-development` | TDD | Escrever testes primeiro |
+| | `/frontend-ui-engineering` | Frontend Eng | Design de UI/UX |
+| | `/backend-api-engineering` | Backend Eng | Design de APIs |
+| | `/database-design` | Database Design | Arquitetar banco de dados |
+| **VERIFY** | `/browser-testing-with-devtools` | Browser Testing | Testar no navegador |
+| | `/debugging-and-error-recovery` | Debug & Recovery | Diagnosticar e corrigir erros |
+| **REVIEW** | `/code-review-and-quality` | Code Review | Revisar código |
+| | `/security-and-hardening` | Security Audit | Auditoria de segurança |
+| | `/performance-optimization` | Performance | Otimizar performance |
+| | `/accessibility-and-wcag` | Accessibility | Validar acessibilidade |
+| **SHIP** | `/ci-cd-and-automation` | CI/CD | Pipeline de deployment |
+| | `/git-workflow-and-versioning` | Git Workflow | Versionamento e branching |
+| | `/shipping-and-launch` | Launch | Checklist pré-lançamento |
+| | `/monitoring-and-observability` | Monitoring | Observabilidade |
+| | `/documentation-and-api-docs` | Documentation | Gerar docs automaticamente |
+
+### Exemplo de Uso em Fase 0
+
+```bash
+# 1. Extrair requisitos
+/interview-me
+
+# 2. Refinar ideias
+/idea-refine
+
+# 3. Gerar spec
+/spec-driven-development
+
+# 4. Quebrar em tasks
+/planning-and-task-breakdown
+
+# 5. Implementar incrementalmente
+/incremental-implementation
+
+# 6. TDD (testes antes de código)
+/test-driven-development
+
+# 7. Revisar código
+/code-review-and-quality
+
+# 8. Auditoria de segurança
+/security-and-hardening
+
+# 9. Otimizar performance
+/performance-optimization
+
+# 10. CI/CD
+/ci-cd-and-automation
+```
+
+### Ferramentas de Referência Externas
+
+Este projeto também utiliza as seguintes ferramentas e projetos como referência:
+
+| Ferramenta | Tipo | Uso | Link |
+|-----------|------|-----|------|
+| **agent-skills** | Framework | 24 skills de engenharia | https://github.com/addyosmani/agent-skills |
+| **Pydantic** | Validação | Runtime validation com type hints | https://github.com/pydantic/pydantic |
+| **structlog** | Logging | Structured logging (JSON) | https://github.com/hynek/structlog |
+| **pytest** | Testing | Test framework Python | https://github.com/pytest-dev/pytest |
+| **Jest** | Testing | Test framework JavaScript | https://github.com/jestjs/jest |
+| **Tailwind CSS** | Styling | Utility-first CSS | https://github.com/tailwindlabs/tailwindcss |
+| **GitHub Actions** | CI/CD | Orquestração e deployment | https://github.com/features/actions |
+
+---
+
 ## 🔄 AS 6 FASES DO CICLO
 
 ```
@@ -444,6 +539,168 @@ Phase 1:
   ├─ Cobertura 70%+: ✅
   └─ Integração pronta: ✅
 ```
+
+---
+
+## 📦 CATÁLOGO COMPLETO: 24 AGENT SKILLS
+
+### FASE 1: SPEC (3 skills)
+
+#### 1. `/interview-me`
+Inicia entrevista estruturada para extrair requisitos complexos.
+- **Input:** Contexto inicial, problema vago
+- **Output:** Transcrição + notas de requisitos
+- **Quando usar:** Kickoff do projeto, mudanças de requisitos
+
+#### 2. `/idea-refine`
+Refina ideias, identifica gaps, valida viabilidade.
+- **Input:** Ideia bruta
+- **Output:** Ideias refinadas com avaliação de riscos
+- **Quando usar:** Brainstorming, validação de conceitos
+
+#### 3. `/spec-driven-development`
+Gera spec.md estruturada com requisitos, critérios e testes.
+- **Input:** Requisitos da entrevista
+- **Output:** SPECIFICATION.md validada
+- **Quando usar:** Sempre que precisar formalizar requisitos
+
+### FASE 2: PLAN (1 skill)
+
+#### 4. `/planning-and-task-breakdown`
+Decompõe spec em tarefas sequenciais com dependências.
+- **Input:** spec.md
+- **Output:** plan.md + tasks/phase-*.md
+- **Quando usar:** Após spec aprovada, antes de começar desenvolvimento
+
+### FASE 3: BUILD (7 skills)
+
+#### 5. `/incremental-implementation`
+Implementa código seguindo plan.md, fase por fase com validação.
+- **Input:** plan.md + tasks/
+- **Output:** src/ + commits organizados
+- **Quando usar:** Durante desenvolvimento principal
+
+#### 6. `/test-driven-development`
+Escreve testes ANTES do código (Red-Green-Refactor).
+- **Input:** Requisitos de teste, critérios de aceitação
+- **Output:** tests/ com cobertura ≥80%
+- **Quando usar:** Paralelamente com `/incremental-implementation`
+
+#### 7. `/frontend-ui-engineering`
+Design e implementação de UI com componentes, responsividade, acessibilidade.
+- **Input:** Design specs, wireframes
+- **Output:** Componentes React/Vue + testes Jest
+- **Quando usar:** Durante implementação do frontend
+
+#### 8. `/backend-api-engineering`
+Design de APIs REST com validação, rate limiting, erros estruturados.
+- **Input:** Requisitos de API (operações, modelos)
+- **Output:** Endpoints + testes de contrato
+- **Quando usar:** Durante implementação do backend
+
+#### 9. `/database-design`
+Arquitetura de banco de dados: schema, índices, migrations.
+- **Input:** Requisitos de dados, relacionamentos
+- **Output:** migration.sql + modelo ER
+- **Quando usar:** Antes de implementar persistência
+
+### FASE 4: VERIFY (2 skills)
+
+#### 10. `/browser-testing-with-devtools`
+Testes de navegador com DevTools, screenshots, visual regression.
+- **Input:** URL da app, casos de teste
+- **Output:** Screenshots + relatório de testes
+- **Quando usar:** Validar frontend em navegadores
+
+#### 11. `/debugging-and-error-recovery`
+Diagnostica erros, propõe fixes, prioriza por impacto.
+- **Input:** Stacktrace, log de erro
+- **Output:** Diagnóstico + PR com fix
+- **Quando usar:** Quando CI falha ou bugs surgem
+
+### FASE 5: REVIEW (4 skills)
+
+#### 12. `/code-review-and-quality`
+Revisa código: bugs, padrões, refatoração, dívida técnica.
+- **Input:** Código + tests
+- **Output:** REVIEW_FINDINGS.md com sugestões
+- **Quando usar:** Antes de merge, depois de BUILD
+
+#### 13. `/security-and-hardening`
+Auditoria de segurança: OWASP top 10, credenciais, sanitização.
+- **Input:** Código + dependências
+- **Output:** SECURITY_AUDIT.md com mitigações
+- **Quando usar:** Antes de lançar em produção
+
+#### 14. `/performance-optimization`
+Análise de performance: latência, CPU, memória, queries.
+- **Input:** Código + métricas
+- **Output:** Recomendações otimizadas + benchmarks
+- **Quando usar:** Após testes E2E passarem
+
+#### 15. `/accessibility-and-wcag`
+Validação WCAG 2.1 AA: cores, textos, navegação, assistive tech.
+- **Input:** HTML/componentes
+- **Output:** Relatório de acessibilidade + fixes
+- **Quando usar:** Para frontend/UI
+
+### FASE 6: SHIP (5 skills)
+
+#### 16. `/ci-cd-and-automation`
+Design de pipeline CI/CD: testes automatizados, deploy stages.
+- **Input:** Código + environment config
+- **Output:** .github/workflows + CD pipeline
+- **Quando usar:** Configurar automação de deploy
+
+#### 17. `/git-workflow-and-versioning`
+Estratégia de branching, versionamento semântico, conventional commits.
+- **Input:** Histórico de commits, releases
+- **Output:** Workflow definido + CHANGELOG
+- **Quando usar:** Setup de equipe, antes de publicar lib
+
+#### 18. `/shipping-and-launch`
+Checklist pré-lançamento: deploys, rollback, comunicação.
+- **Input:** Código testado + runbook
+- **Output:** Launch checklist + status GO/NO-GO
+- **Quando usar:** Dia de lançamento
+
+#### 19. `/monitoring-and-observability`
+Setup de monitoramento: métricas, alertas, dashboards, SLOs.
+- **Input:** Aplicação rodando, requisitos de SLO
+- **Output:** Prometheus/Grafana + alertas + playbooks
+- **Quando usar:** Pós-deploy, para operações
+
+#### 20. `/documentation-and-api-docs`
+Gera documentação automática: API docs, README, architectural diagrams.
+- **Input:** Código + comentários JSDoc/docstrings
+- **Output:** docs/ completa + API reference
+- **Quando usar:** Pós-implementação, antes de ship
+
+### SKILLS ESPECIALIZADAS (4 extras)
+
+#### 21. `/architecture-review`
+Revisa decisões arquiteturais: padrões, escalabilidade, trade-offs.
+- **Input:** Diagrama + código
+- **Output:** Architecture Decision Record (ADR)
+- **Quando usar:** Designs complexos
+
+#### 22. `/dependency-analysis`
+Audita dependências: vulnerabilidades, versões outdated, licenças.
+- **Input:** package.json / requirements.txt
+- **Output:** DEPENDENCY_REPORT.md
+- **Quando usar:** Setup inicial + periodicamente
+
+#### 23. `/refactoring-optimization`
+Identifica oportunidades de refatoração: duplicação, simplicidade.
+- **Input:** Código + métricas
+- **Output:** Refactored code + rationale
+- **Quando usar:** Após ter código "funcionando"
+
+#### 24. `/technical-debt-assessment`
+Mapeia dívida técnica: bugs conhecidos, anti-patterns, deprecations.
+- **Input:** Código + backlog
+- **Output:** TECH_DEBT.md priorizado
+- **Quando usar:** Planning de versões futuras
 
 ---
 
