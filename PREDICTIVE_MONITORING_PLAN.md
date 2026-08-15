@@ -33,8 +33,10 @@ Prophet e Isolation Forest precisam de semanas de histórico pra ajustar bem (pr
 ```
 Salesforce (Nebula Logger)
     ↓ (GitHub Actions, cron a cada 5 min, runner com Python)
-    ├─ Autentica via OAuth refresh_token (credenciais em GitHub Secrets)
-    ├─ Consulta últimos 30 min de logs via REST API
+    ├─ Autentica via OAuth 2.0 refresh_token grant (credenciais em GitHub Secrets)
+    │  └─ Credenciais: SF_CLIENT_ID, SF_CLIENT_SECRET, SF_REFRESH_TOKEN
+    ├─ Consulta últimos 30 min de logs via Salesforce REST API (/services/data/v60.0/query)
+    │  └─ SOQL: SELECT Id, Message__c, ServiceDuration__c, StatusCode__c, CreatedDate FROM Log__c WHERE ...
     ├─ Heurística adaptativa (principal, dispara alerta) — Fase 1
     ├─ Prophet + Isolation Forest (modo sombra, só registra) — Fase 3+
     └─ Gera JSON: snapshot atual + histórico + alertas + registro comparativo
@@ -95,19 +97,116 @@ monitoring/
 
 ---
 
+## DEFINIÇÃO DE "FALHA" E CAMPOS A MONITORAR
+
+O monitoramento detecta **anomalias de latência e taxa de erro** em chamadas de integração Salesforce (capturadas via Nebula Logger):
+
+**Critérios de alerta:**
+- **Latência anómala**: `ServiceDuration__c` (ms) > baseline histórico + N desvios (z-score)
+- **Taxa de erro elevada**: % de registros com `StatusCode__c` ∉ [200, 201, 204] > limiar
+- **Combinação**: ambas juntas = risco crítico
+
+**Campos de Nebula Logger a usar:**
+| Campo | Tipo | Uso |
+|-------|------|-----|
+| `Id` | String | Identificação única do log |
+| `Message__c` | String | Descrição da chamada (extrai método HTTP, endpoint) |
+| `ServiceDuration__c` | Integer (ms) | **Latência — base principal da heurística** |
+| `StatusCode__c` | Integer | **Status HTTP — detector de erro** |
+| `CreatedDate` | DateTime | Timestamp — agrupa por bucket |
+
+---
+
 ## SOQL DE COLETA (Nebula Logger)
 
 ```sql
 SELECT Id, Message__c, ServiceDuration__c, StatusCode__c, CreatedDate
 FROM Log__c
-WHERE CreatedDate = LAST_N_MINUTES:30
+WHERE CreatedDate = LAST_N_MINUTES:30 
+  AND (ServiceDuration__c != null OR StatusCode__c != null)
 ORDER BY CreatedDate DESC
 LIMIT 500
 ```
 
+**Explicação:**
+- **LAST_N_MINUTES:30**: coleta janela de 30 min (maior que cron de 5 min para ter contexto histórico)
+- **ServiceDuration__c != null OR StatusCode__c != null**: filtra apenas logs com dados úteis
+- **LIMIT 500**: padrão Salesforce (máximo retorna 2.000, Fase 5 implementa paginação)
+
+---
+
+## AUTENTICAÇÃO E CREDENCIAIS
+
 Autenticação: OAuth 2.0 `refresh_token` grant contra `https://login.salesforce.com/services/oauth2/token`, mesmas credenciais do Connected App já documentado em `SALESFORCE_MCP_SETUP.md`, agora armazenadas como **GitHub Secrets** (`SF_CLIENT_ID`, `SF_CLIENT_SECRET`, `SF_REFRESH_TOKEN`) em vez de Script Properties do Apps Script.
 
-**Nota sobre "MCP":** como já esclarecido na versão anterior deste plano, o MCP Salesforce é feito para ser consumido por agentes de IA (Claude), não por scripts. O workflow do GitHub Actions replica o mesmo fluxo OAuth + REST que o MCP usa por baixo dos panos, em Python puro (`requests`), sem a camada MCP.
+**Nota sobre "MCP Salesforce":** O MCP (Model Context Protocol) Salesforce é uma ferramenta para agentes de IA (Claude Code). Na **Fase 0 de validação**, ele pode ser usado para testar conectividade e executar SOQL exploratórios. Porém, para os **workflows de produção** (GitHub Actions rodando em cron 24/7), usamos OAuth direto em Python (`requests`), que é:
+- **Headless** (sem navegador)
+- **Mais rápido** (sem camada de serialização do MCP)
+- **Mais previsível** (sem retry/timeout automático do MCP)
+
+O fluxo de setup de credenciais é o mesmo em ambos os casos: OAuth 2.0 `refresh_token` grant contra `https://login.salesforce.com/services/oauth2/token`.
+
+---
+
+## SETUP INICIAL (Pré-requisitos)
+
+**Antes de começar a Fase 0, confirme:**
+
+### 1. Requisitos técnicos obrigatórios
+- [ ] **Repositório `brunotrolo/brunotrolo` é público** (necessário para GitHub Actions com minutos ilimitados e GitHub Pages gratuito)
+- [ ] **GitHub Pages está habilitado** no repositório (Settings → Pages → Source: Deploy from a branch, branch `master`)
+- [ ] **Branch `data` existe** (ou será criado automaticamente pelo workflow na primeira execução)
+- [ ] **Python 3.11+** está disponível (confirmado no runner `ubuntu-latest` do GitHub Actions)
+
+### 2. Credenciais OAuth Salesforce
+
+As credenciais já existem de um projeto anterior e estão documentadas em `SALESFORCE_MCP_SETUP.md`. **Você precisa:**
+
+1. **Verificar se o Connected App ainda está ativo** no Salesforce:
+   - Setup → Apps → App Manager → procurar pela aplicação
+   - Verificar `Client ID` e `Client Secret`
+   
+2. **Obter ou renovar o `refresh_token`**:
+   - Se nunca foi obtido: use `SALESFORCE_MCP_SETUP.md` como guia para fazer um OAuth 2.0 Authorization Code flow manualmente
+   - Se já existe: validar que ainda é válido tentando fazer um token refresh (teste com `curl` antes de commitar nos Secrets)
+   
+3. **Adicionar os 3 Secrets no GitHub**:
+   - Ir para Settings → Secrets and variables → Actions
+   - Criar 3 secrets:
+     - `SF_CLIENT_ID` = value do Connected App
+     - `SF_CLIENT_SECRET` = value do Connected App (nunca expor em código)
+     - `SF_REFRESH_TOKEN` = token obtido no passo 2 (nunca expor em código)
+
+### 3. Validação de conectividade IP (Salesforce)
+
+- [ ] **Verificar Trusted IP Range** no Salesforce Setup:
+  - Setup → Security → Network Access
+  - Os runners do GitHub Actions usam IPs dinâmicos/compartilhados — alguns podem estar bloqueados por IP Trusted Range restritivo
+  - **Solução**: ou relaxar a restrição, ou adicionar os ranges publicados pelo GitHub: https://api.github.com/meta (chave `actions`)
+  
+- [ ] **Verificar limite de rate limit** da API REST do Salesforce:
+  - Padrão: 15 requests/segundo por org
+  - Monitoramento a cada 5 min + SOQL com até 500 registros está bem abaixo desse limite
+
+### 4. Teste exploratório de Nebula Logger
+
+Antes de Fase 0, confirme que Nebula Logger está capturando dados com os campos necessários. Use MCP Salesforce (Claude Code):
+
+```sql
+SELECT COUNT() FROM Log__c WHERE CreatedDate = LAST_N_MINUTES:120
+```
+
+Deve retornar um número > 0. Se for 0 ou erro, Nebula Logger não está configurado — investigue antes.
+
+**Teste adicional** — validar campos de interesse:
+```sql
+SELECT Id, Message__c, ServiceDuration__c, StatusCode__c, CreatedDate 
+FROM Log__c 
+WHERE CreatedDate = LAST_N_MINUTES:120
+LIMIT 5
+```
+
+Deve retornar registros com `ServiceDuration__c` (latência em ms) e `StatusCode__c` (HTTP status) preenchidos. Se ambos forem NULL para todos os registros, a integração não está gravando dados estruturados — Nebula Logger precisa ser configurado corretamente na org.
 
 ---
 
@@ -192,6 +291,160 @@ O usuário clica, o GitHub abre a página nativa de criar Issue já preenchida, 
 
 ---
 
+## ESQUEMAS DE DADOS (JSON)
+
+### Time Buckets — Granularidade da Heurística
+
+A heurística agrupa logs em **buckets de 5 minutos por dia da semana**:
+- **Exemplo de bucket**: `"tue_14h-14h05"` = terça-feira, 14:00-14:05 UTC
+- **Finalidade**: capturar padrões horários (picos de tráfego, horários de menor volume)
+- **Total de buckets**: 7 dias × 288 buckets por dia = ~2.016 buckets
+
+Cada bucket armazena:
+- EWMA de `ServiceDuration__c` (latência média exponencial ponderada)
+- MAD (Median Absolute Deviation) da latência
+- Taxa de erro (% de status >= 400)
+- Threshold ajustável (z-score para alerta)
+
+### latest.json
+
+```json
+{
+  "timestamp": "2026-08-15T14:05:30Z",
+  "risk_score": 0.72,
+  "risk_level": "MEDIA",
+  "current_latency_ms": 245,
+  "error_rate_percent": 2.5,
+  "latest_bucket": "wed_14h-14h05",
+  "alerts": [
+    {
+      "type": "latency_anomaly",
+      "z_score": 2.3,
+      "description": "Latência 2.3σ acima do baseline"
+    }
+  ]
+}
+```
+
+### history.json
+
+```json
+{
+  "buckets": {
+    "mon_09h-09h05": {
+      "ewma_latency_ms": 180,
+      "mad_latency_ms": 25,
+      "error_rate_percent": 1.2,
+      "z_score_threshold": 2.5,
+      "sample_count": 145,
+      "last_updated": "2026-08-15T14:00:00Z"
+    },
+    "mon_09h05-09h10": { /* ... */ },
+    "tue_14h-14h05": {
+      "ewma_latency_ms": 245,
+      "mad_latency_ms": 60,
+      "error_rate_percent": 2.5,
+      "z_score_threshold": 2.5,
+      "sample_count": 132,
+      "last_updated": "2026-08-15T14:05:00Z"
+    }
+  },
+  "metadata": {
+    "total_buckets": 2016,
+    "data_period_days": 30,
+    "version": "1.0"
+  }
+}
+```
+
+### predictions.json (Fase 3+)
+
+```json
+[
+  {
+    "timestamp": "2026-09-01T14:05:00Z",
+    "bucket": "tue_14h-14h05",
+    "observation_count": 142,
+    "heuristic_score": 0.72,
+    "heuristic_alerted": true,
+    "shadow_prophet_score": 0.81,
+    "shadow_isolation_forest_anomaly": false,
+    "actual_incident": null,
+    "actual_incident_severity": null,
+    "actual_incident_confirmed_at": null,
+    "notes": "Verificado manualmente em 2026-09-02, falso positivo (pico de tráfego legítimo)"
+  },
+  {
+    "timestamp": "2026-09-01T14:10:00Z",
+    "bucket": "tue_14h05-14h10",
+    "observation_count": 138,
+    "heuristic_score": 0.41,
+    "heuristic_alerted": false,
+    "shadow_prophet_score": 0.38,
+    "shadow_isolation_forest_anomaly": false,
+    "actual_incident": false,
+    "actual_incident_confirmed_at": "2026-09-01T14:15:00Z",
+    "notes": ""
+  }
+]
+```
+
+**Como `actual_incident` é preenchido:**
+1. **Manual (Fase 0-2)**: usuário analisa histó rico e marca em feedback.json se foi falso positivo
+2. **Semi-automático (Fase 3+)**: script semanal (`weekly_retrain.py`) correlaciona alertas com tickets do Salesforce / status da integração para tentar automatizar confirmação
+3. **Never automatic**: decisão final é sempre humana (engenheiro de integração)
+
+### feedback.json
+
+```json
+[
+  {
+    "timestamp": "2026-09-02T10:30:00Z",
+    "alert_timestamp": "2026-09-01T14:05:00Z",
+    "bucket": "tue_14h-14h05",
+    "issue_number": 42,
+    "issue_url": "https://github.com/brunotrolo/brunotrolo/issues/42",
+    "feedback_type": "false_positive",
+    "confidence": "high",
+    "notes": "Pico de tráfego legítimo, não foi incidente real",
+    "adjustments_applied": {
+      "z_score_threshold_new": 2.8,
+      "z_score_threshold_old": 2.5
+    }
+  }
+]
+```
+
+### alerts.json
+
+```json
+{
+  "active_alerts": [
+    {
+      "id": "alert_20260801_001",
+      "timestamp": "2026-08-01T14:05:00Z",
+      "bucket": "tue_14h-14h05",
+      "risk_score": 0.85,
+      "severity": "ALTA",
+      "description": "Latência elevada na integração de Cases",
+      "status": "acknowledged",
+      "acknowledged_by": "eng_name",
+      "acknowledged_at": "2026-08-01T14:10:00Z"
+    }
+  ],
+  "recent_resolved": [
+    {
+      "id": "alert_20260731_001",
+      "timestamp": "2026-07-31T09:20:00Z",
+      "resolved_at": "2026-07-31T09:45:00Z",
+      "duration_minutes": 25
+    }
+  ]
+}
+```
+
+---
+
 ## PROCESSAMENTO DO FEEDBACK (Issues → dados)
 
 ```yaml
@@ -232,26 +485,79 @@ jobs:
 
 ## FASES
 
-### Fase 0 — Validação de Conectividade (reduzida)
+### Fase 0 — MVP com Dados Mockados (sem Salesforce)
 
-Com essa arquitetura, o número de elos externos cai de 2 (Salesforce + Colab) para 1 (só Salesforce) — o ML já roda dentro do próprio runner, então não existe mais "o Colab não acordou". A validação fica mais simples:
+**Objetivo:** Validar arquitetura de micro-serviços + testes + logging estruturado **sem depender de Salesforce real**. Nebula Logger será implantado durante a semana; nessa fase, usamos dados mockados via `mock_salesforce.py`.
+
+**Abordagem:**
+- Toda a lógica (coleta, heurística, comparação) roda com dados fictícios
+- Testes unitários passam com ≥80% coverage
+- Logs estruturados registram cada operação (DEBUG, INFO, ERROR)
+- Transição para dados reais é trivial (≤5 linhas de código)
+
+**Setup e Testes:**
+```bash
+# 1. Instalar dependências
+pip install -r services/collector/requirements.txt
+pip install -r services/heuristic/requirements.txt  
+pip install pytest pytest-cov
+
+# 2. Rodar testes backend (tudo com mocks)
+pytest services/ -v --cov=services
+
+# 3. Rodar testes frontend (tudo com mocks)
+npm test
+
+# 4. Rodar pipeline completo (coleta → heurística → JSONs)
+python monitoring/scripts/orchestrate.py --mode mock --log-file /tmp/monitoring.log
+
+# 5. Inspecionar logs estruturados
+tail -50 /tmp/monitoring.log | jq .
+```
 
 **Definition of Done:**
-- [ ] Workflow do GitHub Actions autentica no Salesforce (via Secrets) e executa 1 SOQL trivial com sucesso
-- [ ] Workflow consegue commitar um JSON de teste no branch `data` (valida `permissions: contents: write`)
-- [ ] GitHub Pages está habilitado e serve o site estático publicamente
-- [ ] Página de teste consegue buscar o JSON via `raw.githubusercontent.com` e exibir na tela
-- [ ] Workflow roda no cron (`*/5 * * * *`) por pelo menos 1 hora sem falha
-- [ ] Testes unitários (pytest) rodam no CI antes de qualquer merge
+- [ ] Testes pytest passando com ≥80% coverage
+- [ ] Testes Jest passando
+- [ ] Logs estruturados registram início/fim/erro de cada operação
+- [ ] JSONs (latest.json, history.json) são gerados corretamente
+- [ ] Front-end consegue buscar dados de mock e renderizar dashboard
+- [ ] GitHub Pages serve o dashboard com dados mockados
+- [ ] Transição para Salesforce real requer ≤5 mudanças de código
 
-**Riscos específicos:**
+**Arquitetura Micro-Serviços (Fase 0+):**
+Veja `ARCHITECTURE.md` para detalhes completos:
+- `services/collector/`: busca logs (mock ou Salesforce)
+- `services/heuristic/`: calcula risk_score
+- `services/shared/`: logger JSON, schemas, utils agnósticos
+- `site/monitoring/`: dashboard com mock data
+- `site/shared/`: componentes reutilizáveis
 
-| Risco | Mitigação |
-|-------|-----------|
-| Salesforce Trusted IP Range rejeita os IPs dos runners do GitHub (dinâmicos/compartilhados) | Relaxar IP restriction no Connected App, ou allowlist dos ranges de IP publicados pelo GitHub |
-| Cron do GitHub Actions atrasa em picos de carga (documentado pelo próprio GitHub) | Tratar 5 min como alvo, não garantia rígida; monitorar horário real das execuções no histórico de Actions |
-| Repositório precisa ser público para Pages gratuito + Actions com minutos ilimitados | Confirmar visibilidade do repositório antes de iniciar |
-| `refresh_token` expira ou é revogado | Documentar processo de renovação manual no runbook |
+**Transição para Fase 1 (dados reais):**
+1. Implantar Nebula Logger na org Salesforce
+2. Obter credenciais OAuth
+3. Adicionar nos GitHub Secrets (`SF_CLIENT_ID`, `SF_CLIENT_SECRET`, `SF_REFRESH_TOKEN`)
+4. Em `services/collector/src/collector.py`, trocar:
+   ```python
+   # Fase 0:
+   from mock_salesforce import MockSalesforceClient
+   client = MockSalesforceClient()
+   
+   # Fase 1:
+   from salesforce_client import SalesforceClient
+   client = SalesforceClient(os.getenv("SF_CLIENT_ID"), ...)
+   ```
+5. Rodar testes novamente — tudo funciona igual
+6. Commitar e fazer deploy no GitHub Actions
+
+**Troubleshooting Fase 0:**
+
+| Erro | Solução |
+|-----|---------|
+| `ModuleNotFoundError: No module named 'pandas'` | `pip install -r services/collector/requirements.txt` |
+| `AssertionError: expected 143, got 0` em test_collector.py | Fixture mock não foi carregada — verificar `conftest.py` em `services/collector/tests/` |
+| Logs não aparecem em `/tmp/monitoring.log` | Verificar `--log-file` flag em comando `orchestrate.py` |
+| Front-end mostra `fetch failed` ao buscar mock data | Verificar se `site/monitoring/mock-data.js` está retornando JSON válido |
+| GitHub Pages não carrega dashboard | Verificar Settings → Pages → Source (branch `master`) e que `site/index.html` existe |
 
 ---
 
