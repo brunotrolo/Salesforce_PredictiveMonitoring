@@ -22,6 +22,11 @@
 ## 📅 PHASE 0 TIMELINE (Quick View)
 
 ```
+BEFORE DAY 1 (Setup)
+├─ (1-2h):  Instalar GitHub Skills            [All]
+│           Pydantic, structlog, pytest, faker, Jest, 
+│           Tailwind, Black, Ruff, mypy, pre-commit
+
 DAY 1 (Monday)
 ├─ AM (1-2h):  MCP Salesforce validation       [DevOps]
 └─ PM (4h):    Repo scaffold + Backend setup   [Backend]
@@ -36,7 +41,8 @@ DAY 3 (Wednesday)
 ├─ PM (1h):    Full validation & coverage      [All]
 └─ PM (1h):    Phase 0 → Phase 1 prep          [Tech Lead]
 
-TOTAL: 11.5 hours of focused work across 3 people
+TOTAL: 11.5 + 6-8 horas de setup de skills = ~18 horas
+       (pode fazer em paralelo antes de começar)
 ```
 
 ---

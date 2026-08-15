@@ -144,6 +144,36 @@ site/
 
 ---
 
+## 🔗 GITHUB SKILLS & REFERÊNCIAS
+
+### Ferramentas de Referência Integradas ao Projeto
+
+**FASE 0 (Instale Agora):**
+- ✅ **Pydantic** (validação JSON) - https://github.com/pydantic/pydantic
+- ✅ **structlog** (logging estruturado) - https://github.com/hynek/structlog
+- ✅ **pytest** (testes backend) - https://github.com/pytest-dev/pytest
+- ✅ **faker** (mock data) - https://github.com/joke2k/faker
+- ✅ **Jest** (testes frontend) - https://github.com/jestjs/jest
+- ✅ **Tailwind CSS** (styling) - https://github.com/tailwindlabs/tailwindcss
+- ✅ **shadcn/ui** (componentes) - https://github.com/shadcn-ui/ui
+- ✅ **Black** (code formatter) - https://github.com/psf/black
+- ✅ **Ruff** (linter) - https://github.com/astral-sh/ruff
+- ✅ **mypy** (type checker) - https://github.com/python/mypy
+- ✅ **pre-commit** (git hooks) - https://github.com/pre-commit/pre-commit
+
+**FASE 1 (Adicione):**
+- ⚠️ **pandas** (análise de dados) - https://github.com/pandas-dev/pandas
+- ⚠️ **factory_boy** (fixtures avançadas) - https://github.com/FactoryBoy/factory_boy
+- ⚠️ **Storybook** (dev de componentes) - https://github.com/storybookjs/storybook
+
+**FASE 5+ (Hardening):**
+- ⚠️ **Sentry** (error tracking) - https://github.com/getsentry/sentry
+- ⚠️ **Prometheus** (métricas) - https://github.com/prometheus/prometheus
+
+**→ Ver:** `docs/GITHUB_SKILLS_REFERENCES.md` (documento completo com detalhes de cada skill)
+
+---
+
 ## 📈 RESOURCE ALLOCATION
 
 | Role | Phase 0 | Phase 1 | Phase 2-5 | Total |
@@ -152,6 +182,8 @@ site/
 | Frontend Engineer | 2 days | 2 days | 1.5 wks | 2 wks |
 | DevOps/SRE | 1 day | 1 day | 0.5 wk | 1 wk |
 | **Team Total** | **1 wk** | **1 wk** | **4-5 wks** | **5-6 wks** |
+
+**Nota:** Inclui ~6-8 horas extras de setup das GitHub Skills em Fase 0
 
 ---
 

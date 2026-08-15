@@ -32,6 +32,99 @@ Ter **100% funcional, 0% Salesforce** pronto para transição simples em Fase 1.
 
 ## 🔨 STEP-BY-STEP IMPLEMENTATION
 
+### STEP 0: Instalar GitHub Skills & Dependências (1-2 horas)
+**Objetivo:** Setup de todas as ferramentas necessárias para Fase 0
+
+**Ferramentas a instalar (11 principais):**
+
+#### Backend Python
+```bash
+# Validação + Logging + Testing
+pip install pydantic structlog pytest pytest-cov faker black ruff mypy
+
+# Requirements.txt de cada serviço (usar versões abaixo)
+pytest==7.4.0
+pytest-cov==4.1.0
+pydantic==2.0.0
+structlog==23.1.0
+faker==19.0.0
+```
+
+#### Frontend JavaScript
+```bash
+cd site
+npm init -y
+npm install --save-dev jest tailwindcss
+# shadcn/ui: componentes copy-paste (não npm install)
+npm install --save-dev @types/jest @babel/preset-react
+```
+
+#### Development Tools (Pre-commit + Linting)
+```bash
+pip install pre-commit black ruff mypy
+
+# Criar .pre-commit-config.yaml (veja seção "Git Hooks Setup" abaixo)
+pre-commit install
+```
+
+**Resultado Esperado:**
+```bash
+# Verificar todas instalações
+python --version                 # Python 3.10+
+pip list | grep pydantic        # pydantic 2.0.0
+npm --version                    # Node 18+
+pytest --version                 # pytest 7.4.0
+jest --version                   # jest 29+
+black --version                  # black 23.7.0+
+ruff --version                   # ruff 0.0.278+
+mypy --version                   # mypy 1.4.1+
+```
+
+**Git Hooks Setup:**
+```bash
+# .pre-commit-config.yaml
+cat > .pre-commit-config.yaml <<'EOF'
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+        language_version: python3.10
+  
+  - repo: https://github.com/astral-sh/ruff
+    rev: v0.0.278
+    hooks:
+      - id: ruff
+        args: [--fix]
+  
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.4.1
+    hooks:
+      - id: mypy
+        args: [--ignore-missing-imports]
+        additional_dependencies: [types-all]
+EOF
+
+pre-commit install
+```
+
+**GitHub Skills Reference:**
+- Pydantic: https://github.com/pydantic/pydantic (validação)
+- structlog: https://github.com/hynek/structlog (logging)
+- pytest: https://github.com/pytest-dev/pytest (testes backend)
+- faker: https://github.com/joke2k/faker (mock data)
+- Jest: https://github.com/jestjs/jest (testes frontend)
+- Tailwind: https://github.com/tailwindlabs/tailwindcss (styling)
+- shadcn/ui: https://github.com/shadcn-ui/ui (componentes)
+- Black: https://github.com/psf/black (formatter)
+- Ruff: https://github.com/astral-sh/ruff (linter)
+- mypy: https://github.com/python/mypy (type checker)
+- pre-commit: https://github.com/pre-commit/pre-commit (git hooks)
+
+**→ Documentação completa:** `docs/GITHUB_SKILLS_REFERENCES.md`
+
+---
+
 ### STEP 1: MCP Salesforce Validation (1-2 horas)
 **Objetivo:** Confirmar que MCP funciona fora de sessão interativa
 
