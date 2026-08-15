@@ -144,9 +144,23 @@ site/
 
 ---
 
-## 🔗 GITHUB SKILLS & REFERÊNCIAS
+## 🔗 CLAUDE CODE SKILLS & GITHUB PROJECT REFERENCES
 
-### Ferramentas de Referência Integradas ao Projeto
+### 1️⃣ Claude Code Skills (Recursos Nativos da Plataforma)
+
+**Skills via Slash Commands** (`/comando`):
+- ⭐ **`/code-review`** - Revisa código para bugs, performance, test coverage
+- ⭐ **`/dataviz`** - Design de visualizações (colors, charts, accessibility, responsiveness)
+- ⭐ **`/simplify`** - Refactora código para eliminar duplicação e melhorar eficiência
+- ⚠️ **`/loop`** - Executa prompt repetidamente em intervalo (validação Fase 0)
+- ⚠️ **`/claude-api`** - Referência Claude API (Fase 5+ apenas)
+
+**→ Ver:** `docs/CLAUDE_CODE_SKILLS.md` (guia completo de uso com exemplos por fase)  
+**Acesso:** https://claude.ai/code (web) ou Claude Code Desktop
+
+---
+
+### 2️⃣ GitHub Project References (Dependências Técnicas Externas)
 
 **FASE 0 (Instale Agora):**
 - ✅ **Pydantic** (validação JSON) - https://github.com/pydantic/pydantic
@@ -170,7 +184,7 @@ site/
 - ⚠️ **Sentry** (error tracking) - https://github.com/getsentry/sentry
 - ⚠️ **Prometheus** (métricas) - https://github.com/prometheus/prometheus
 
-**→ Ver:** `docs/GITHUB_SKILLS_REFERENCES.md` (documento completo com detalhes de cada skill)
+**→ Ver:** `docs/GITHUB_PROJECT_REFERENCES.md` (documento completo com detalhes de cada projeto)
 
 ---
 
