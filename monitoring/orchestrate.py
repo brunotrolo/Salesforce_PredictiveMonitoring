@@ -39,7 +39,7 @@ def run_pipeline() -> tuple[dict, list[dict]]:
 
     # Step 2: Analyze
     engine = HeuristicEngine()
-    analysis = engine.analyze([l.model_dump() if hasattr(l, 'model_dump') else l.__dict__ for l in logs])
+    analysis = engine.analyze([l.model_dump() for l in logs])
 
     # Step 3: Compare
     comparator = ComparisonService()
@@ -75,17 +75,13 @@ def main() -> None:
     parser.add_argument("--log-file", default="monitoring_output.json", help="Output JSON file path")
     args = parser.parse_args()
 
-    if args.mode != "mock":
-        print("ERROR: Only mock mode supported in Fase 0")
-        sys.exit(1)
-
     result, logs = run_pipeline()
 
     # Validate output
-    assert "risk_score" in result
-    assert "alerts" in result
-    assert "health_check" in result
-    assert 0 <= result["risk_score"] <= 1
+    if not {"risk_score", "alerts", "health_check"}.issubset(result):
+        raise ValueError("Pipeline result missing required keys")
+    if not 0 <= result["risk_score"] <= 1:
+        raise ValueError(f"risk_score out of range: {result['risk_score']}")
 
     # Write JSON output
     with open(args.log_file, "w") as f:

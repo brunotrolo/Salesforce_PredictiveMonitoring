@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          for d in services/*/; do
+            pip install -r "$d/requirements.txt"
+          done
+
+      - name: Run service tests
+        run: |
+          for d in services/*/; do
+            (cd "$d" && python -m pytest)
+          done
+
+      - name: Run pipeline tests
+        run: (cd monitoring && python -m pytest)
+
+      - name: Security audit (Python)
+        run: |
+          pip install pip-audit
+          for d in services/*/; do
+            pip-audit -r "$d/requirements.txt"
+          done
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Run frontend tests
+        working-directory: site
+        run: npm test
+
+      - name: Security audit (npm)
+        working-directory: site
+        run: npm audit --audit-level=high

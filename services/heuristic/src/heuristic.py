@@ -15,13 +15,22 @@ class Alert(BaseModel):
 class HeuristicEngine:
     """Applies rule-based heuristics to analyze Salesforce logs."""
 
+    ERROR_STATUS_THRESHOLD = 500
+    SLOW_DURATION_THRESHOLD_MS = 1000
+    ERROR_WEIGHT = 0.3
+    SLOW_WEIGHT = 0.2
+    MAX_RISK_SCORE = 1.0
+
     def analyze(self, logs: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze logs and return risk score + alerts."""
-        errors = [l for l in logs if l.get("status_code", 200) >= 500]
-        slow = [l for l in logs if l.get("duration_ms", 0) > 1000]
+        errors = [l for l in logs if l.get("status_code", 200) >= self.ERROR_STATUS_THRESHOLD]
+        slow = [l for l in logs if l.get("duration_ms", 0) > self.SLOW_DURATION_THRESHOLD_MS]
 
         total = max(len(logs), 1)
-        risk_score = min((len(errors) * 0.3 + len(slow) * 0.2) / total, 1.0)
+        risk_score = min(
+            (len(errors) * self.ERROR_WEIGHT + len(slow) * self.SLOW_WEIGHT) / total,
+            self.MAX_RISK_SCORE,
+        )
 
         alerts: list[dict[str, str]] = []
         for e in errors:

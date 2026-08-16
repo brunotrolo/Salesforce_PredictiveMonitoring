@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 
 class SalesforceLog(BaseModel):
@@ -28,6 +28,6 @@ class LogCollector:
         for i, log in enumerate(raw_logs):
             try:
                 SalesforceLog(**log)
-            except Exception as e:
+            except ValidationError as e:
                 errors.append(f"Log {i}: {str(e)}")
         return {"valid": len(errors) == 0, "errors": errors}

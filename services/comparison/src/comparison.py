@@ -15,6 +15,13 @@ class ComparisonResult(BaseModel):
 class ComparisonService:
     """Compares current heuristic analysis against historical baselines."""
 
+    CRITICAL_INCREASE_THRESHOLD = 0.3
+    MODERATE_INCREASE_THRESHOLD = 0.1
+    CRITICAL_CONFIDENCE = 0.9
+    MODERATE_CONFIDENCE = 0.7
+    IMPROVEMENT_CONFIDENCE = 0.8
+    STABLE_CONFIDENCE = 0.95
+
     def compare(
         self,
         current: dict[str, Any],
@@ -28,18 +35,18 @@ class ComparisonService:
         hist_risk = historical.get("risk_score", 0)
         risk_delta = round(current_risk - hist_risk, 4)
 
-        if risk_delta > 0.3:
+        if risk_delta > self.CRITICAL_INCREASE_THRESHOLD:
             prediction = "CRITICAL_INCREASE"
-            confidence = 0.9
-        elif risk_delta > 0.1:
+            confidence = self.CRITICAL_CONFIDENCE
+        elif risk_delta > self.MODERATE_INCREASE_THRESHOLD:
             prediction = "MODERATE_INCREASE"
-            confidence = 0.7
-        elif risk_delta < -0.1:
+            confidence = self.MODERATE_CONFIDENCE
+        elif risk_delta < -self.MODERATE_INCREASE_THRESHOLD:
             prediction = "IMPROVEMENT"
-            confidence = 0.8
+            confidence = self.IMPROVEMENT_CONFIDENCE
         else:
             prediction = "STABLE"
-            confidence = 0.95
+            confidence = self.STABLE_CONFIDENCE
 
         return ComparisonResult(
             prediction=prediction,
