@@ -14,7 +14,7 @@ class MockMCPServer:
     """Minimal Streamable HTTP MCP server for tests.
 
     Modes:
-        - "ok": initialize + tools/call -> soql_query returns records
+        - "ok": initialize + tools/call -> soqlQuery returns records
         - "sse": same, but tools/call answered as text/event-stream
         - "unauthorized_once": first authorized request returns 401, then ok
         - "unauthorized_always": always 401 (no refresh path)
@@ -73,6 +73,10 @@ class MockMCPServer:
                     return
 
                 if body.get("method") == "notifications/initialized":
+                    if server.mode == "empty_notification":
+                        self.send_response(204)
+                        self.end_headers()
+                        return
                     self._json(200, {})
                     return
 
@@ -232,6 +236,16 @@ class TestSoqlQuery:
 
     def test_parses_sse_response(self):
         server = MockMCPServer("sse")
+        url = server.start()
+        try:
+            client = SalesforceClient(url=url, token="tok-1")
+            result = client.soql_query("SELECT Id FROM Log__c")
+            assert json.loads(result)["totalSize"] == 1
+        finally:
+            server.stop()
+
+    def test_empty_notification_response_is_silently_accepted(self):
+        server = MockMCPServer("empty_notification")
         url = server.start()
         try:
             client = SalesforceClient(url=url, token="tok-1")

@@ -156,6 +156,36 @@ class TestMapSoqlRecords:
         assert mapped[0]["severity"] == "INFO"
         assert mapped[0]["status_code"] == 200
 
+    def test_maps_real_log_schema_with_float_status(self):
+        records = [
+            {
+                "Id": "a05bL000004jKLIQA2",
+                "CreatedDate": "2026-08-16T10:00:00.000Z",
+                "Status__c": 500.0,
+                "Endpoint__c": "/api/accounts",
+                "WebserviceName__c": "AccountsService",
+            }
+        ]
+        mapped = orchestrate.map_soql_records(records)
+        assert mapped[0]["log_id"] == "a05bL000004jKLIQA2"
+        assert mapped[0]["status_code"] == 500
+        assert mapped[0]["resource"] == "/api/accounts"
+        assert mapped[0]["severity"] == "ERROR"
+
+    def test_float_2xx_status_is_info(self):
+        mapped = orchestrate.map_soql_records(
+            [{"Id": "L1", "Status__c": 200.0, "Endpoint__c": "/api/health"}]
+        )
+        assert mapped[0]["status_code"] == 200
+        assert mapped[0]["severity"] == "INFO"
+        assert mapped[0]["resource"] == "/api/health"
+
+    def test_to_int_handles_numeric_strings_and_garbage(self):
+        assert orchestrate._to_int(None) == 0
+        assert orchestrate._to_int(500.0) == 500
+        assert orchestrate._to_int("200") == 200
+        assert orchestrate._to_int("abc") == 0
+
 
 class TestRunPipelineRealMode:
     def test_uses_mcp_client_to_fetch_logs(self):

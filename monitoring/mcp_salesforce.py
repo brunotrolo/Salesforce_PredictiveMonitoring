@@ -56,8 +56,11 @@ class SalesforceClient:
     # ------------------------------------------------------------------ public
 
     def soql_query(self, soql: str) -> Any:
-        """Run a SOQL query via the MCP `soql_query` tool (T3.4 contract)."""
-        return self.call_tool("soql_query", {"soql": soql})
+        """Run a SOQL query via the MCP `soqlQuery` tool (T3.4 contract).
+
+        The Salesforce MCP tool exposes the query as parameter ``q``.
+        """
+        return self.call_tool("soqlQuery", {"q": soql})
 
     def query(self, soql: str) -> Any:
         """Alias for ``soql_query`` - the 2-line change from the SPEC."""
@@ -152,7 +155,13 @@ class SalesforceClient:
 
     @staticmethod
     def _parse_response(body: str, content_type: str | None) -> Any:
-        """Parse a Streamable HTTP response (JSON or SSE event stream)."""
+        """Parse a Streamable HTTP response (JSON or SSE event stream).
+
+        Empty bodies are legal for notifications (204 No Content) and
+        return ``None``.
+        """
+        if not body or not body.strip():
+            return None
         try:
             if content_type and "text/event-stream" in content_type:
                 for line in body.splitlines():

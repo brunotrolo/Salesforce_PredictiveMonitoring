@@ -9,10 +9,12 @@ from datetime import datetime, timezone
 from typing import Any
 
 # SOQL query used in real (Phase 1) mode: recent debug/error logs.
-# Field-API names follow Salesforce DebugLogs/Log__c conventions; adapt as needed.
+# Field-API names follow the actual Log__c schema in the org (verified via
+# getObjectSchema on 2026-08-16): Status__c (double), Endpoint__c,
+# Method__c, WebserviceName__c. There is no duration field on Log__c.
 SOQL_LOG_QUERY = (
-    "SELECT Id, CreatedDate, Status, DurationMilliseconds, Application, "
-    "SystemModstamp, LastModifiedDate "
+    "SELECT Id, CreatedDate, Status__c, Endpoint__c, Method__c, "
+    "WebserviceName__c, SystemModstamp "
     "FROM Log__c "
     "WHERE CreatedDate = LAST_N_DAYS:1 "
     "ORDER BY CreatedDate DESC LIMIT 100"
@@ -50,12 +52,34 @@ def generate_mock_logs() -> list[dict]:
     ]
 
 
+def _to_int(value: Any) -> int:
+    """Coerce a Salesforce value (int, float, numeric string) to int."""
+    if value is None:
+        return 0
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return 0
+
+
 def map_soql_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Map Salesforce SOQL records to the collector's internal log schema."""
+    """Map Salesforce SOQL records to the collector's internal log schema.
+
+    Accepts both the real Log__c schema (``Status__c`` as double,
+    ``Endpoint__c``/``WebserviceName__c`` for the resource) and the legacy
+    debug-log field names (``Status``, ``DurationMilliseconds``,
+    ``Application``) for compatibility.
+    """
     mapped: list[dict[str, Any]] = []
     for rec in records:
-        status = rec.get("Status") or rec.get("StatusCode__c") or 0
-        duration = rec.get("DurationMilliseconds") or rec.get("Duration_ms__c") or 0
+        status = rec.get("Status__c", rec.get("Status", rec.get("StatusCode__c", 0)))
+        duration = rec.get("DurationMilliseconds", rec.get("Duration_ms__c", 0))
+        resource = (
+            rec.get("Endpoint__c")
+            or rec.get("WebserviceName__c")
+            or rec.get("Method__c")
+            or str(rec.get("SystemModstamp", "unknown"))
+        )
         mapped.append(
             {
                 "log_id": str(rec.get("Id", "")),
@@ -63,11 +87,11 @@ def map_soql_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "org_id": str(
                     rec.get("OrganizationId__c", rec.get("Application", "ORG-REAL"))
                 ),
-                "status_code": int(status) if str(status).isdigit() else 0,
-                "duration_ms": int(duration) if str(duration).isdigit() else 0,
-                "resource": str(rec.get("SystemModstamp", "unknown")),
+                "status_code": _to_int(status),
+                "duration_ms": _to_int(duration),
+                "resource": str(resource),
                 "severity": "ERROR"
-                if str(status) in ("500", "502", "503", "504")
+                if _to_int(status) >= 500
                 else "INFO",
             }
         )
