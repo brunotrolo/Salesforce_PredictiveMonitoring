@@ -189,6 +189,8 @@ Metrics:
 
 **Status (16/08/2026):** ✅ **Fase 1 validada de ponta a ponta.** Teste T3.4 passou contra o MCP real (`soqlQuery` com parâmetro `q`, validado via `tools/list`/`getObjectSchema`): query `SELECT Id FROM Log__c LIMIT 1` retornou registros reais. Pipeline `--mode real` coletou 100 logs reais de `Log__c` (schema real: `Status__c` double, `Endpoint__c`, `Method__c` — sem campo de duração), risco HEALTHY. `collect.yml` rodou em produção via workflow_dispatch: snapshot persistido em `data/2026-08-16/2026-08-16T14-45-18Z.json` (risk 0.015, 5 alerts, validation válido). Refresh OAuth automático validado (401 → refresh_token → query OK). Secrets configuradas: `SALESFORCE_MCP_URL` (sobject-reads), `SALESFORCE_MCP_TOKEN`, `SALESFORCE_MCP_CLIENT_ID`, `SALESFORCE_MCP_REFRESH_TOKEN`.
 
+**Correção (16/08/2026, commit `fa0bb00`):** o cron intermitente falhava com `-32601 Method not found: notifications/initialized` (runs 31954233591, 31956521872). Causa: o wrapper enviava `notifications/initialized` via `_rpc()` com `id` de request — mas é uma **notificação** JSON-RPC (sem `id`, sem resposta esperada). Fix: novo método `_notify()` (payload sem `id`, tolera 202/204/body vazio, captura `Mcp-Session-Id`); `_initialize()` agora usa `_notify`. Validado contra o servidor real (initialize → notify → soqlQuery OK) e teste unitário novo (`test_notifications_initialized_is_sent_without_id`). CI verde (run 31957509367).
+
 **TESTE T3.4 - MCP Integration:**
 ```bash
 python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClient(); result = client.soql_query('SELECT Id FROM Log__c LIMIT 1'); assert result is not None"
