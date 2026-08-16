@@ -50,9 +50,6 @@ class SalesforceClient:
         self.url = url or os.environ.get("SALESFORCE_MCP_URL", DEFAULT_MCP_URL)
         self.token = token or os.environ.get("SALESFORCE_MCP_TOKEN") or ""
         self.client_id = client_id or os.environ.get("SALESFORCE_MCP_CLIENT_ID") or ""
-        self.refresh_token = (
-            refresh_token or os.environ.get("SALESFORCE_MCP_REFRESH_TOKEN") or ""
-        )
         self.discovery_url = discovery_url or OAUTH_DISCOVERY_URL
         self.refresh_token_file = (
             refresh_token_file or os.environ.get("SALESFORCE_MCP_RT_FILE") or ""
@@ -60,13 +57,17 @@ class SalesforceClient:
         self.refresh_token_key = (
             refresh_token_key or os.environ.get("SALESFORCE_MCP_RT_KEY") or ""
         )
-        if not self.refresh_token:
-            # Salesforce rotates the refresh token on every refresh (one-time
-            # use): persist the latest one (Fernet-encrypted) so the cron can
-            # survive multiple 5h access-token cycles without re-auth.
-            self.refresh_token = _load_rt_file(
+        # Precedence: explicit arg > persisted file > env. Salesforce rotates
+        # the refresh token on every refresh (one-time use), so the persisted
+        # file is always fresher than the env secret once a rotation happened.
+        refresh_token = refresh_token or ""
+        if not refresh_token:
+            refresh_token = _load_rt_file(
                 self.refresh_token_file, self.refresh_token_key
             )
+        if not refresh_token:
+            refresh_token = os.environ.get("SALESFORCE_MCP_REFRESH_TOKEN") or ""
+        self.refresh_token = refresh_token
         self._session_id: str | None = None
 
     # ------------------------------------------------------------------ public

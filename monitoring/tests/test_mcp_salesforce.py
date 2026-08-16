@@ -423,6 +423,37 @@ class TestAuth:
             server.stop()
             token_endpoint.stop()
 
+    def test_persisted_file_beats_stale_env_refresh_token(self, tmp_path, monkeypatch):
+        """Once a rotation happened, the persisted file must win over the
+        (now consumed) env secret, or the cron dies on the next refresh."""
+        server = MockMCPServer("unauthorized_once")
+        url = server.start()
+        token_endpoint = MockTokenEndpoint(rotate=True)
+        token_endpoint.start()
+        server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
+        rt_file = tmp_path / ".rt.enc"
+        from cryptography.fernet import Fernet
+
+        key = Fernet.generate_key().decode()
+        rt_file.write_bytes(Fernet(key.encode()).encrypt(b"persisted-rt"))
+        try:
+            monkeypatch.setenv("SALESFORCE_MCP_REFRESH_TOKEN", "consumed-env-rt")
+            client = SalesforceClient(
+                url=url,
+                token="tok-expired",
+                client_id="client-1",
+                discovery_url=f"{url}/.well-known/oauth-authorization-server",
+                refresh_token_file=str(rt_file),
+                refresh_token_key=key,
+            )
+            assert client.refresh_token == "persisted-rt"
+            result = client.soql_query("SELECT Id FROM Log__c")
+            assert json.loads(result)["totalSize"] == 1
+            assert client.refresh_token == "rotated-rt-1"
+        finally:
+            server.stop()
+            token_endpoint.stop()
+
 
 class TestErrors:
     def test_broken_server_response_raises(self):
