@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 # SOQL query used in real (Phase 1) mode: integration logs from the last hour.
@@ -14,16 +14,23 @@ from typing import Any
 # Method__c, WebserviceName__c, Message__c, Retried__c, Object__c,
 # ObjectId__c. There is no duration field on Log__c (no Nebula Logger yet),
 # so duration_ms stays 0 and slow-request detection is inactive until the
-# Nebula schema lands. LAST_N_HOURS:1 is the SOQL equivalent of
-# System.Now().addHours(-1).
+# Nebula schema lands. The window is a computed absolute timestamp, NOT
+# LAST_N_HOURS:1 (the MCP soqlQuery parser rejects that function - observed
+# 2026-08-16, MALFORMED_QUERY "unexpected token: 'LAST_N_HOURS'").
 SOQL_LOG_QUERY = (
     "SELECT Id, CreatedDate, Status__c, Endpoint__c, Method__c, "
     "WebserviceName__c, Message__c, Retried__c, Object__c, ObjectId__c, "
     "SystemModstamp "
     "FROM Log__c "
-    "WHERE CreatedDate >= LAST_N_HOURS:1 "
+    "WHERE CreatedDate >= {window_start} "
     "ORDER BY CreatedDate DESC LIMIT 100"
 )
+WINDOW_HOURS = 1
+
+
+def build_soql_query(window_start: str) -> str:
+    """Build the SOQL query with an absolute window start (ISO UTC, ``Z``)."""
+    return SOQL_LOG_QUERY.format(window_start=window_start)
 
 
 def generate_mock_logs() -> list[dict]:
@@ -118,7 +125,9 @@ def map_soql_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def fetch_real_logs(client: Any) -> list[dict[str, Any]]:
     """Fetch logs from Salesforce via MCP and map to collector schema."""
-    raw = client.query(SOQL_LOG_QUERY)
+    now = datetime.now(timezone.utc)
+    window_start = (now - timedelta(hours=WINDOW_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    raw = client.query(build_soql_query(window_start))
     if isinstance(raw, str):
         try:
             raw = json.loads(raw)

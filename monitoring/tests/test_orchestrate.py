@@ -205,6 +205,11 @@ class TestMapSoqlRecords:
         assert orchestrate._to_bool(None) is False
         assert orchestrate._to_bool("") is False
 
+    def test_build_soql_query_uses_absolute_window_start(self):
+        query = orchestrate.build_soql_query("2026-08-16T19:00:00Z")
+        assert "CreatedDate >= 2026-08-16T19:00:00Z" in query
+        assert "LAST_N_HOURS" not in query
+
     def test_float_2xx_status_is_info(self):
         mapped = orchestrate.map_soql_records(
             [{"Id": "L1", "Status__c": 200.0, "Endpoint__c": "/api/health"}]
@@ -240,7 +245,10 @@ class TestRunPipelineRealMode:
         ]
         client = FakeMCPClient(records)
         result, raw_logs = orchestrate.run_pipeline(mode="real", client=client)
-        assert client.calls == [orchestrate.SOQL_LOG_QUERY]
+        assert len(client.calls) == 1
+        assert "FROM Log__c" in client.calls[0]
+        assert "CreatedDate >= 2026-08-16T" in client.calls[0]
+        assert "LAST_N_HOURS" not in client.calls[0]
         assert raw_logs[0]["log_id"] == "log-1"
         assert result["mode"] == "real"
         assert result["logs_processed"] == 2
