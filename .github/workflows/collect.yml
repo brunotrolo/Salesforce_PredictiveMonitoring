@@ -49,18 +49,6 @@ jobs:
           path: data-branch
         continue-on-error: true
 
-      - name: Initialise data branch if missing
-        run: |
-          if [ ! -d data-branch/.git ]; then
-            rm -rf data-branch
-            mkdir -p data-branch
-            cd data-branch
-            git init -b data
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git remote add origin "https://github.com/${{ github.repository }}.git"
-          fi
-
       - name: Persist snapshot to data branch
         run: |
           set -e
@@ -69,7 +57,12 @@ jobs:
           cd data-branch
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin data 2>/dev/null || true
+          if git show-ref --verify --quiet refs/heads/data; then
+            git checkout data
+            git pull --rebase origin data 2>/dev/null || true
+          else
+            git checkout -b data
+          fi
           mkdir -p "data/${DATE}"
           cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
           git add "data/${DATE}/${STAMP}.json"
