@@ -176,6 +176,35 @@ class TestMapSoqlRecords:
         assert mapped[0]["resource"] == "/api/accounts"
         assert mapped[0]["severity"] == "ERROR"
 
+    def test_maps_real_log_extra_fields(self):
+        records = [
+            {
+                "Id": "a05bL000004jKLIQA2",
+                "CreatedDate": "2026-08-16T10:00:00.000Z",
+                "Status__c": 500.0,
+                "Endpoint__c": "/api/accounts",
+                "Message__c": "Timeout calling external API",
+                "Retried__c": True,
+                "Object__c": "Account",
+                "ObjectId__c": "001XX0001",
+            }
+        ]
+        mapped = orchestrate.map_soql_records(records)
+        assert mapped[0]["message"] == "Timeout calling external API"
+        assert mapped[0]["retried"] is True
+        assert mapped[0]["object_name"] == "Account"
+        assert mapped[0]["object_id"] == "001XX0001"
+
+    def test_retried_accepts_string_and_numeric_values(self):
+        assert orchestrate._to_bool(True) is True
+        assert orchestrate._to_bool(False) is False
+        assert orchestrate._to_bool("true") is True
+        assert orchestrate._to_bool("1") is True
+        assert orchestrate._to_bool("false") is False
+        assert orchestrate._to_bool(0) is False
+        assert orchestrate._to_bool(None) is False
+        assert orchestrate._to_bool("") is False
+
     def test_float_2xx_status_is_info(self):
         mapped = orchestrate.map_soql_records(
             [{"Id": "L1", "Status__c": 200.0, "Endpoint__c": "/api/health"}]

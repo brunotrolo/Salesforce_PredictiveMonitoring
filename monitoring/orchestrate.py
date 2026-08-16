@@ -8,15 +8,20 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
-# SOQL query used in real (Phase 1) mode: recent debug/error logs.
+# SOQL query used in real (Phase 1) mode: integration logs from the last hour.
 # Field-API names follow the actual Log__c schema in the org (verified via
 # getObjectSchema on 2026-08-16): Status__c (double), Endpoint__c,
-# Method__c, WebserviceName__c. There is no duration field on Log__c.
+# Method__c, WebserviceName__c, Message__c, Retried__c, Object__c,
+# ObjectId__c. There is no duration field on Log__c (no Nebula Logger yet),
+# so duration_ms stays 0 and slow-request detection is inactive until the
+# Nebula schema lands. LAST_N_HOURS:1 is the SOQL equivalent of
+# System.Now().addHours(-1).
 SOQL_LOG_QUERY = (
     "SELECT Id, CreatedDate, Status__c, Endpoint__c, Method__c, "
-    "WebserviceName__c, SystemModstamp "
+    "WebserviceName__c, Message__c, Retried__c, Object__c, ObjectId__c, "
+    "SystemModstamp "
     "FROM Log__c "
-    "WHERE CreatedDate = LAST_N_DAYS:1 "
+    "WHERE CreatedDate >= LAST_N_HOURS:1 "
     "ORDER BY CreatedDate DESC LIMIT 100"
 )
 
@@ -62,6 +67,17 @@ def _to_int(value: Any) -> int:
         return 0
 
 
+def _to_bool(value: Any) -> bool:
+    """Coerce a Salesforce boolean-ish value to bool ('' / 0 / 'false' -> False)."""
+    if value is None or value == "":
+        return False
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() in ("true", "1", "yes", "sim")
+
+
 def map_soql_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Map Salesforce SOQL records to the collector's internal log schema.
 
@@ -91,6 +107,10 @@ def map_soql_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "duration_ms": _to_int(duration),
                 "resource": str(resource),
                 "severity": "ERROR" if _to_int(status) >= 500 else "INFO",
+                "message": str(rec.get("Message__c", "")),
+                "retried": _to_bool(rec.get("Retried__c")),
+                "object_name": str(rec.get("Object__c", "")),
+                "object_id": str(rec.get("ObjectId__c", "")),
             }
         )
     return mapped
@@ -151,6 +171,7 @@ def run_pipeline(mode: str = "mock", client: Any = None) -> tuple[dict, list[dic
         "risk_score": analysis["risk_score"],
         "errors_count": analysis["errors_count"],
         "slow_requests_count": analysis["slow_count"],
+        "retried_count": analysis["retried_count"],
         "alerts": analysis["alerts"],
         "comparison": {
             "prediction": comparison.prediction,

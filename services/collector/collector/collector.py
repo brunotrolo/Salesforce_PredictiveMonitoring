@@ -13,6 +13,10 @@ class SalesforceLog(BaseModel):
     duration_ms: int
     resource: str
     severity: str = "INFO"
+    message: str = ""
+    retried: bool = False
+    object_name: str = ""
+    object_id: str = ""
 
 
 class LogCollector:

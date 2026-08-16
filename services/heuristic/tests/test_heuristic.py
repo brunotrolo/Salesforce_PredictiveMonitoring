@@ -59,3 +59,48 @@ class TestAlertSeverity:
         result = engine.analyze(slow_logs)
         assert len(result["alerts"]) == 1
         assert result["alerts"][0]["severity"] == "WARNING"
+
+    def test_retried_creates_warning(self, engine):
+        retried_logs = [
+            {
+                "log_id": "L1",
+                "status_code": 200,
+                "duration_ms": 100,
+                "resource": "/api/retried",
+                "retried": True,
+            },
+        ]
+        result = engine.analyze(retried_logs)
+        assert result["retried_count"] == 1
+        assert len(result["alerts"]) == 1
+        assert result["alerts"][0]["severity"] == "WARNING"
+        assert "Retry on /api/retried" in result["alerts"][0]["message"]
+
+    def test_error_alert_includes_message_when_present(self, engine):
+        error_logs = [
+            {
+                "log_id": "L1",
+                "status_code": 502,
+                "duration_ms": 100,
+                "resource": "/api/gateway",
+                "message": "Upstream refused connection",
+            },
+        ]
+        result = engine.analyze(error_logs)
+        assert len(result["alerts"]) == 1
+        assert result["alerts"][0]["severity"] == "CRITICAL"
+        assert "Upstream refused connection" in result["alerts"][0]["message"]
+
+    def test_healthy_logs_with_retried_false_do_not_alert(self, engine):
+        healthy_retried = [
+            {
+                "log_id": "L1",
+                "status_code": 200,
+                "duration_ms": 100,
+                "resource": "/api/a",
+                "retried": False,
+            },
+        ]
+        result = engine.analyze(healthy_retried)
+        assert result["retried_count"] == 0
+        assert len(result["alerts"]) == 0
