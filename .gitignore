@@ -31,11 +31,8 @@ monitoring_output.json
 .DS_Store
 Thumbs.db
 
-# Agent tooling (OpenCode local skills, lock files)
-skills-lock.json
-
-# Agent tooling - local installs (machine-specific; canonical pack lives in agent-skills/)
-.claude/
+# Agent tooling - local overrides (machine-specific)
+.claude/settings.local.json
 .agents/
 .codex/
 .github/agents/
