@@ -182,7 +182,7 @@ Deliverables:
 Metrics:
   - MCP queries work in Actions: ✅ validado (run 31953607680, 16/08/2026)
   - Data persisted: ✅ 1º ciclo real (branch `data/`, data/2026-08-16/*.json)
-  - Dashboard live: ✅ frontend lê branch `data/` (raw.githubusercontent)
+  - Dashboard live: ⏳ fetcher validado (`site/api/client.js`, 12 testes, 92% cov), página HTML **não publicada** (fora do escopo da Fase 1 — GitHub Pages 404 na raiz corrigido com `docs/index.md`, commit `6782a27`)
   - No credentials in repo: ✅
   - 24/7 validation: ≥2 cycles ✅ (cron 15-min disparou múltiplos ciclos)
 ```
