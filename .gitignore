@@ -31,10 +31,16 @@ monitoring_output.json
 .DS_Store
 Thumbs.db
 
-# Agent tooling (Claude Code / OpenCode)
+# Agent tooling (OpenCode local skills, lock files)
+skills-lock.json
+
+# Agent tooling - local installs (machine-specific; canonical pack lives in agent-skills/)
 .claude/
 .agents/
-skills-lock.json
+.codex/
+.github/agents/
+.github/hooks/
+.github/skills/
 
 # Env
 .env

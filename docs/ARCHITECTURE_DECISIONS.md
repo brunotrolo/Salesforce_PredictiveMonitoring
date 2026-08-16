@@ -605,6 +605,159 @@ Use **Tailwind CSS** for utility-first styling.
 
 ---
 
+## ADR-011: Agent Skills Pack Vendored at Repo Root
+
+**Status:** ✅ ACCEPTED  
+**Date:** 2026-08-16
+
+### Context
+The project uses agent skills (Claude Code, OpenCode, Codex, Gemini, Copilot) with per-tool install locations (`.claude/skills`, `.agents/skills`, `.codex/`, `.github/skills`). These are machine-local installs and should not be versioned. We need a single canonical, versioned copy of the skills pack.
+
+Options:
+1. Git submodule (external repo)
+2. Vendor full pack at repo root (`agent-skills/`)
+3. Symlinks from per-tool locations into a shared folder
+
+### Decision
+Vendor the complete agent-skills pack in **`agent-skills/` at the repo root**. Per-tool install locations (`.claude/`, `.agents/`, `.codex/`, `.github/{agents,hooks,skills}`) remain machine-local, are **git-ignored**, and reference the canonical pack.
+
+### Rationale
+- **Single source of truth**: the pack is versioned with the code it supports
+- **No external dependency**: works offline, no submodule sync issues
+- **Auditability**: skill changes appear in git history alongside code changes
+- **Portability**: a fresh clone gets both code and skills
+- Avoids submodule complexity (per user decision)
+
+### Consequences
+- **Positive:**
+  - Skills evolve in lockstep with the repo
+  - No submodule maintenance
+  - Any agent tool can point to the same pack
+
+- **Negative:**
+  - Repo contains agent-tooling content (noise for non-agent users)
+  - Local installs can drift from the canonical pack (mitigated by git-ignoring them)
+
+### Related Decisions
+- ADR-006 (GitHub Actions)
+- SECURITY_AUDIT (tooling dirs git-ignored)
+
+---
+
+## ADR-012: Per-Service pytest Configuration
+
+**Status:** ✅ ACCEPTED  
+**Date:** 2026-08-16
+
+### Context
+Backend is split into micro-services (ADR-001) each with its own `src/` package. Tests need to import from `src/` and measure coverage per service.
+
+Options:
+1. Single root pytest config + `conftest.py` injecting `sys.path`
+2. Per-service `pytest.ini` with `pythonpath = src`
+3. Editable installs (`pip install -e`) per service
+
+### Decision
+Each service owns a **`pytest.ini`** with `testpaths = tests`, `pythonpath = src`, and `addopts = --cov=src --cov-report=term-missing`. Tests run from the service directory.
+
+### Rationale
+- **Zero install step**: no packaging needed in Phase 0
+- **Isolated coverage**: `--cov=src` measures exactly the service under test
+- **Matches micro-service isolation**: each service's test loop is self-contained (ADR-001, ADR-005)
+- No shared `conftest.py` cross-contamination
+
+### Consequences
+- **Positive:**
+  - Fast, isolated test loops (`cd services/collector && pytest`)
+  - Coverage numbers are meaningful per service
+  - Works without any build/packaging tooling
+
+- **Negative:**
+  - No single root `pytest` command (CI must loop over services)
+  - `pythonpath` is pytest-only; other tools don't see `src/` (orchestrator handles this via ADR-014)
+
+### Related Decisions
+- ADR-001 (Micro-services)
+- ADR-005 (Test pyramid)
+- ADR-014 (Orchestrator imports)
+
+---
+
+## ADR-013: Jest ESM via npx --node-options (Windows Workaround)
+
+**Status:** ✅ ACCEPTED  
+**Date:** 2026-08-16
+
+### Context
+Frontend tests run with Jest on ESM (`"type": "module"` in package.json). Jest 29 requires `--experimental-vm-modules` for ESM. On Windows, setting `NODE_OPTIONS` as an env var in npm scripts is unreliable (cross-env needed).
+
+Options:
+1. `NODE_OPTIONS=--experimental-vm-modules jest` (POSIX only)
+2. `cross-env NODE_OPTIONS=... jest` (extra dependency)
+3. `npx --node-options=--experimental-vm-modules jest` (cross-platform, no dependency)
+
+### Decision
+Use **`npx --node-options=--experimental-vm-modules jest --coverage`** in npm scripts.
+
+### Rationale
+- **Cross-platform**: works on Windows and POSIX without `cross-env`
+- **No extra dependency**: npx is bundled with npm
+- `--node-options` passes V8 flags to the Node process spawned by npx — exactly what Jest ESM needs
+
+### Consequences
+- **Positive:**
+  - One command works for all devs (Windows + macOS/Linux)
+  - No `cross-env` in devDependencies
+
+- **Negative:**
+  - Slightly opaque (why `npx`? — documented in package.json scripts)
+  - If Jest upgrades to native ESM support, this workaround becomes removable
+
+### Related Decisions
+- ADR-005 (Test pyramid)
+- ADR-010 (Frontend stack)
+
+---
+
+## ADR-014: Orchestrator Imports Services via sys.path
+
+**Status:** ✅ ACCEPTED  
+**Date:** 2026-08-16
+
+### Context
+`monitoring/orchestrate.py` must import the three services (`collector`, `heuristic`, `comparison`) plus `shared`. Services live under `services/<name>/src/` without packaging (ADR-012).
+
+Options:
+1. `sys.path.insert` of each `src/` dir
+2. Editable installs (`pip install -e services/*`)
+3. Move orchestrator inside a service package
+4. pyproject/workspace packaging (uv, hatch)
+
+### Decision
+In Phase 0, the orchestrator uses **`sys.path.insert`** for the four service `src/` directories at import time (orchestrate.py:12-15). Revisit in Phase 1 (see consequences).
+
+### Rationale
+- **Zero install**: the pipeline runs with stock Python + requirements
+- **Phase 0 is mock-only**: no deployment surface, no environment guarantees needed yet
+- Consistent with ADR-012's "no packaging" choice
+
+### Consequences
+- **Positive:**
+  - `python monitoring/orchestrate.py --mode mock` works immediately after pip install -r requirements
+  - No editable-install side effects
+
+- **Negative:**
+  - Fragile: path order matters, `sys.path` pollution, breaks if layout changes
+  - **Phase 1 action**: replace with editable installs or packaging (pyproject) before real deployment
+  - The hack is the reason orchestrate.py needs its own test (see REVIEW_FINDINGS)
+
+### Related Decisions
+- ADR-001 (Micro-services)
+- ADR-012 (Per-service pytest)
+- REVIEW_FINDINGS (orchestrate.py test gap)
+
+---
+
 ## DECISION MATRIX
 
 | Decision | Phase | Status | Risk | Reversible? |
@@ -619,6 +772,10 @@ Use **Tailwind CSS** for utility-first styling.
 | Git datastore (ADR-008) | 1+ | Accepted | Medium | Yes (add database) |
 | Pydantic (ADR-009) | 0+ | Accepted | Low | Yes (manual validation) |
 | Tailwind CSS (ADR-010) | 0+ | Accepted | Low | Yes (new CSS framework) |
+| Agent skills vendored (ADR-011) | 0+ | Accepted | Low | Yes (switch to submodule) |
+| Per-service pytest (ADR-012) | 0+ | Accepted | Low | Yes (root config) |
+| Jest ESM via npx (ADR-013) | 0+ | Accepted | Low | Yes (cross-env or native ESM) |
+| sys.path orchestrator (ADR-014) | 0→1 | Accepted | Medium | Yes (Phase 1: editable installs) |
 
 ---
 
@@ -635,7 +792,7 @@ Use **Tailwind CSS** for utility-first styling.
 
 ---
 
-**Last Updated:** 2026-08-15  
+**Last Updated:** 2026-08-16  
 **Next Review:** Start of Phase 1 (2026-08-22)
 
 All decisions are **ACCEPTED** and ready for implementation.
