@@ -51,7 +51,8 @@ jobs:
 
       - name: Initialise data branch if missing
         run: |
-          if [ ! -d data-branch ]; then
+          if [ ! -d data-branch/.git ]; then
+            rm -rf data-branch
             mkdir -p data-branch
             cd data-branch
             git init -b data
