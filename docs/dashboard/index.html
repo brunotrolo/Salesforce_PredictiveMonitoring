@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b0e11">
+  <meta name="description" content="Monitor preditivo do risco da integração Salesforce MCP: instrumento de risco, tendência das últimas coletas e alertas em tempo real.">
+  <title>Monitor Preditivo — Salesforce MCP</title>
+  <style>
+    :root {
+      --bg: #0b0e11;
+      --surface: #12161b;
+      --surface-2: #171c23;
+      --hairline: #1f252d;
+      --text: #e8eaed;
+      --text-dim: #9aa3b2;
+      --text-faint: #6b7280;
+      --accent: #38bdf8;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.03), 0 10px 28px rgba(0, 0, 0, 0.45);
+      --radius: 10px;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --mono: ui-monospace, "Cascadia Code", "Segoe UI Mono", "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { color-scheme: dark; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .hidden { display: none !important; }
+
+    a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    a:hover { text-decoration: underline; }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 12px;
+      top: -48px;
+      z-index: 20;
+      padding: 8px 14px;
+      background: var(--accent);
+      color: #04131d;
+      font-weight: 600;
+      border-radius: 6px;
+      transition: top 0.15s ease-out;
+    }
+    .skip-link:focus-visible { top: 12px; }
+
+    /* ---------- top bar ---------- */
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 16px;
+      padding: 14px clamp(16px, 4vw, 32px);
+      background: rgba(11, 14, 17, 0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--hairline);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      margin-right: auto;
+    }
+    .brand-name {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .brand-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      padding: 5px 10px;
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .badge::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--amber);
+    }
+    .badge[data-mode="real"] {
+      color: var(--green);
+      border-color: rgba(34, 197, 94, 0.35);
+    }
+    .badge[data-mode="real"]::before { background: var(--green); }
+
+    .last-update {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+
+    .btn {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background 0.15s ease-out, border-color 0.15s ease-out;
+    }
+    .btn:hover {
+      background: #1d242d;
+      border-color: #2b3340;
+    }
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    /* ---------- layout ---------- */
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 20px clamp(16px, 4vw, 32px) 48px;
+    }
+
+    .status-line {
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--amber);
+    }
+    .status-line::before {
+      content: "▲ ";
+      font-family: var(--mono);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) 2fr;
+      gap: 16px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-panel);
+      padding: 18px 20px 20px;
+    }
+
+    .card-head {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .card-head h2 {
+      margin: 0;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .card-note {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+
+    /* ---------- risk instrument ---------- */
+
+    .instrument {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .gauge-track {
+      position: relative;
+      display: flex;
+      height: 10px;
+      border-radius: 6px;
+      overflow: visible;
+      margin-top: 22px;
+    }
+    .gauge-zone { height: 100%; }
+    .zone-healthy { background: var(--green); opacity: 0.5; border-radius: 6px 0 0 6px; flex: 0 0 40%; }
+    .zone-warn { background: var(--amber); opacity: 0.5; flex: 0 0 30%; }
+    .zone-critical { background: var(--red); opacity: 0.5; border-radius: 0 6px 6px 0; flex: 1; }
+
+    .gauge-marker {
+      position: absolute;
+      top: -6px;
+      bottom: -6px;
+      left: 0;
+      width: 2px;
+      background: var(--marker-color, var(--accent));
+      border-radius: 2px;
+      will-change: left;
+    }
+    .gauge-marker::after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--marker-color, var(--accent));
+      box-shadow: 0 0 8px var(--marker-color, var(--accent));
+    }
+
+    .gauge-ticks {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 10px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .gauge-readout {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-top: 26px;
+    }
+    .gauge-number {
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+      font-size: clamp(34px, 6vw, 44px);
+      font-weight: 700;
+      line-height: 1;
+      opacity: 0;
+      transition: opacity 0.6s ease-out;
+    }
+    .gauge-level {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    .gauge-hint {
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+    .gauge-hint code {
+      font-family: var(--mono);
+      color: var(--text-dim);
+    }
+
+    /* ---------- trend chart ---------- */
+
+    .chart-canvas { width: 100%; }
+    .chart-canvas svg { display: block; width: 100%; height: auto; }
+
+    .chart-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      fill: var(--text-faint);
+    }
+    .chart-caption {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-faint);
+      text-align: right;
+    }
+
+    /* ---------- stats strip ---------- */
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: var(--hairline);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .stat {
+      background: var(--surface);
+      padding: 14px 18px;
+      min-width: 0;
+    }
+    .stat dt {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .stat dd {
+      margin: 6px 0 0;
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* ---------- alerts ---------- */
+
+    .alerts {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .alert-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 10px 2px;
+      border-top: 1px solid var(--hairline);
+    }
+    .alert-row:first-child { border-top: 0; }
+    .alert-dot {
+      flex: 0 0 auto;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      align-self: center;
+    }
+    .alert-msg { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+    .alert-ref {
+      flex: 0 0 auto;
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+
+    .empty-note {
+      padding: 14px 2px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* ---------- skeleton ---------- */
+
+    .skeleton {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 20px clamp(16px, 4vw, 32px) 48px;
+    }
+    .sk-block {
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      min-height: 96px;
+      position: relative;
+      overflow: hidden;
+    }
+    .sk-block::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.045) 50%, transparent 70%);
+      transform: translateX(-100%);
+      animation: shimmer 1.6s ease-in-out infinite;
+    }
+    .sk-line {
+      height: 10px;
+      border-radius: 5px;
+      background: var(--surface-2);
+      margin-bottom: 10px;
+    }
+    .sk-line.short { width: 40%; }
+
+    @keyframes shimmer {
+      to { transform: translateX(100%); }
+    }
+
+    /* ---------- footer ---------- */
+
+    footer {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 32px) 40px;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+    footer p { margin: 0 0 4px; }
+
+    /* ---------- responsive ---------- */
+
+    @media (max-width: 760px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .topbar { gap: 8px 12px; }
+      .brand { margin-right: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+      .gauge-number { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!--
+  THESIS: A live instrument for the Salesforce MCP integration — one glance
+  answers "is it breaking right now, and is it trending toward breaking?" —
+  a console surface where data is the interface, never decoration.
+
+  OWN-WORLD: Dark observability register (user-confirmed direction). Near-black
+  graphite ground, hairline panels, one cyan accent for interaction. Status hues
+  reserved for data meaning only. Mono for every measurement. No gauges for show.
+
+  STORY: An operator opens the page at any hour and within two seconds reads the
+  current risk, its direction over the last 12 cycles, and what is wrong right
+  now. The instrument answers before the question is asked.
+
+  FIRST VIEWPORT: Risk instrument with threshold zones + trend chart side by
+  side; stats strip; alert list beneath. Single primary action: refresh. Mock
+  mode is always labeled, never silent.
+
+  FORM: Console, not marketing page. User-confirmed dark/technical direction —
+  no roll. Built on the tested fetcher contract; deployed via docs/ mirror
+  because Pages serves only docs/.
+
+  FINISH: build + screenshot desktop/mobile + detect.mjs once + fix in one batch.
+  -->
+
+  <a class="skip-link" href="#content">Pular para o conteúdo</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-name">Monitor Preditivo</span>
+      <span class="brand-desc">Integração Salesforce MCP</span>
+    </div>
+    <span id="mode-badge" class="badge" data-mode="mock">aguardando</span>
+    <span id="last-update" class="last-update">—</span>
+    <button id="refresh-btn" class="btn" type="button">Atualizar</button>
+  </header>
+
+  <div id="skeleton" class="skeleton" aria-hidden="true">
+    <div class="sk-block"><div class="sk-line short"></div><div class="sk-line"></div></div>
+    <div class="sk-block"><div class="sk-line short"></div><div class="sk-line"></div><div class="sk-line short"></div></div>
+  </div>
+
+  <main id="content" class="hidden">
+    <p id="page-status" class="status-line hidden"></p>
+
+    <div class="grid">
+      <section class="card instrument" aria-labelledby="instrument-title">
+        <div class="card-head">
+          <h2 id="instrument-title">Risco de integração</h2>
+          <span id="gauge-value" class="card-note">—</span>
+        </div>
+        <div class="gauge-track" role="img" aria-label="Escala de risco com zonas de atenção: saudável até 0,4; atenção até 0,7; crítico acima">
+          <div class="gauge-zone zone-healthy"></div>
+          <div class="gauge-zone zone-warn"></div>
+          <div class="gauge-zone zone-critical"></div>
+          <div class="gauge-marker" id="gauge-marker"></div>
+        </div>
+        <div class="gauge-ticks" aria-hidden="true">
+          <span>0</span>
+          <span>0,4</span>
+          <span>0,7</span>
+          <span>1,0</span>
+        </div>
+        <div class="gauge-readout">
+          <span id="gauge-readout" class="gauge-number" aria-hidden="true">—</span>
+          <span id="gauge-level" class="gauge-level">aguardando dados</span>
+        </div>
+        <p class="gauge-hint">
+          Regra de risco: ≥ 0,7 é crítico, ≥ 0,4 é atenção. Score calculado por
+          heurística sobre <code>Log__c</code> no pipeline.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="chart-title">
+        <div class="card-head">
+          <h2 id="chart-title">Tendência de risco</h2>
+          <span class="card-note">últimas coletas · 15 min</span>
+        </div>
+        <div id="trend-chart" class="chart-canvas"></div>
+        <div id="trend-empty" class="empty-note hidden">Dados insuficientes para a tendência.</div>
+      </section>
+    </div>
+
+    <dl class="stats">
+      <div class="stat">
+        <dt>Erros</dt>
+        <dd id="stat-errors">—</dd>
+      </div>
+      <div class="stat">
+        <dt>Lentidão</dt>
+        <dd id="stat-slow">—</dd>
+      </div>
+      <div class="stat">
+        <dt>Logs processados</dt>
+        <dd id="stat-logs">—</dd>
+      </div>
+      <div class="stat">
+        <dt>Validação</dt>
+        <dd id="stat-validation">—</dd>
+      </div>
+    </dl>
+
+    <section class="card" aria-labelledby="alerts-title">
+      <div class="card-head">
+        <h2 id="alerts-title">Alertas</h2>
+        <span class="card-note"><span id="alerts-count">0</span> neste ciclo</span>
+      </div>
+      <ul id="alerts-list" class="alerts"></ul>
+      <div id="alerts-empty" class="empty-note hidden">Nenhum alerta neste ciclo.</div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Pipeline de coleta a cada 15 minutos (GitHub Actions) · snapshot em <a href="https://github.com/brunotrolo/Salesforce_PredictiveMonitoring/tree/data" rel="noopener">branch data/</a></p>
+    <p>Fetcher validado por testes (<code>site/api/client.js</code>) · página publicada a partir de <code>docs/</code></p>
+  </footer>
+
+  <script type="module" src="./assets/app.js"></script>
+</body>
+</html>
