@@ -1,6 +1,7 @@
 # HARDENING REPORT — Gate de entrada para a Fase 1
 
 **Data:** 2026-08-16
+**Data resolução dos bloqueadores:** 2026-08-16 (commit `34a2192`)
 **Skill aplicada:** `agent-skills/skills/shipping-and-launch/SKILL.md`
 **Propósito:** checklist pre-launch da Fase 0 — decidir se a Fase 0 está "pronta para ser base da Fase 1".
 
@@ -8,7 +9,7 @@
 
 ## Verdicto
 
-**⚠️ CONDITIONAL PASS** — a Fase 0 está funcional e documentada, mas **3 itens bloqueiam** considerar o pipeline "hardened" antes da Fase 1: CI ausente, orquestrador sem teste, dependências sem auditoria. Nada bloqueia o desenvolvimento da Fase 1 em si (o código é sólido), mas estes itens devem ser o **primeiro commit da Fase 1**.
+**✅ PASS** — Fase 0 hardened. Os 3 bloqueadores do audit original (CI, teste do orquestrador, auditoria de dependências) foram implementados no commit `34a2192` e validados pelo próprio CI no GitHub Actions (`test.yml`, run success). Restam apenas itens de qualidade não-bloqueadores (ruff/black) para a Fase 1.
 
 ## Checklist (shipping-and-launch)
 
@@ -17,16 +18,16 @@
 - [x] Cobertura ≥ meta (100% vs 80/70 exigidos)
 - [x] Nenhum TODO/FIXME no código-fonte (matches só em `node_modules/`)
 - [x] Nenhum `console.log` no código-fonte (matches só em `node_modules/`)
-- [ ] ~~Linter configurado~~ → **Phase 1** (ruff/black)
-- [ ] ~~Teste para `orchestrate.py`~~ → **BLOQUEADOR** (pipeline end-to-end sem cobertura automatizada)
-- [ ] ~~CI (`.github/workflows/test.yml`)~~ → **BLOQUEADOR** (nada roda em push/PR)
+- [x] ~~Linter configurado~~ → **Phase 1** (ruff/black)
+- [x] ~~Teste para `orchestrate.py`~~ → **RESOLVIDO** (12 testes em `monitoring/tests/test_orchestrate.py`, 98% coverage — linha restante é o entrypoint `__main__`)
+- [x] ~~CI (`.github/workflows/test.yml`)~~ → **RESOLVIDO** (pytest ×4 + orquestrador + jest + audits em push/PR; run success em `34a2192`)
 
 ### Segurança
 - [x] Zero segredos commitados
 - [x] Validação de entrada via pydantic
 - [x] Tooling local (`.claude/`, `.agents/`, `.codex/`, `.github/{agents,hooks,skills}`) fora do git — **corrigido nesta revisão** (`.gitignore`)
-- [ ] ~~`pip-audit` / `npm audit`~~ → **BLOQUEADOR** (configurar no CI da Phase 1)
-- [ ] ~~Substituir `assert` por `raise`~~ → Phase 1 (baixa severidade hoje)
+- [x] ~~`pip-audit` / `npm audit`~~ → **RESOLVIDO** (etapas no CI, `--audit-level=high` para npm)
+- [x] ~~Substituir `assert` por `raise`~~ → **RESOLVIDO** (`raise ValueError` com mensagens explícitas em `orchestrate.py`; `except Exception` estreitado para `pydantic.ValidationError` em `collector.py`; constantes nomeadas em `heuristic.py`/`comparison.py`)
 
 ### Infraestrutura
 - [x] Nenhuma dependência de rede (100% offline/mock) — exatamente como a SPEC pede
@@ -48,13 +49,13 @@
 
 ## Ações obrigatórias antes de fechar a Fase 1
 
-| # | Ação | Bloqueador? |
-|---|---|---|
-| 1 | Criar `.github/workflows/test.yml` (pytest ×4 serviços + jest) | ✅ Sim |
-| 2 | Teste para `orchestrate.py` (pipeline completo, incl. `--mode mock`) | ✅ Sim |
-| 3 | `pip-audit` + `npm audit` no CI | ✅ Sim |
-| 4 | Ruff/black + hook de lint | Não (qualidade) |
-| 5 | Trocar `assert` por `raise` em `orchestrate.py` | Não (robustez) |
+| # | Ação | Bloqueador? | Status |
+|---|---|---|---|
+| 1 | Criar `.github/workflows/test.yml` (pytest ×4 serviços + jest) | ✅ Sim | ✅ Feito (`34a2192`, run success) |
+| 2 | Teste para `orchestrate.py` (pipeline completo, incl. `--mode mock`) | ✅ Sim | ✅ Feito (12 testes, 98% cov) |
+| 3 | `pip-audit` + `npm audit` no CI | ✅ Sim | ✅ Feito (etapas no CI) |
+| 4 | Ruff/black + hook de lint | Não (qualidade) | ⏳ Phase 1 |
+| 5 | Trocar `assert` por `raise` em `orchestrate.py` | Não (robustez) | ✅ Feito (valeu também p/ collector/heuristic/comparison) |
 
 ## O que NÃO entra na Fase 1 (sem decisão explícita)
 
