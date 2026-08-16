@@ -78,7 +78,7 @@ class TestMain:
         assert "health_check" in data
 
     def test_invalid_mode_exits_with_error(self, monkeypatch):
-        monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--mode", "real"])
+        monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--mode", "bogus"])
         try:
             orchestrate.main()
             raise AssertionError("expected SystemExit")
@@ -87,7 +87,7 @@ class TestMain:
 
     def test_raises_when_pipeline_result_missing_keys(self, tmp_path, monkeypatch):
         monkeypatch.setattr(
-            orchestrate, "run_pipeline", lambda: ({"risk_score": 0.5}, [])
+            orchestrate, "run_pipeline", lambda mode="mock": ({"risk_score": 0.5}, [])
         )
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
@@ -99,7 +99,9 @@ class TestMain:
 
     def test_raises_when_risk_score_out_of_range(self, tmp_path, monkeypatch):
         bad_result = {"risk_score": 1.5, "alerts": [], "health_check": {}}
-        monkeypatch.setattr(orchestrate, "run_pipeline", lambda: (bad_result, []))
+        monkeypatch.setattr(
+            orchestrate, "run_pipeline", lambda mode="mock": (bad_result, [])
+        )
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
         try:
@@ -107,3 +109,94 @@ class TestMain:
             raise AssertionError("expected ValueError")
         except ValueError as e:
             assert "out of range" in str(e)
+
+
+class FakeMCPClient:
+    """MCP client stub for real-mode tests (no network)."""
+
+    def __init__(self, records):
+        self._records = records
+        self.calls = []
+
+    def query(self, soql):
+        self.calls.append(soql)
+        return {"records": self._records}
+
+
+class TestMapSoqlRecords:
+    def test_maps_basic_fields(self):
+        records = [
+            {
+                "Id": "a00X000001",
+                "CreatedDate": "2026-08-16T10:00:00.000Z",
+                "Status": "500",
+                "DurationMilliseconds": 1500,
+                "Application": "ORG-X",
+            }
+        ]
+        mapped = orchestrate.map_soql_records(records)
+        assert mapped[0]["log_id"] == "a00X000001"
+        assert mapped[0]["timestamp"] == "2026-08-16T10:00:00.000Z"
+        assert mapped[0]["status_code"] == 500
+        assert mapped[0]["duration_ms"] == 1500
+        assert mapped[0]["org_id"] == "ORG-X"
+        assert mapped[0]["severity"] == "ERROR"
+
+    def test_handles_missing_fields_gracefully(self):
+        mapped = orchestrate.map_soql_records([{}])
+        assert mapped[0]["log_id"] == ""
+        assert mapped[0]["status_code"] == 0
+        assert mapped[0]["duration_ms"] == 0
+        assert mapped[0]["severity"] == "INFO"
+
+    def test_info_severity_for_2xx_status(self):
+        mapped = orchestrate.map_soql_records(
+            [{"Id": "L1", "Status": "200", "DurationMilliseconds": "50"}]
+        )
+        assert mapped[0]["severity"] == "INFO"
+        assert mapped[0]["status_code"] == 200
+
+
+class TestRunPipelineRealMode:
+    def test_uses_mcp_client_to_fetch_logs(self):
+        records = [
+            {
+                "Id": "log-1",
+                "CreatedDate": "2026-08-16T10:00:00Z",
+                "Status": "200",
+                "DurationMilliseconds": 100,
+                "Application": "ORG-REAL",
+            },
+            {
+                "Id": "log-2",
+                "CreatedDate": "2026-08-16T10:01:00Z",
+                "Status": "500",
+                "DurationMilliseconds": 2000,
+                "Application": "ORG-REAL",
+            },
+        ]
+        client = FakeMCPClient(records)
+        result, raw_logs = orchestrate.run_pipeline(mode="real", client=client)
+        assert client.calls == [orchestrate.SOQL_LOG_QUERY]
+        assert raw_logs[0]["log_id"] == "log-1"
+        assert result["mode"] == "real"
+        assert result["logs_processed"] == 2
+        assert 0 <= result["risk_score"] <= 1
+
+    def test_empty_records_returns_zero_logs_pipeline(self):
+        client = FakeMCPClient([])
+        result, raw_logs = orchestrate.run_pipeline(mode="real", client=client)
+        assert raw_logs == []
+        assert result["logs_processed"] == 0
+
+    def test_handles_client_returning_string_payload(self):
+        import json as _json
+
+        payload = {
+            "records": [{"Id": "L1", "Status": "500", "DurationMilliseconds": 1500}]
+        }
+        client = FakeMCPClient.__new__(FakeMCPClient)
+        client.calls = []
+        client.query = lambda soql: _json.dumps(payload)
+        result, raw_logs = orchestrate.run_pipeline(mode="real", client=client)
+        assert raw_logs[0]["log_id"] == "L1"

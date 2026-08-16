@@ -56,6 +56,8 @@
 | 3 | `pip-audit` + `npm audit` no CI | ✅ Sim | ✅ Feito (etapas no CI) |
 | 4 | Ruff/black + hook de lint | Não (qualidade) | ✅ Feito (ruff + format-check no CI) |
 | 5 | Trocar `assert` por `raise` em `orchestrate.py` | Não (robustez) | ✅ Feito (valeu também p/ collector/heuristic/comparison) |
+| 6 | Wrapper MCP `monitoring/mcp_salesforce.py` (ADR-007) com testes mock | ✅ Sim (Fase 1) | ✅ Feito (10 testes, 87% cov) — validação real depende de credenciais do usuário |
+| 7 | `site/api/client.js` live fetcher (branch `data/`) + testes | ✅ Sim (Fase 1) | ✅ Feito (12 testes, 92% cov) |
 
 ## O que NÃO entra na Fase 1 (sem decisão explícita)
 

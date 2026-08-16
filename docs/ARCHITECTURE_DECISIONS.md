@@ -432,6 +432,9 @@ client = SalesforceClient()
 logs = client.soql_query("SELECT * FROM Log__c WHERE CreatedDate > :yesterday")
 ```
 
+### Phase 1 Implementation Note (2026-08-16)
+Wrapper `monitoring/mcp_salesforce.py` implementado conforme ADR-016 (editable install) — o nome do arquivo segue o import do TESTE T3.4 (`from mcp_salesforce import SalesforceClient`). Credenciais **nunca** no repositório: lidas via env vars (`SALESFORCE_MCP_TOKEN` ou `SALESFORCE_MCP_CLIENT_ID` + `SALESFORCE_MCP_REFRESH_TOKEN`) nos secrets do GitHub (ver `.github/workflows/collect.yml`). Refresh OAuth automático em 401 via discovery endpoint (`https://api.salesforce.com/.well-known/oauth-authorization-server`). Testes unitários usam mock MCP server — sem credenciais reais no CI. Validação real (T3.4) depende de re-autenticação do usuário (tokens expirados em 16/08/2026).
+
 ### Related Decisions
 - ADR-004 (Mock-first)
 - ADR-001 (Micro-services)

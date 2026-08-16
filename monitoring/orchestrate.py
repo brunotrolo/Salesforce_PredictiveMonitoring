@@ -1,11 +1,22 @@
 #!/usr/bin/env python
-"""Monitoring pipeline orchestrator - Phase 0 (Mock mode)."""
+"""Monitoring pipeline orchestrator - Phase 0 (Mock) + Phase 1 (Real MCP)."""
 
 from __future__ import annotations
 
 import argparse
 import json
 from datetime import datetime, timezone
+from typing import Any
+
+# SOQL query used in real (Phase 1) mode: recent debug/error logs.
+# Field-API names follow Salesforce DebugLogs/Log__c conventions; adapt as needed.
+SOQL_LOG_QUERY = (
+    "SELECT Id, CreatedDate, Status, DurationMilliseconds, Application, "
+    "SystemModstamp, LastModifiedDate "
+    "FROM Log__c "
+    "WHERE CreatedDate = LAST_N_DAYS:1 "
+    "ORDER BY CreatedDate DESC LIMIT 100"
+)
 
 
 def generate_mock_logs() -> list[dict]:
@@ -39,15 +50,66 @@ def generate_mock_logs() -> list[dict]:
     ]
 
 
-def run_pipeline() -> tuple[dict, list[dict]]:
-    """Run the full mock monitoring pipeline: collector -> heuristic -> comparison."""
+def map_soql_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Map Salesforce SOQL records to the collector's internal log schema."""
+    mapped: list[dict[str, Any]] = []
+    for rec in records:
+        status = rec.get("Status") or rec.get("StatusCode__c") or 0
+        duration = rec.get("DurationMilliseconds") or rec.get("Duration_ms__c") or 0
+        mapped.append(
+            {
+                "log_id": str(rec.get("Id", "")),
+                "timestamp": str(rec.get("CreatedDate", "")),
+                "org_id": str(
+                    rec.get("OrganizationId__c", rec.get("Application", "ORG-REAL"))
+                ),
+                "status_code": int(status) if str(status).isdigit() else 0,
+                "duration_ms": int(duration) if str(duration).isdigit() else 0,
+                "resource": str(rec.get("SystemModstamp", "unknown")),
+                "severity": "ERROR"
+                if str(status) in ("500", "502", "503", "504")
+                else "INFO",
+            }
+        )
+    return mapped
+
+
+def fetch_real_logs(client: Any) -> list[dict[str, Any]]:
+    """Fetch logs from Salesforce via MCP and map to collector schema."""
+    raw = client.query(SOQL_LOG_QUERY)
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError, TypeError:
+            return []
+    if isinstance(raw, dict) and "records" in raw:
+        return map_soql_records(raw["records"])
+    if isinstance(raw, list):
+        return map_soql_records(raw)
+    return []
+
+
+def run_pipeline(mode: str = "mock", client: Any = None) -> tuple[dict, list[dict]]:
+    """Run the monitoring pipeline: collector -> heuristic -> comparison.
+
+    ``mode="mock"`` uses synthetic logs (Phase 0).  ``mode="real"`` fetches
+    logs from Salesforce via the MCP client (Phase 1).  Pass a ``client``
+    with a ``query(soql)`` method to avoid hitting the real MCP in tests.
+    """
     from collector import LogCollector
     from comparison import ComparisonService
     from heuristic import HeuristicEngine
 
     # Step 1: Collect
     collector = LogCollector()
-    raw_logs = generate_mock_logs()
+    if mode == "real":
+        if client is None:
+            from mcp_salesforce import SalesforceClient
+
+            client = SalesforceClient()
+        raw_logs = fetch_real_logs(client)
+    else:
+        raw_logs = generate_mock_logs()
     logs = collector.load(raw_logs)
     validation = collector.validate(raw_logs)
 
@@ -63,6 +125,7 @@ def run_pipeline() -> tuple[dict, list[dict]]:
     now = datetime.now(timezone.utc).isoformat()
     result = {
         "timestamp": now,
+        "mode": mode,
         "risk_score": analysis["risk_score"],
         "errors_count": analysis["errors_count"],
         "slow_requests_count": analysis["slow_count"],
@@ -88,14 +151,17 @@ def main() -> None:
         description="Salesforce Predictive Monitoring Pipeline"
     )
     parser.add_argument(
-        "--mode", default="mock", choices=["mock"], help="Run mode (Fase 0: only mock)"
+        "--mode",
+        default="mock",
+        choices=["mock", "real"],
+        help="Run mode (mock: synthetic logs; real: Salesforce MCP)",
     )
     parser.add_argument(
         "--log-file", default="monitoring_output.json", help="Output JSON file path"
     )
     args = parser.parse_args()
 
-    result, logs = run_pipeline()
+    result, logs = run_pipeline(mode=args.mode)
 
     # Validate output
     if not {"risk_score", "alerts", "health_check"}.issubset(result):

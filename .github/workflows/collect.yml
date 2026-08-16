@@ -1,0 +1,82 @@
+name: Collect
+
+on:
+  schedule:
+    # Every 15 minutes (24/7 data collection per ADR-008)
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          for d in services/*/; do
+            pip install -r "$d/requirements.txt"
+            pip install -e "$d"
+          done
+
+      - name: Compute stamp
+        id: stamp
+        run: |
+          echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          echo "stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Run pipeline (real MCP mode)
+        env:
+          SALESFORCE_MCP_TOKEN: ${{ secrets.SALESFORCE_MCP_TOKEN }}
+          SALESFORCE_MCP_CLIENT_ID: ${{ secrets.SALESFORCE_MCP_CLIENT_ID }}
+          SALESFORCE_MCP_REFRESH_TOKEN: ${{ secrets.SALESFORCE_MCP_REFRESH_TOKEN }}
+        run: |
+          mkdir -p out
+          (cd monitoring && python orchestrate.py --mode real \
+            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json")
+
+      - uses: actions/checkout@v4
+        with:
+          ref: data
+          path: data-branch
+        continue-on-error: true
+
+      - name: Initialise data branch if missing
+        run: |
+          if [ ! -d data-branch ]; then
+            mkdir -p data-branch
+            cd data-branch
+            git init -b data
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git remote add origin "https://github.com/${{ github.repository }}.git"
+          fi
+
+      - name: Persist snapshot to data branch
+        run: |
+          set -e
+          DATE="${{ steps.stamp.outputs.date }}"
+          STAMP="${{ steps.stamp.outputs.stamp }}"
+          cd data-branch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin data 2>/dev/null || true
+          mkdir -p "data/${DATE}"
+          cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
+          git add "data/${DATE}/${STAMP}.json"
+          git commit -m "data: ${STAMP}" || { echo "No changes"; exit 0; }
+          git push origin data
+
+      - name: Upload snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.stamp.outputs.stamp }}
+          path: out/${{ steps.stamp.outputs.stamp }}.json
+          retention-days: 7

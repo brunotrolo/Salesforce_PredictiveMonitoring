@@ -6,7 +6,9 @@ export default {
   testMatch: ["**/tests/**/test-*.js", "**/tests/**/*.test.js"],
   collectCoverageFrom: [
     "monitoring/**/*.js",
+    "api/**/*.js",
     "!monitoring/tests/**",
+    "!api/tests/**",
     "!**/node_modules/**"
   ],
   coverageThreshold: {

@@ -174,18 +174,20 @@ logs = SalesforceClient().query("SELECT * FROM Log__c")
 #### Saída (Output)
 ```yaml
 Deliverables:
-  - monitoring/salesforce_client.py (MCP wrapper)
+  - monitoring/mcp_salesforce.py (MCP wrapper; nome segue o import do TESTE T3.4)
   - .github/workflows/collect.yml (15-min cron)
-  - data/ branch (JSON persistence)
-  - site/api/client.js (live data fetcher)
+  - data/ branch (JSON persistence; criada automaticamente no 1º ciclo do cron)
+  - site/api/client.js (live data fetcher; fallback para mock offline)
 
 Metrics:
-  - MCP queries work in Actions: ✅
-  - Data persisted: ✅
-  - Dashboard live: ✅
+  - MCP queries work in Actions: ⏳ depende de credenciais (secrets do GitHub)
+  - Data persisted: ⏳ 1º ciclo real do cron após credenciais
+  - Dashboard live: ⏳ mesmo
   - No credentials in repo: ✅
-  - 24/7 validation: ≥2 cycles ✅
+  - 24/7 validation: ≥2 cycles ⏳
 ```
+
+**Status (16/08/2026):** wrapper `monitoring/mcp_salesforce.py` (env: `SALESFORCE_MCP_URL`, `SALESFORCE_MCP_TOKEN`, `SALESFORCE_MCP_CLIENT_ID`, `SALESFORCE_MCP_REFRESH_TOKEN`; refresh OAuth automático em 401; parse JSON + SSE; `soql_query`/`query`/`call_tool`), testes unitários com mock MCP server (10), modo real no `orchestrate.py` (`--mode real`), `collect.yml` com cron 15-min + persistência na branch `data/`, e `site/api/client.js` (29 testes frontend no total) estão implementados e verdes. Falta apenas validar T3.4 contra o MCP real: os tokens OAuth do usuário expiraram (401 `Invalid token` / `invalid_grant`). Re-autenticar o MCP no Claude Code e configurar as secrets `SALESFORCE_MCP_TOKEN` (ou `SALESFORCE_MCP_CLIENT_ID` + `SALESFORCE_MCP_REFRESH_TOKEN`) no GitHub.
 
 **TESTE T3.4 - MCP Integration:**
 ```bash
