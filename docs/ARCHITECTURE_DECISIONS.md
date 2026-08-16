@@ -721,7 +721,7 @@ Use **`npx --node-options=--experimental-vm-modules jest --coverage`** in npm sc
 
 ## ADR-014: Orchestrator Imports Services via sys.path
 
-**Status:** ✅ ACCEPTED  
+**Status:** ✅ SUPERSEDED by ADR-016  
 **Date:** 2026-08-16
 
 ### Context
@@ -748,13 +748,58 @@ In Phase 0, the orchestrator uses **`sys.path.insert`** for the four service `sr
 
 - **Negative:**
   - Fragile: path order matters, `sys.path` pollution, breaks if layout changes
-  - **Phase 1 action**: replace with editable installs or packaging (pyproject) before real deployment
+  - **SUPERSEDED**: replaced by editable installs in Phase 1 (ADR-016)
   - The hack is the reason orchestrate.py needs its own test (see REVIEW_FINDINGS)
 
 ### Related Decisions
 - ADR-001 (Micro-services)
 - ADR-012 (Per-service pytest)
+- ADR-016 (Editable installs)
 - REVIEW_FINDINGS (orchestrate.py test gap)
+
+---
+
+## ADR-016: Services Installed as Editable Packages
+
+**Status:** ✅ ACCEPTED  
+**Date:** 2026-08-16
+
+### Context
+ADR-014 (sys.path hack) is fragile: path order matters, pollutes `sys.path`, and
+breaks if the layout changes. The orchestrator must import services as real
+packages before Phase 1 deployment (MCP Salesforce).
+
+### Options
+1. Keep `sys.path.insert` (ADR-014)
+2. Editable installs (`pip install -e services/*`)
+3. Build artifacts / wheels
+4. Single monorepo package
+
+### Decision
+Each service gets a `pyproject.toml` (setuptools) and is installed editable in
+CI and locally. The `src/` dirs were renamed to the service package name
+(`services/<name>/<name>/`), with `__init__.py` re-exporting the module API.
+
+### Rationale
+- Real imports (`from collector import LogCollector`) — no path hacks
+- Matches micro-service isolation (ADR-001): each service remains independently installable
+- Works in CI and locally with one command (`pip install -e services/*`)
+- No build step needed (editable installs)
+
+### Consequences
+- **Positive:**
+  - `orchestrate.py` imports services like any package — no `sys.path` pollution
+  - Tests still run per-service (ADR-012) with `pythonpath = .`
+  - CI installs each service editable before running tests
+
+- **Negative:**
+  - Editable installs require the service dirs to be present at runtime
+  - Package name `shared` is generic; acceptable in this private repo
+
+### Related Decisions
+- ADR-001 (Micro-services)
+- ADR-012 (Per-service pytest)
+- ADR-014 (superseded)
 
 ---
 
@@ -775,7 +820,8 @@ In Phase 0, the orchestrator uses **`sys.path.insert`** for the four service `sr
 | Agent skills vendored (ADR-011) | 0+ | Accepted | Low | Yes (switch to submodule) |
 | Per-service pytest (ADR-012) | 0+ | Accepted | Low | Yes (root config) |
 | Jest ESM via npx (ADR-013) | 0+ | Accepted | Low | Yes (cross-env or native ESM) |
-| sys.path orchestrator (ADR-014) | 0→1 | Accepted | Medium | Yes (Phase 1: editable installs) |
+| sys.path orchestrator (ADR-014) | 0→1 | Superseded (ADR-016) | Medium | Yes (Phase 1: editable installs) |
+| Editable installs (ADR-016) | 1+ | Accepted | Low | Yes (revert to sys.path) |
 
 ---
 

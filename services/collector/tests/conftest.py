@@ -10,7 +10,7 @@ def mock_logs():
 
 @pytest.fixture
 def collector_service():
-    from src.collector import LogCollector
+    from collector import LogCollector
 
     return LogCollector()
 

@@ -1,6 +1,6 @@
 """Tests for Collector service - LogCollector."""
 
-from src.collector import SalesforceLog
+from collector import SalesforceLog
 
 
 class TestLogCollectorLoad:

@@ -20,6 +20,7 @@ jobs:
         run: |
           for d in services/*/; do
             pip install -r "$d/requirements.txt"
+            pip install -e "$d"
           done
 
       - name: Lint

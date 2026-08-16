@@ -5,23 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
-import sys
 from datetime import datetime, timezone
-
-# Ensure services are importable
-sys.path.insert(
-    0, os.path.join(os.path.dirname(__file__), "..", "services", "collector", "src")
-)
-sys.path.insert(
-    0, os.path.join(os.path.dirname(__file__), "..", "services", "heuristic", "src")
-)
-sys.path.insert(
-    0, os.path.join(os.path.dirname(__file__), "..", "services", "comparison", "src")
-)
-sys.path.insert(
-    0, os.path.join(os.path.dirname(__file__), "..", "services", "shared", "src")
-)
 
 
 def generate_mock_logs() -> list[dict]:

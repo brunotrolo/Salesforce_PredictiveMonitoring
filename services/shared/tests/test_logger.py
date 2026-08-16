@@ -2,7 +2,7 @@
 
 import logging
 
-from src.logger import get_logger, setup_logging
+from shared import get_logger, setup_logging
 
 
 class TestLogger:

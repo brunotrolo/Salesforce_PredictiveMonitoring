@@ -20,7 +20,7 @@
 | Arquivo | Achado | Severidade |
 |---|---|---|
 | `orchestrate.py:85-88` | `assert` para validação de runtime — **removido com `python -O`**. Deveria ser `if not ...: raise ValueError`. | MÉDIA |
-| `orchestrate.py:12-15` | `sys.path.insert` para importar serviços — funciona, mas é frágil (depende de layout relativo) e esconde o acoplamento. Alternativa Phase 1+: empacotar serviços (pip install -e) ou pyproject. | MÉDIA |
+| `orchestrate.py:12-15` | `sys.path.insert` para importar serviços — funciona, mas é frágil (depende de layout relativo) e esconde o acoplamento. Alternativa Phase 1+: empacotar serviços (pip install -e) ou pyproject. | MÉDIA → ✅ RESOLVIDO (ADR-016, editable installs) |
 | `orchestrate.py:42` | `l.model_dump() if hasattr(l, 'model_dump') else l.__dict__` — `hasattr` sempre verdadeiro (pydantic v2); é código morto/defensivo desnecessário. | BAIXA |
 | `heuristic.py:21,24` | Magic numbers: threshold `1000ms`, pesos `0.3`/`0.2`. Devem virar constantes nomeadas (fácil de parametrizar no Phase 2 com ML). | BAIXA |
 | `comparison.py:31-42` | Thresholds `0.3`/`0.1` hard-coded. Mesma recomendação. | BAIXA |
@@ -32,7 +32,7 @@
 - ✅ `from __future__ import annotations` + type hints em todos os módulos.
 - ✅ pydantic `BaseModel` nos três serviços — contratos tipados.
 - ✅ Nomes consistentes (`LogCollector`, `HeuristicEngine`, `ComparisonService`).
-- ✅ Estrutura de pastas espelha a spec (`services/<domain>/src/`).
+- ✅ `src/` renomeado para pacote por serviço (`services/<domain>/<domain>/`) via ADR-016 (editable installs).
 - ⚠️ Sem linter/formatter configurado (ruff/black) — Phase 1.
 - ⚠️ Docstrings resumidas; sem exemplos de uso (aceitável para mock, melhorar na Phase 1).
 
