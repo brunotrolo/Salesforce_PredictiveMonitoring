@@ -17,6 +17,7 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 DEFAULT_MCP_URL = "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all"
@@ -43,6 +44,8 @@ class SalesforceClient:
         client_id: str | None = None,
         refresh_token: str | None = None,
         discovery_url: str | None = None,
+        refresh_token_file: str | None = None,
+        refresh_token_key: str | None = None,
     ) -> None:
         self.url = url or os.environ.get("SALESFORCE_MCP_URL", DEFAULT_MCP_URL)
         self.token = token or os.environ.get("SALESFORCE_MCP_TOKEN") or ""
@@ -51,6 +54,19 @@ class SalesforceClient:
             refresh_token or os.environ.get("SALESFORCE_MCP_REFRESH_TOKEN") or ""
         )
         self.discovery_url = discovery_url or OAUTH_DISCOVERY_URL
+        self.refresh_token_file = (
+            refresh_token_file or os.environ.get("SALESFORCE_MCP_RT_FILE") or ""
+        )
+        self.refresh_token_key = (
+            refresh_token_key or os.environ.get("SALESFORCE_MCP_RT_KEY") or ""
+        )
+        if not self.refresh_token:
+            # Salesforce rotates the refresh token on every refresh (one-time
+            # use): persist the latest one (Fernet-encrypted) so the cron can
+            # survive multiple 5h access-token cycles without re-auth.
+            self.refresh_token = _load_rt_file(
+                self.refresh_token_file, self.refresh_token_key
+            )
         self._session_id: str | None = None
 
     # ------------------------------------------------------------------ public
@@ -267,6 +283,15 @@ class SalesforceClient:
                 f"Token refresh failed: no access_token in response: {body}"
             )
         self.token = access_token
+        new_refresh = body.get("refresh_token")
+        if new_refresh and new_refresh != self.refresh_token:
+            # Salesforce rotates the refresh token: each refresh invalidates
+            # the previous one, so persist the new token for the next cycle.
+            self.refresh_token = new_refresh
+            if self.refresh_token_file and self.refresh_token_key:
+                _save_rt_file(
+                    self.refresh_token_file, self.refresh_token_key, new_refresh
+                )
 
     def _discover_token_endpoint(self) -> str:
         request = urllib.request.Request(
@@ -285,3 +310,31 @@ class SalesforceClient:
                 f"OAuth discovery: no token_endpoint in {metadata}"
             )
         return token_endpoint
+
+
+def _save_rt_file(path: str, key: str, token: str) -> None:
+    """Persist a refresh token, Fernet-encrypted, for the next cron cycle."""
+    from cryptography.fernet import Fernet
+
+    encrypted = Fernet(key.encode()).encrypt(token.encode())
+    Path(path).write_bytes(encrypted)
+
+
+def _load_rt_file(path: str | None, key: str | None) -> str:
+    """Load a persisted refresh token; returns "" when absent/undecryptable."""
+    if not path or not key:
+        return ""
+    try:
+        from cryptography.fernet import Fernet, InvalidToken
+    except ImportError:
+        return ""
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        return ""
+    if not data:
+        return ""
+    try:
+        return Fernet(key.encode()).decrypt(data).decode()
+    except InvalidToken, ValueError:
+        return ""

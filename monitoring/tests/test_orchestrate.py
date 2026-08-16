@@ -87,7 +87,9 @@ class TestMain:
 
     def test_raises_when_pipeline_result_missing_keys(self, tmp_path, monkeypatch):
         monkeypatch.setattr(
-            orchestrate, "run_pipeline", lambda mode="mock": ({"risk_score": 0.5}, [])
+            orchestrate,
+            "run_pipeline",
+            lambda mode="mock", client=None: ({"risk_score": 0.5}, []),
         )
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
@@ -100,7 +102,9 @@ class TestMain:
     def test_raises_when_risk_score_out_of_range(self, tmp_path, monkeypatch):
         bad_result = {"risk_score": 1.5, "alerts": [], "health_check": {}}
         monkeypatch.setattr(
-            orchestrate, "run_pipeline", lambda mode="mock": (bad_result, [])
+            orchestrate,
+            "run_pipeline",
+            lambda mode="mock", client=None: (bad_result, []),
         )
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])

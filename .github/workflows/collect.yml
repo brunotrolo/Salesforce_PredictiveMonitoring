@@ -25,6 +25,7 @@ jobs:
             pip install -r "$d/requirements.txt"
             pip install -e "$d"
           done
+          pip install -r monitoring/requirements.txt
 
       - name: Compute stamp
         id: stamp
@@ -32,16 +33,25 @@ jobs:
           echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
           echo "stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)" >> "$GITHUB_OUTPUT"
 
+      - name: Fetch persisted refresh token from data branch
+        run: |
+          mkdir -p out
+          git fetch origin data 2>/dev/null || true
+          git show FETCH_HEAD:.rt.enc > out/.rt.enc 2>/dev/null || true
+          if [ ! -s out/.rt.enc ]; then rm -f out/.rt.enc; fi
+
       - name: Run pipeline (real MCP mode)
         env:
           SALESFORCE_MCP_URL: ${{ secrets.SALESFORCE_MCP_URL }}
           SALESFORCE_MCP_TOKEN: ${{ secrets.SALESFORCE_MCP_TOKEN }}
           SALESFORCE_MCP_CLIENT_ID: ${{ secrets.SALESFORCE_MCP_CLIENT_ID }}
           SALESFORCE_MCP_REFRESH_TOKEN: ${{ secrets.SALESFORCE_MCP_REFRESH_TOKEN }}
+          SALESFORCE_MCP_RT_KEY: ${{ secrets.SALESFORCE_MCP_RT_KEY }}
         run: |
           mkdir -p out
           (cd monitoring && python orchestrate.py --mode real \
-            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json")
+            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json" \
+            --refresh-token-file "../out/.rt.enc")
 
       - uses: actions/checkout@v4
         with:
@@ -66,6 +76,10 @@ jobs:
           mkdir -p "data/${DATE}"
           cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
           git add "data/${DATE}/${STAMP}.json"
+          if [ -s "../out/.rt.enc" ]; then
+            cp "../out/.rt.enc" ".rt.enc"
+            git add .rt.enc
+          fi
           git commit -m "data: ${STAMP}" || { echo "No changes"; exit 0; }
           git push origin data
 

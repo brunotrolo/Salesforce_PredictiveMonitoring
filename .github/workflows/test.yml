@@ -22,6 +22,7 @@ jobs:
             pip install -r "$d/requirements.txt"
             pip install -e "$d"
           done
+          pip install -r monitoring/requirements.txt
 
       - name: Lint
         run: python -m ruff check services monitoring
@@ -44,6 +45,7 @@ jobs:
           for d in services/*/; do
             pip-audit -r "$d/requirements.txt"
           done
+          pip-audit -r monitoring/requirements.txt
 
   frontend:
     runs-on: ubuntu-latest

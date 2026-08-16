@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs
 
 import pytest
 from mcp_salesforce import SalesforceClient, SalesforceClientError
@@ -166,10 +167,16 @@ class MockMCPServer:
 
 
 class MockTokenEndpoint:
-    """Serves POST /token for the refresh flow."""
+    """Serves POST /token for the refresh flow.
 
-    def __init__(self) -> None:
+    ``rotate=True`` emulates Salesforce behaviour: each refresh returns a
+    NEW refresh token and the previous one stops working.
+    """
+
+    def __init__(self, rotate: bool = False) -> None:
         self.refreshed = 0
+        self.rotate = rotate
+        self.issued_tokens: list[str] = []
 
     def start(self) -> None:
         self.httpd = ThreadingHTTPServer(("127.0.0.1", 0), self._handler_factory())
@@ -186,12 +193,35 @@ class MockTokenEndpoint:
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
                 token.refreshed += 1
+                length = int(self.headers.get("Content-Length", 0))
+                body = parse_qs(self.rfile.read(length).decode())
+                if token.rotate:
+                    used = (body.get("refresh_token") or [""])[0]
+                    if token.issued_tokens and used != token.issued_tokens[-1]:
+                        self.send_response(400)
+                        self.send_header("Content-Type", "application/json")
+                        self.end_headers()
+                        self.wfile.write(
+                            json.dumps(
+                                {
+                                    "error": "invalid_grant",
+                                    "error_description": "expired access/refresh token",
+                                }
+                            ).encode()
+                        )
+                        return
+                    new_rt = f"rotated-rt-{token.refreshed}"
+                    token.issued_tokens.append(new_rt)
+                    payload = {
+                        "access_token": f"fresh-token-{token.refreshed}",
+                        "refresh_token": new_rt,
+                    }
+                else:
+                    payload = {"access_token": "fresh-token-abc"}
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.end_headers()
-                self.wfile.write(
-                    json.dumps({"access_token": "fresh-token-abc"}).encode()
-                )
+                self.wfile.write(json.dumps(payload).encode())
 
             def log_message(self, *args) -> None:  # silence
                 pass
@@ -313,6 +343,82 @@ class TestAuth:
             )
             with pytest.raises(SalesforceClientError, match="401"):
                 client.soql_query("SELECT Id FROM Log__c")
+        finally:
+            server.stop()
+            token_endpoint.stop()
+
+    def test_rotated_refresh_token_is_persisted_encrypted(
+        self, mock_server_401_once, tmp_path
+    ):
+        """Salesforce rotates the refresh token: the new one must be stored
+        so the cron can survive the next 5h access-token expiry."""
+        server, url = mock_server_401_once
+        token_endpoint = MockTokenEndpoint(rotate=True)
+        token_endpoint.start()
+        server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
+        rt_file = tmp_path / ".rt.enc"
+        from cryptography.fernet import Fernet
+
+        key = Fernet.generate_key().decode()
+        try:
+            client = SalesforceClient(
+                url=url,
+                token="tok-expired",
+                client_id="client-1",
+                refresh_token="refresh-1",
+                discovery_url=f"{url}/.well-known/oauth-authorization-server",
+                refresh_token_file=str(rt_file),
+                refresh_token_key=key,
+            )
+            result = client.soql_query("SELECT Id FROM Log__c")
+            assert json.loads(result)["totalSize"] == 1
+            assert client.refresh_token == "rotated-rt-1"
+            assert rt_file.exists()
+            assert Fernet(key.encode()).decrypt(rt_file.read_bytes()).decode() == (
+                "rotated-rt-1"
+            )
+        finally:
+            token_endpoint.stop()
+
+    def test_persisted_refresh_token_is_loaded_for_next_cycle(self, tmp_path):
+        """A fresh client with no RT must pick up the persisted one and be
+        able to refresh again after the access token expires once more."""
+        server = MockMCPServer("unauthorized_once")
+        url = server.start()
+        token_endpoint = MockTokenEndpoint(rotate=True)
+        token_endpoint.start()
+        server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
+        rt_file = tmp_path / ".rt.enc"
+        from cryptography.fernet import Fernet
+
+        key = Fernet.generate_key().decode()
+        try:
+            first = SalesforceClient(
+                url=url,
+                token="tok-expired",
+                client_id="client-1",
+                refresh_token="refresh-1",
+                discovery_url=f"{url}/.well-known/oauth-authorization-server",
+                refresh_token_file=str(rt_file),
+                refresh_token_key=key,
+            )
+            first.soql_query("SELECT Id FROM Log__c")
+            assert first.refresh_token == "rotated-rt-1"
+
+            second = SalesforceClient(
+                url=url,
+                token="tok-expired-again",
+                client_id="client-1",
+                discovery_url=f"{url}/.well-known/oauth-authorization-server",
+                refresh_token_file=str(rt_file),
+                refresh_token_key=key,
+            )
+            assert second.refresh_token == "rotated-rt-1"
+            server.authorized_requests = 0  # simulate a new 5h access-token expiry
+            result = second.soql_query("SELECT Id FROM Log__c")
+            assert json.loads(result)["totalSize"] == 1
+            assert second.refresh_token == "rotated-rt-2"
+            assert token_endpoint.refreshed == 2
         finally:
             server.stop()
             token_endpoint.stop()
