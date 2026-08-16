@@ -41,6 +41,7 @@ jobs:
           if [ ! -s out/.rt.enc ]; then rm -f out/.rt.enc; fi
 
       - name: Run pipeline (real MCP mode)
+        id: pipeline
         env:
           SALESFORCE_MCP_URL: ${{ secrets.SALESFORCE_MCP_URL }}
           SALESFORCE_MCP_TOKEN: ${{ secrets.SALESFORCE_MCP_TOKEN }}
@@ -53,13 +54,20 @@ jobs:
             --log-file "../out/${{ steps.stamp.outputs.stamp }}.json" \
             --refresh-token-file "../out/.rt.enc")
 
+      # Persist rotated refresh token + snapshot in one atomic push.
+      # runs even when pipeline fails (if: always) so that a refresh
+      # token rotated mid-pipeline is never lost.  Salesforce rotates
+      # refresh tokens on every use — losing the new token = next run
+      # dies with invalid_grant.
       - uses: actions/checkout@v4
+        if: always() && steps.stamp.outputs.stamp != ''
         with:
           ref: data
           path: data-branch
         continue-on-error: true
 
-      - name: Persist snapshot to data branch
+      - name: Persist to data branch (always)
+        if: always() && steps.stamp.outputs.stamp != ''
         run: |
           set -e
           DATE="${{ steps.stamp.outputs.date }}"
@@ -73,17 +81,22 @@ jobs:
           else
             git checkout -b data
           fi
-          mkdir -p "data/${DATE}"
-          cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
-          git add "data/${DATE}/${STAMP}.json"
+          # 1. Always persist rotated refresh token (if present)
           if [ -s "../out/.rt.enc" ]; then
             cp "../out/.rt.enc" ".rt.enc"
             git add .rt.enc
+          fi
+          # 2. Persist snapshot if pipeline produced it
+          if [ -f "../out/${STAMP}.json" ]; then
+            mkdir -p "data/${DATE}"
+            cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
+            git add "data/${DATE}/${STAMP}.json"
           fi
           git commit -m "data: ${STAMP}" || { echo "No changes"; exit 0; }
           git push origin data
 
       - name: Upload snapshot artifact
+        if: always() && steps.stamp.outputs.stamp != ''
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.stamp.outputs.stamp }}
