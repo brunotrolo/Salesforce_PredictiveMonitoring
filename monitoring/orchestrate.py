@@ -58,7 +58,7 @@ def _to_int(value: Any) -> int:
         return 0
     try:
         return int(float(value))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 
@@ -90,9 +90,7 @@ def map_soql_records(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "status_code": _to_int(status),
                 "duration_ms": _to_int(duration),
                 "resource": str(resource),
-                "severity": "ERROR"
-                if _to_int(status) >= 500
-                else "INFO",
+                "severity": "ERROR" if _to_int(status) >= 500 else "INFO",
             }
         )
     return mapped
