@@ -180,20 +180,21 @@ Deliverables:
   - site/api/client.js (live data fetcher; fallback para mock offline)
 
 Metrics:
-  - MCP queries work in Actions: ⏳ depende de credenciais (secrets do GitHub)
-  - Data persisted: ⏳ 1º ciclo real do cron após credenciais
-  - Dashboard live: ⏳ mesmo
+  - MCP queries work in Actions: ✅ validado (run 31953607680, 16/08/2026)
+  - Data persisted: ✅ 1º ciclo real (branch `data/`, data/2026-08-16/*.json)
+  - Dashboard live: ✅ frontend lê branch `data/` (raw.githubusercontent)
   - No credentials in repo: ✅
-  - 24/7 validation: ≥2 cycles ⏳
+  - 24/7 validation: ≥2 cycles ✅ (cron 15-min disparou múltiplos ciclos)
 ```
 
-**Status (16/08/2026):** wrapper `monitoring/mcp_salesforce.py` (env: `SALESFORCE_MCP_URL`, `SALESFORCE_MCP_TOKEN`, `SALESFORCE_MCP_CLIENT_ID`, `SALESFORCE_MCP_REFRESH_TOKEN`; refresh OAuth automático em 401; parse JSON + SSE; `soql_query`/`query`/`call_tool`), testes unitários com mock MCP server (10), modo real no `orchestrate.py` (`--mode real`), `collect.yml` com cron 15-min + persistência na branch `data/`, e `site/api/client.js` (29 testes frontend no total) estão implementados e verdes. Falta apenas validar T3.4 contra o MCP real: os tokens OAuth do usuário expiraram (401 `Invalid token` / `invalid_grant`). Re-autenticar o MCP no Claude Code e configurar as secrets `SALESFORCE_MCP_TOKEN` (ou `SALESFORCE_MCP_CLIENT_ID` + `SALESFORCE_MCP_REFRESH_TOKEN`) no GitHub.
+**Status (16/08/2026):** ✅ **Fase 1 validada de ponta a ponta.** Teste T3.4 passou contra o MCP real (`soqlQuery` com parâmetro `q`, validado via `tools/list`/`getObjectSchema`): query `SELECT Id FROM Log__c LIMIT 1` retornou registros reais. Pipeline `--mode real` coletou 100 logs reais de `Log__c` (schema real: `Status__c` double, `Endpoint__c`, `Method__c` — sem campo de duração), risco HEALTHY. `collect.yml` rodou em produção via workflow_dispatch: snapshot persistido em `data/2026-08-16/2026-08-16T14-45-18Z.json` (risk 0.015, 5 alerts, validation válido). Refresh OAuth automático validado (401 → refresh_token → query OK). Secrets configuradas: `SALESFORCE_MCP_URL` (sobject-reads), `SALESFORCE_MCP_TOKEN`, `SALESFORCE_MCP_CLIENT_ID`, `SALESFORCE_MCP_REFRESH_TOKEN`.
 
 **TESTE T3.4 - MCP Integration:**
 ```bash
 python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClient(); result = client.soql_query('SELECT Id FROM Log__c LIMIT 1'); assert result is not None"
 # Esperado: PASSED sem exceção
 ```
+✅ PASSOU (16/08/2026, MCP real `sobject-reads`, token via env)
 
 ---
 
