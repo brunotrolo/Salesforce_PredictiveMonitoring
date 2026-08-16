@@ -1,0 +1,7 @@
+pytest==9.1.1
+pytest-cov==7.1.0
+pydantic==2.13.4
+requests==2.34.2
+structlog==26.1.0
+faker==40.36.0
+pyyaml==6.0.3

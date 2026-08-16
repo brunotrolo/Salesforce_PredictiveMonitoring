@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.pyc
+
+# Node
+node_modules/
+site/coverage/
+.cache/
+
+# Output
+monitoring_output.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Agent tooling (Claude Code / OpenCode)
+.claude/
+.agents/
+skills-lock.json
+
+# Env
+.env
+.venv/
+venv/
+env/

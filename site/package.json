@@ -1,0 +1,21 @@
+{
+  "name": "salesforce-predictive-monitoring",
+  "version": "0.1.0",
+  "description": "Salesforce Predictive Monitoring - Dashboard",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "npx --node-options=--experimental-vm-modules jest --coverage",
+    "test:watch": "npx --node-options=--experimental-vm-modules jest --watch"
+  },
+  "keywords": [
+    "salesforce",
+    "monitoring",
+    "predictive"
+  ],
+  "author": "brunotrolo",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
