@@ -347,9 +347,7 @@ class TestAuth:
             server.stop()
             token_endpoint.stop()
 
-    def test_rotated_refresh_token_is_updated_in_memory(
-        self, mock_server_401_once
-    ):
+    def test_rotated_refresh_token_is_updated_in_memory(self, mock_server_401_once):
         """Salesforce rotates the refresh token: the new one must be stored
         in memory for the current session."""
         server, url = mock_server_401_once

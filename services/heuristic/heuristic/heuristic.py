@@ -34,11 +34,7 @@ class HeuristicEngine:
             for log in logs
             if log.get("duration_ms", 0) > self.SLOW_DURATION_THRESHOLD_MS
         ]
-        retried = [
-            log
-            for log in logs
-            if log.get("retried", False)
-        ]
+        retried = [log for log in logs if log.get("retried", False)]
 
         total = max(len(logs), 1)
         risk_score = min(

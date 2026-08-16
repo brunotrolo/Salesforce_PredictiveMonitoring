@@ -50,11 +50,7 @@ class SalesforceClient:
         self.client_id = client_id or os.environ.get("SF_CLIENT_ID") or ""
         self.client_secret = client_secret or os.environ.get("SF_CLIENT_SECRET") or ""
         self.discovery_url = discovery_url or OAUTH_DISCOVERY_URL
-        self.refresh_token = (
-            refresh_token
-            or os.environ.get("SF_REFRESH_TOKEN")
-            or ""
-        )
+        self.refresh_token = refresh_token or os.environ.get("SF_REFRESH_TOKEN") or ""
         self._session_id: str | None = None
 
     # ------------------------------------------------------------------ public
