@@ -34,6 +34,7 @@ jobs:
 
       - name: Run pipeline (real MCP mode)
         env:
+          SALESFORCE_MCP_URL: ${{ secrets.SALESFORCE_MCP_URL }}
           SALESFORCE_MCP_TOKEN: ${{ secrets.SALESFORCE_MCP_TOKEN }}
           SALESFORCE_MCP_CLIENT_ID: ${{ secrets.SALESFORCE_MCP_CLIENT_ID }}
           SALESFORCE_MCP_REFRESH_TOKEN: ${{ secrets.SALESFORCE_MCP_REFRESH_TOKEN }}
