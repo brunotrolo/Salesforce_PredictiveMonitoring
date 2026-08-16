@@ -18,7 +18,7 @@
 - [x] Cobertura ≥ meta (100% vs 80/70 exigidos)
 - [x] Nenhum TODO/FIXME no código-fonte (matches só em `node_modules/`)
 - [x] Nenhum `console.log` no código-fonte (matches só em `node_modules/`)
-- [x] ~~Linter configurado~~ → **Phase 1** (ruff/black)
+- [x] ~~Linter configurado~~ → **RESOLVIDO** (ruff 0.16.3 + `.ruff.toml` na raiz, regras E/F/I; etapas de lint e format-check no CI)
 - [x] ~~Teste para `orchestrate.py`~~ → **RESOLVIDO** (12 testes em `monitoring/tests/test_orchestrate.py`, 98% coverage — linha restante é o entrypoint `__main__`)
 - [x] ~~CI (`.github/workflows/test.yml`)~~ → **RESOLVIDO** (pytest ×4 + orquestrador + jest + audits em push/PR; run success em `34a2192`)
 
@@ -54,7 +54,7 @@
 | 1 | Criar `.github/workflows/test.yml` (pytest ×4 serviços + jest) | ✅ Sim | ✅ Feito (`34a2192`, run success) |
 | 2 | Teste para `orchestrate.py` (pipeline completo, incl. `--mode mock`) | ✅ Sim | ✅ Feito (12 testes, 98% cov) |
 | 3 | `pip-audit` + `npm audit` no CI | ✅ Sim | ✅ Feito (etapas no CI) |
-| 4 | Ruff/black + hook de lint | Não (qualidade) | ⏳ Phase 1 |
+| 4 | Ruff/black + hook de lint | Não (qualidade) | ✅ Feito (ruff + format-check no CI) |
 | 5 | Trocar `assert` por `raise` em `orchestrate.py` | Não (robustez) | ✅ Feito (valeu também p/ collector/heuristic/comparison) |
 
 ## O que NÃO entra na Fase 1 (sem decisão explícita)

@@ -1,4 +1,5 @@
 """Tests for the monitoring pipeline orchestrator (mock mode)."""
+
 import json
 import sys
 
@@ -9,8 +10,15 @@ class TestRunPipeline:
     def test_returns_all_expected_keys(self):
         result, _ = orchestrate.run_pipeline()
         expected_keys = {
-            "timestamp", "risk_score", "errors_count", "slow_requests_count",
-            "alerts", "comparison", "health_check", "validation", "logs_processed",
+            "timestamp",
+            "risk_score",
+            "errors_count",
+            "slow_requests_count",
+            "alerts",
+            "comparison",
+            "health_check",
+            "validation",
+            "logs_processed",
         }
         assert expected_keys.issubset(result.keys())
 
@@ -44,7 +52,10 @@ class TestRunPipeline:
         result, _ = orchestrate.run_pipeline()
         comparison = result["comparison"]
         assert comparison["prediction"] in (
-            "CRITICAL_INCREASE", "MODERATE_INCREASE", "IMPROVEMENT", "STABLE"
+            "CRITICAL_INCREASE",
+            "MODERATE_INCREASE",
+            "IMPROVEMENT",
+            "STABLE",
         )
         assert 0 <= comparison["confidence"] <= 1
         assert isinstance(comparison["risk_delta"], (int, float))
@@ -75,7 +86,9 @@ class TestMain:
             assert e.code == 2
 
     def test_raises_when_pipeline_result_missing_keys(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(orchestrate, "run_pipeline", lambda: ({"risk_score": 0.5}, []))
+        monkeypatch.setattr(
+            orchestrate, "run_pipeline", lambda: ({"risk_score": 0.5}, [])
+        )
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
         try:

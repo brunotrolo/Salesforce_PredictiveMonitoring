@@ -1,5 +1,4 @@
 """Tests for Heuristic Engine service."""
-from src.heuristic import HeuristicEngine
 
 
 class TestHeuristicAnalyze:
@@ -30,7 +29,12 @@ class TestHeuristicAnalyze:
 
     def test_risk_score_never_exceeds_one(self, engine):
         massive_errors = [
-            {"log_id": f"L{i}", "status_code": 500, "duration_ms": 5000, "resource": f"/r{i}"}
+            {
+                "log_id": f"L{i}",
+                "status_code": 500,
+                "duration_ms": 5000,
+                "resource": f"/r{i}",
+            }
             for i in range(100)
         ]
         result = engine.analyze(massive_errors)
@@ -45,7 +49,12 @@ class TestAlertSeverity:
 
     def test_slow_creates_warning(self, engine):
         slow_logs = [
-            {"log_id": "L1", "status_code": 200, "duration_ms": 5000, "resource": "/api/slow"},
+            {
+                "log_id": "L1",
+                "status_code": 200,
+                "duration_ms": 5000,
+                "resource": "/api/slow",
+            },
         ]
         result = engine.analyze(slow_logs)
         assert len(result["alerts"]) == 1

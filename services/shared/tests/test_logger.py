@@ -1,7 +1,8 @@
 """Tests for shared Logger utility."""
+
 import logging
 
-from src.logger import setup_logging, get_logger
+from src.logger import get_logger, setup_logging
 
 
 class TestLogger:
@@ -18,17 +19,22 @@ class TestLogger:
         logger = get_logger("test_info")
         with caplog.at_level(logging.INFO, logger="test_info"):
             logger.info("test_event", service="collector", status="ok", duration_ms=150)
-        assert "test_event" in caplog.text or any(r.message == "test_event" for r in caplog.records)
+        assert "test_event" in caplog.text or any(
+            r.message == "test_event" for r in caplog.records
+        )
 
     def test_logger_can_log_error(self, caplog):
         setup_logging()
         logger = get_logger("test_error")
         with caplog.at_level(logging.ERROR, logger="test_error"):
             logger.error("error_event", error_type="timeout", service="heuristic")
-        assert "error_event" in caplog.text or any(r.message == "error_event" for r in caplog.records)
+        assert "error_event" in caplog.text or any(
+            r.message == "error_event" for r in caplog.records
+        )
 
     def test_logger_json_output_is_valid(self, caplog):
         import json
+
         setup_logging()
         logger = get_logger("test_json")
         with caplog.at_level(logging.INFO, logger="test_json"):

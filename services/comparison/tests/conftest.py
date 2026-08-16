@@ -1,5 +1,5 @@
 import pytest
-from src.comparison import ComparisonService, ComparisonResult
+from src.comparison import ComparisonService
 
 
 @pytest.fixture

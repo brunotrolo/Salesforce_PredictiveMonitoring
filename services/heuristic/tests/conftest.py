@@ -1,5 +1,5 @@
 import pytest
-from src.heuristic import HeuristicEngine, Alert
+from src.heuristic import HeuristicEngine
 
 
 @pytest.fixture

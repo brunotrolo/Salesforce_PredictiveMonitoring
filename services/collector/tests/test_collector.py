@@ -1,5 +1,6 @@
 """Tests for Collector service - LogCollector."""
-from src.collector import LogCollector, SalesforceLog
+
+from src.collector import SalesforceLog
 
 
 class TestLogCollectorLoad:
@@ -29,7 +30,9 @@ class TestLogCollectorValidate:
         assert result["valid"] is True
         assert result["errors"] == []
 
-    def test_validates_with_errors(self, collector_service, invalid_log, single_valid_log):
+    def test_validates_with_errors(
+        self, collector_service, invalid_log, single_valid_log
+    ):
         result = collector_service.validate([single_valid_log, invalid_log])
         assert result["valid"] is False
         assert len(result["errors"]) == 1
@@ -43,15 +46,23 @@ class TestLogCollectorValidate:
 class TestSalesforceLogModel:
     def test_default_severity(self):
         log = SalesforceLog(
-            log_id="L1", timestamp="2026-01-01T00:00:00Z",
-            org_id="O1", status_code=200, duration_ms=100, resource="/r"
+            log_id="L1",
+            timestamp="2026-01-01T00:00:00Z",
+            org_id="O1",
+            status_code=200,
+            duration_ms=100,
+            resource="/r",
         )
         assert log.severity == "INFO"
 
     def test_custom_severity(self):
         log = SalesforceLog(
-            log_id="L1", timestamp="2026-01-01T00:00:00Z",
-            org_id="O1", status_code=500, duration_ms=2000,
-            resource="/r", severity="ERROR"
+            log_id="L1",
+            timestamp="2026-01-01T00:00:00Z",
+            org_id="O1",
+            status_code=500,
+            duration_ms=2000,
+            resource="/r",
+            severity="ERROR",
         )
         assert log.severity == "ERROR"

@@ -22,6 +22,12 @@ jobs:
             pip install -r "$d/requirements.txt"
           done
 
+      - name: Lint
+        run: python -m ruff check services monitoring
+
+      - name: Format check
+        run: python -m ruff format --check services monitoring
+
       - name: Run service tests
         run: |
           for d in services/*/; do

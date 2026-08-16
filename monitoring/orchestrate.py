@@ -1,35 +1,65 @@
 #!/usr/bin/env python
 """Monitoring pipeline orchestrator - Phase 0 (Mock mode)."""
+
 from __future__ import annotations
 
-import sys
-import os
-import json
 import argparse
+import json
+import os
+import sys
 from datetime import datetime, timezone
 
 # Ensure services are importable
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "collector", "src"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "heuristic", "src"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "comparison", "src"))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "services", "shared", "src"))
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "..", "services", "collector", "src")
+)
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "..", "services", "heuristic", "src")
+)
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "..", "services", "comparison", "src")
+)
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "..", "services", "shared", "src")
+)
 
 
 def generate_mock_logs() -> list[dict]:
     """Generate mock Salesforce logs for testing."""
     now = datetime.now(timezone.utc).isoformat()
     return [
-        {"log_id": "L1", "status_code": 200, "duration_ms": 100, "timestamp": now, "org_id": "ORG-MOCK", "resource": "/api/accounts"},
-        {"log_id": "L2", "status_code": 500, "duration_ms": 1500, "timestamp": now, "org_id": "ORG-MOCK", "resource": "/api/users"},
-        {"log_id": "L3", "status_code": 200, "duration_ms": 200, "timestamp": now, "org_id": "ORG-MOCK", "resource": "/api/products"},
+        {
+            "log_id": "L1",
+            "status_code": 200,
+            "duration_ms": 100,
+            "timestamp": now,
+            "org_id": "ORG-MOCK",
+            "resource": "/api/accounts",
+        },
+        {
+            "log_id": "L2",
+            "status_code": 500,
+            "duration_ms": 1500,
+            "timestamp": now,
+            "org_id": "ORG-MOCK",
+            "resource": "/api/users",
+        },
+        {
+            "log_id": "L3",
+            "status_code": 200,
+            "duration_ms": 200,
+            "timestamp": now,
+            "org_id": "ORG-MOCK",
+            "resource": "/api/products",
+        },
     ]
 
 
 def run_pipeline() -> tuple[dict, list[dict]]:
     """Run the full mock monitoring pipeline: collector -> heuristic -> comparison."""
     from collector import LogCollector
-    from heuristic import HeuristicEngine
     from comparison import ComparisonService
+    from heuristic import HeuristicEngine
 
     # Step 1: Collect
     collector = LogCollector()
@@ -39,7 +69,7 @@ def run_pipeline() -> tuple[dict, list[dict]]:
 
     # Step 2: Analyze
     engine = HeuristicEngine()
-    analysis = engine.analyze([l.model_dump() for l in logs])
+    analysis = engine.analyze([log.model_dump() for log in logs])
 
     # Step 3: Compare
     comparator = ComparisonService()
@@ -70,9 +100,15 @@ def run_pipeline() -> tuple[dict, list[dict]]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Salesforce Predictive Monitoring Pipeline")
-    parser.add_argument("--mode", default="mock", choices=["mock"], help="Run mode (Fase 0: only mock)")
-    parser.add_argument("--log-file", default="monitoring_output.json", help="Output JSON file path")
+    parser = argparse.ArgumentParser(
+        description="Salesforce Predictive Monitoring Pipeline"
+    )
+    parser.add_argument(
+        "--mode", default="mock", choices=["mock"], help="Run mode (Fase 0: only mock)"
+    )
+    parser.add_argument(
+        "--log-file", default="monitoring_output.json", help="Output JSON file path"
+    )
     args = parser.parse_args()
 
     result, logs = run_pipeline()
