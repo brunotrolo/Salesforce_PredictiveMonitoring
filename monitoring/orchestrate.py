@@ -199,7 +199,7 @@ def run_pipeline(mode: str = "mock", client: Any = None) -> tuple[dict, list[dic
 
 
 def _build_client() -> Any:
-    """Build a real MCP client using SF_CLIENT_ID, SF_CLIENT_SECRET, SF_REFRESH_TOKEN env vars."""
+    """Build a real MCP client using SF_* env vars."""
     from mcp_salesforce import SalesforceClient
 
     return SalesforceClient()
