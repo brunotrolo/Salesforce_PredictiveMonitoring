@@ -33,67 +33,38 @@ jobs:
           echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
           echo "stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)" >> "$GITHUB_OUTPUT"
 
-      - name: Fetch persisted refresh token from data branch
-        run: |
-          mkdir -p out
-          git fetch origin data 2>/dev/null || true
-          git show FETCH_HEAD:.rt.enc > out/.rt.enc 2>/dev/null || true
-          if [ ! -s out/.rt.enc ]; then rm -f out/.rt.enc; fi
-
       - name: Run pipeline (real MCP mode)
         id: pipeline
         env:
           SALESFORCE_MCP_URL: ${{ secrets.SALESFORCE_MCP_URL }}
-          SALESFORCE_MCP_TOKEN: ${{ secrets.SALESFORCE_MCP_TOKEN }}
-          SALESFORCE_MCP_CLIENT_ID: ${{ secrets.SALESFORCE_MCP_CLIENT_ID }}
-          SALESFORCE_MCP_REFRESH_TOKEN: ${{ secrets.SALESFORCE_MCP_REFRESH_TOKEN }}
-          SALESFORCE_MCP_RT_KEY: ${{ secrets.SALESFORCE_MCP_RT_KEY }}
+          SF_CLIENT_ID: ${{ secrets.SF_CLIENT_ID }}
+          SF_CLIENT_SECRET: ${{ secrets.SF_CLIENT_SECRET }}
+          SF_REFRESH_TOKEN: ${{ secrets.SF_REFRESH_TOKEN }}
         run: |
           mkdir -p out
           (cd monitoring && python orchestrate.py --mode real \
-            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json" \
-            --refresh-token-file "../out/.rt.enc")
+            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json")
 
-      # Persist rotated refresh token + snapshot in one atomic push.
-      # runs even when pipeline fails (if: always) so that a refresh
-      # token rotated mid-pipeline is never lost.  Salesforce rotates
-      # refresh tokens on every use — losing the new token = next run
-      # dies with invalid_grant.
-      - uses: actions/checkout@v4
-        if: always() && steps.stamp.outputs.stamp != ''
-        with:
-          ref: data
-          path: data-branch
-        continue-on-error: true
-
-      - name: Persist to data branch (always)
+      - name: Persist snapshot to data branch
         if: always() && steps.stamp.outputs.stamp != ''
         run: |
           set -e
           DATE="${{ steps.stamp.outputs.date }}"
           STAMP="${{ steps.stamp.outputs.stamp }}"
-          cd data-branch
+          [ ! -f "out/${STAMP}.json" ] && exit 0
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git show-ref --verify --quiet refs/heads/data; then
-            git checkout data
-            git pull --rebase origin data 2>/dev/null || true
-          else
-            git checkout -b data
-          fi
-          # 1. Always persist rotated refresh token (if present)
-          if [ -s "../out/.rt.enc" ]; then
-            cp "../out/.rt.enc" ".rt.enc"
-            git add .rt.enc
-          fi
-          # 2. Persist snapshot if pipeline produced it
-          if [ -f "../out/${STAMP}.json" ]; then
-            mkdir -p "data/${DATE}"
-            cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
-            git add "data/${DATE}/${STAMP}.json"
-          fi
+          git fetch origin data 2>/dev/null || true
+          git worktree add data-branch origin/data 2>/dev/null || \
+            git worktree add data-branch -b data origin/data 2>/dev/null || true
+          cd data-branch
+          mkdir -p "data/${DATE}"
+          cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
+          git add "data/${DATE}/${STAMP}.json"
           git commit -m "data: ${STAMP}" || { echo "No changes"; exit 0; }
           git push origin data
+          cd ..
+          git worktree remove data-branch --force 2>/dev/null || true
 
       - name: Upload snapshot artifact
         if: always() && steps.stamp.outputs.stamp != ''

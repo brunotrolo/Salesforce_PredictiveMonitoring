@@ -347,19 +347,15 @@ class TestAuth:
             server.stop()
             token_endpoint.stop()
 
-    def test_rotated_refresh_token_is_persisted_encrypted(
-        self, mock_server_401_once, tmp_path
+    def test_rotated_refresh_token_is_updated_in_memory(
+        self, mock_server_401_once
     ):
         """Salesforce rotates the refresh token: the new one must be stored
-        so the cron can survive the next 5h access-token expiry."""
+        in memory for the current session."""
         server, url = mock_server_401_once
         token_endpoint = MockTokenEndpoint(rotate=True)
         token_endpoint.start()
         server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
-        rt_file = tmp_path / ".rt.enc"
-        from cryptography.fernet import Fernet
-
-        key = Fernet.generate_key().decode()
         try:
             client = SalesforceClient(
                 url=url,
@@ -367,91 +363,38 @@ class TestAuth:
                 client_id="client-1",
                 refresh_token="refresh-1",
                 discovery_url=f"{url}/.well-known/oauth-authorization-server",
-                refresh_token_file=str(rt_file),
-                refresh_token_key=key,
             )
             result = client.soql_query("SELECT Id FROM Log__c")
             assert json.loads(result)["totalSize"] == 1
             assert client.refresh_token == "rotated-rt-1"
-            assert rt_file.exists()
-            assert Fernet(key.encode()).decrypt(rt_file.read_bytes()).decode() == (
-                "rotated-rt-1"
-            )
         finally:
             token_endpoint.stop()
 
-    def test_persisted_refresh_token_is_loaded_for_next_cycle(self, tmp_path):
-        """A fresh client with no RT must pick up the persisted one and be
-        able to refresh again after the access token expires once more."""
-        server = MockMCPServer("unauthorized_once")
-        url = server.start()
-        token_endpoint = MockTokenEndpoint(rotate=True)
+    def test_refresh_token_from_env(self, monkeypatch):
+        """SF_REFRESH_TOKEN env var is picked up by the client."""
+        monkeypatch.setenv("SF_REFRESH_TOKEN", "env-rt-123")
+        client = SalesforceClient(client_id="c1")
+        assert client.refresh_token == "env-rt-123"
+
+    def test_client_secret_is_sent_in_refresh(self, mock_server_401_once):
+        """client_secret is included in the refresh request."""
+        server, url = mock_server_401_once
+        token_endpoint = MockTokenEndpoint()
         token_endpoint.start()
         server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
-        rt_file = tmp_path / ".rt.enc"
-        from cryptography.fernet import Fernet
-
-        key = Fernet.generate_key().decode()
         try:
-            first = SalesforceClient(
-                url=url,
-                token="tok-expired",
-                client_id="client-1",
-                refresh_token="refresh-1",
-                discovery_url=f"{url}/.well-known/oauth-authorization-server",
-                refresh_token_file=str(rt_file),
-                refresh_token_key=key,
-            )
-            first.soql_query("SELECT Id FROM Log__c")
-            assert first.refresh_token == "rotated-rt-1"
-
-            second = SalesforceClient(
-                url=url,
-                token="tok-expired-again",
-                client_id="client-1",
-                discovery_url=f"{url}/.well-known/oauth-authorization-server",
-                refresh_token_file=str(rt_file),
-                refresh_token_key=key,
-            )
-            assert second.refresh_token == "rotated-rt-1"
-            server.authorized_requests = 0  # simulate a new 5h access-token expiry
-            result = second.soql_query("SELECT Id FROM Log__c")
-            assert json.loads(result)["totalSize"] == 1
-            assert second.refresh_token == "rotated-rt-2"
-            assert token_endpoint.refreshed == 2
-        finally:
-            server.stop()
-            token_endpoint.stop()
-
-    def test_persisted_file_beats_stale_env_refresh_token(self, tmp_path, monkeypatch):
-        """Once a rotation happened, the persisted file must win over the
-        (now consumed) env secret, or the cron dies on the next refresh."""
-        server = MockMCPServer("unauthorized_once")
-        url = server.start()
-        token_endpoint = MockTokenEndpoint(rotate=True)
-        token_endpoint.start()
-        server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
-        rt_file = tmp_path / ".rt.enc"
-        from cryptography.fernet import Fernet
-
-        key = Fernet.generate_key().decode()
-        rt_file.write_bytes(Fernet(key.encode()).encrypt(b"persisted-rt"))
-        try:
-            monkeypatch.setenv("SALESFORCE_MCP_REFRESH_TOKEN", "consumed-env-rt")
             client = SalesforceClient(
                 url=url,
                 token="tok-expired",
                 client_id="client-1",
+                client_secret="secret-1",
+                refresh_token="refresh-1",
                 discovery_url=f"{url}/.well-known/oauth-authorization-server",
-                refresh_token_file=str(rt_file),
-                refresh_token_key=key,
             )
-            assert client.refresh_token == "persisted-rt"
             result = client.soql_query("SELECT Id FROM Log__c")
             assert json.loads(result)["totalSize"] == 1
-            assert client.refresh_token == "rotated-rt-1"
+            assert token_endpoint.refreshed == 1
         finally:
-            server.stop()
             token_endpoint.stop()
 
 
@@ -471,10 +414,8 @@ class TestErrors:
         with pytest.raises(SalesforceClientError):
             client.soql_query("SELECT Id FROM Log__c")
 
-    def test_token_from_environment(self, mock_server, monkeypatch):
+    def test_url_from_environment(self, mock_server, monkeypatch):
         server, url = mock_server
         monkeypatch.setenv("SALESFORCE_MCP_URL", url)
-        monkeypatch.setenv("SALESFORCE_MCP_TOKEN", "env-tok")
         client = SalesforceClient()
-        assert client.token == "env-tok"
         assert client.url == url

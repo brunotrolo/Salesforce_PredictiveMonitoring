@@ -198,14 +198,11 @@ def run_pipeline(mode: str = "mock", client: Any = None) -> tuple[dict, list[dic
     return result, raw_logs
 
 
-def _build_client(refresh_token_file: str = "") -> Any:
-    """Build a real MCP client, wired to the encrypted refresh-token file.
-
-    The key comes from the SALESFORCE_MCP_RT_KEY env var (GitHub secret).
-    """
+def _build_client() -> Any:
+    """Build a real MCP client using SF_CLIENT_ID, SF_CLIENT_SECRET, SF_REFRESH_TOKEN env vars."""
     from mcp_salesforce import SalesforceClient
 
-    return SalesforceClient(refresh_token_file=refresh_token_file or None)
+    return SalesforceClient()
 
 
 def main() -> None:
@@ -221,22 +218,11 @@ def main() -> None:
     parser.add_argument(
         "--log-file", default="monitoring_output.json", help="Output JSON file path"
     )
-    parser.add_argument(
-        "--refresh-token-file",
-        default="",
-        help=(
-            "Path to the Fernet-encrypted refresh-token file; used to survive "
-            "Salesforce refresh-token rotation across cron cycles (env: "
-            "SALESFORCE_MCP_RT_FILE)"
-        ),
-    )
     args = parser.parse_args()
 
     result, logs = run_pipeline(
         mode=args.mode,
-        client=(
-            _build_client(args.refresh_token_file) if args.mode == "real" else None
-        ),
+        client=_build_client() if args.mode == "real" else None,
     )
 
     # Validate output

@@ -5,9 +5,9 @@ No credentials are stored in code: token comes from environment.
 
 Environments:
     SALESFORCE_MCP_URL              MCP server URL (default: sobject-all endpoint)
-    SALESFORCE_MCP_TOKEN            OAuth2 bearer token (direct access)
-    SALESFORCE_MCP_CLIENT_ID        OAuth2 client id (for refresh flow)
-    SALESFORCE_MCP_REFRESH_TOKEN    OAuth2 refresh token (for refresh flow)
+    SF_CLIENT_ID                    OAuth2 client id (Connected App Consumer Key)
+    SF_CLIENT_SECRET                OAuth2 client secret (Consumer Secret)
+    SF_REFRESH_TOKEN                OAuth2 refresh token
 """
 
 from __future__ import annotations
@@ -17,7 +17,6 @@ import os
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
 from typing import Any
 
 DEFAULT_MCP_URL = "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all"
@@ -42,32 +41,20 @@ class SalesforceClient:
         url: str | None = None,
         token: str | None = None,
         client_id: str | None = None,
+        client_secret: str | None = None,
         refresh_token: str | None = None,
         discovery_url: str | None = None,
-        refresh_token_file: str | None = None,
-        refresh_token_key: str | None = None,
     ) -> None:
         self.url = url or os.environ.get("SALESFORCE_MCP_URL", DEFAULT_MCP_URL)
-        self.token = token or os.environ.get("SALESFORCE_MCP_TOKEN") or ""
-        self.client_id = client_id or os.environ.get("SALESFORCE_MCP_CLIENT_ID") or ""
+        self.token = token or ""
+        self.client_id = client_id or os.environ.get("SF_CLIENT_ID") or ""
+        self.client_secret = client_secret or os.environ.get("SF_CLIENT_SECRET") or ""
         self.discovery_url = discovery_url or OAUTH_DISCOVERY_URL
-        self.refresh_token_file = (
-            refresh_token_file or os.environ.get("SALESFORCE_MCP_RT_FILE") or ""
+        self.refresh_token = (
+            refresh_token
+            or os.environ.get("SF_REFRESH_TOKEN")
+            or ""
         )
-        self.refresh_token_key = (
-            refresh_token_key or os.environ.get("SALESFORCE_MCP_RT_KEY") or ""
-        )
-        # Precedence: explicit arg > persisted file > env. Salesforce rotates
-        # the refresh token on every refresh (one-time use), so the persisted
-        # file is always fresher than the env secret once a rotation happened.
-        refresh_token = refresh_token or ""
-        if not refresh_token:
-            refresh_token = _load_rt_file(
-                self.refresh_token_file, self.refresh_token_key
-            )
-        if not refresh_token:
-            refresh_token = os.environ.get("SALESFORCE_MCP_REFRESH_TOKEN") or ""
-        self.refresh_token = refresh_token
         self._session_id: str | None = None
 
     # ------------------------------------------------------------------ public
@@ -157,13 +144,7 @@ class SalesforceClient:
         self._notify("notifications/initialized", {})
 
     def _notify(self, method: str, params: dict[str, Any]) -> None:
-        """Send a JSON-RPC notification (no id); the server replies 202/204.
-
-        ``notifications/initialized`` must be sent WITHOUT an id: it is a
-        notification, not a request. Sending it with an id makes some servers
-        answer ``-32601 Method not found`` (observed intermittently on the
-        real Salesforce MCP server).
-        """
+        """Send a JSON-RPC notification (no id); the server replies 202/204."""
         payload = json.dumps(
             {"jsonrpc": "2.0", "method": method, "params": params}
         ).encode()
@@ -215,11 +196,7 @@ class SalesforceClient:
 
     @staticmethod
     def _parse_response(body: str, content_type: str | None) -> Any:
-        """Parse a Streamable HTTP response (JSON or SSE event stream).
-
-        Empty bodies are legal for notifications (204 No Content) and
-        return ``None``.
-        """
+        """Parse a Streamable HTTP response (JSON or SSE event stream)."""
         if not body or not body.strip():
             return None
         try:
@@ -258,13 +235,13 @@ class SalesforceClient:
     def _refresh_token(self) -> None:
         """Refresh the OAuth2 token via the discovery document token endpoint."""
         token_endpoint = self._discover_token_endpoint()
-        data = urllib.parse.urlencode(
-            {
-                "grant_type": "refresh_token",
-                "refresh_token": self.refresh_token,
-                "client_id": self.client_id,
-            }
-        ).encode()
+        payload = {
+            "grant_type": "refresh_token",
+            "refresh_token": self.refresh_token,
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+        }
+        data = urllib.parse.urlencode(payload).encode()
         request = urllib.request.Request(
             token_endpoint,
             data=data,
@@ -286,13 +263,7 @@ class SalesforceClient:
         self.token = access_token
         new_refresh = body.get("refresh_token")
         if new_refresh and new_refresh != self.refresh_token:
-            # Salesforce rotates the refresh token: each refresh invalidates
-            # the previous one, so persist the new token for the next cycle.
             self.refresh_token = new_refresh
-            if self.refresh_token_file and self.refresh_token_key:
-                _save_rt_file(
-                    self.refresh_token_file, self.refresh_token_key, new_refresh
-                )
 
     def _discover_token_endpoint(self) -> str:
         request = urllib.request.Request(
@@ -311,31 +282,3 @@ class SalesforceClient:
                 f"OAuth discovery: no token_endpoint in {metadata}"
             )
         return token_endpoint
-
-
-def _save_rt_file(path: str, key: str, token: str) -> None:
-    """Persist a refresh token, Fernet-encrypted, for the next cron cycle."""
-    from cryptography.fernet import Fernet
-
-    encrypted = Fernet(key.encode()).encrypt(token.encode())
-    Path(path).write_bytes(encrypted)
-
-
-def _load_rt_file(path: str | None, key: str | None) -> str:
-    """Load a persisted refresh token; returns "" when absent/undecryptable."""
-    if not path or not key:
-        return ""
-    try:
-        from cryptography.fernet import Fernet, InvalidToken
-    except ImportError:
-        return ""
-    try:
-        data = Path(path).read_bytes()
-    except OSError:
-        return ""
-    if not data:
-        return ""
-    try:
-        return Fernet(key.encode()).decrypt(data).decode()
-    except InvalidToken, ValueError:
-        return ""
