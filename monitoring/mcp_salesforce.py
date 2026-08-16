@@ -137,7 +137,50 @@ class SalesforceClient:
         )
         if not isinstance(result, dict) or "capabilities" not in result:
             raise SalesforceClientError(f"Unexpected initialize response: {result}")
-        self._rpc("notifications/initialized", {})
+        self._notify("notifications/initialized", {})
+
+    def _notify(self, method: str, params: dict[str, Any]) -> None:
+        """Send a JSON-RPC notification (no id); the server replies 202/204.
+
+        ``notifications/initialized`` must be sent WITHOUT an id: it is a
+        notification, not a request. Sending it with an id makes some servers
+        answer ``-32601 Method not found`` (observed intermittently on the
+        real Salesforce MCP server).
+        """
+        payload = json.dumps(
+            {"jsonrpc": "2.0", "method": method, "params": params}
+        ).encode()
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        }
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+        if self._session_id:
+            headers["Mcp-Session-Id"] = self._session_id
+        request = urllib.request.Request(
+            self.url, data=payload, method="POST", headers=headers
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response:
+                session_id = response.headers.get("Mcp-Session-Id")
+                if session_id:
+                    self._session_id = session_id
+                body = response.read().decode()
+                message = self._parse_response(
+                    body, response.headers.get_content_type()
+                )
+                if isinstance(message, dict) and "error" in message:
+                    raise SalesforceClientError(
+                        f"MCP error: {message['error'].get('code')}: "
+                        f"{message['error'].get('message')}"
+                    )
+        except urllib.error.HTTPError as exc:
+            raise SalesforceClientError(
+                f"HTTP {exc.code}: {exc.read().decode()[:300]}"
+            ) from exc
+        except urllib.error.URLError as exc:
+            raise SalesforceClientError(f"Transport error: {exc.reason}") from exc
 
     # ------------------------------------------------------------------ parse
 

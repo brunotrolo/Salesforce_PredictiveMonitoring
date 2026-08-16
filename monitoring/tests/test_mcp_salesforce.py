@@ -45,7 +45,13 @@ class MockMCPServer:
             def do_POST(self):
                 length = int(self.headers.get("Content-Length", 0))
                 body = json.loads(self.rfile.read(length).decode())
-                server.calls.append({"path": self.path, "method": body.get("method")})
+                server.calls.append(
+                    {
+                        "path": self.path,
+                        "method": body.get("method"),
+                        "id": body.get("id"),
+                    }
+                )
                 server.sessions.append(self.headers.get("Mcp-Session-Id"))
 
                 if server.mode == "broken":
@@ -233,6 +239,15 @@ class TestSoqlQuery:
         methods = [c["method"] for c in server.calls]
         assert methods == ["initialize", "notifications/initialized", "tools/call"]
         assert "sess-123" in server.sessions[2:]
+
+    def test_notifications_initialized_is_sent_without_id(self, mock_server):
+        server, url = mock_server
+        client = SalesforceClient(url=url, token="tok-1")
+        client.soql_query("SELECT Id FROM Log__c")
+        notify_call = next(
+            c for c in server.calls if c["method"] == "notifications/initialized"
+        )
+        assert notify_call["id"] is None
 
     def test_parses_sse_response(self):
         server = MockMCPServer("sse")
