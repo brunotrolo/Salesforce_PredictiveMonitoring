@@ -158,8 +158,9 @@ docs/dashboard/               → header mostra status do último ciclo
   continua sendo o único passo fatal.
 - Dashboard: apenas exibe; nenhuma regra de negócio no cliente.
 - **Não** tocar `.github/workflows/` sem decisão explícita do usuário
-  (wiring de `--metrics-file`/`SENTRY_DSN`/`--feedback-file` no `collect.yml`
-  fica como open question — é mudança de workflow, não de código).
+  (wiring de `--metrics-file`/`SENTRY_DSN`/`--feedback-file`/`--samples-file`
+  no `collect.yml` foi decidido e implementado em 17/08/2026 — mudanças
+  futuras de workflow seguem ask-first).
 
 ## Success Criteria
 
@@ -180,8 +181,10 @@ docs/dashboard/               → header mostra status do último ciclo
 1. ~~**Wiring no `collect.yml`**~~ ✅ **Resolvido (17/08/2026):** o workflow
    agora passa `--metrics-file` (grava `${STAMP}.prom` na branch `data` junto
    do snapshot e no artifact), `SENTRY_DSN` (secret, opt-in — sem o secret o
-   pipeline roda idêntico) e `--feedback-file` (baixa `feedback.json` da raiz
-   da branch `data` quando existe).
+   pipeline roda idêntico), `--feedback-file` (baixa `feedback.json` da raiz
+   da branch `data` quando existe) e `--samples-file` (baixa `calibration.json`
+   da raiz da branch `data`, auto-calibração do threshold — decisão do usuário
+   em 17/08/2026, ver `docs/FEEDBACK_LOOP_SPEC.md`).
 2. **Thresholds de retry em produção:** `retries=3`, `base_delay=1s`,
    `max_delay=30s` como defaults; calibrar com a realidade do MCP depois de
    observar `step_errors` acumulado.

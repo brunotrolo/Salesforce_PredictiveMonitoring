@@ -134,8 +134,9 @@ site/
 - Model accuracy tracking ✅ (16/08/2026 — `AccuracyTracker` em `services/feedback`, ver SPECIFICATION.md §3.3)
 - User feedback ingestion ✅ (16/08/2026 — `FeedbackStore` + flag `--feedback-file` no pipeline)
 - Weekly retraining pipeline ✅ (16/08/2026 — `Calibrator.recommend` + CLI `python -m feedback.calibrate`; recomendação, nunca aplicação automática)
-- Calibração automática no pipeline → open question (ver `docs/FEEDBACK_LOOP_SPEC.md`)
+- Calibração automática no pipeline ✅ (17/08/2026 — `SampleStore` acumula `{threshold, fp_rate}` em `calibration.json` na branch `data`; `--samples-file` + `_run_calibration` antes do shadow; `threshold_used` + `calibration_summary` no snapshot; decisão do usuário em 17/08/2026, ver `docs/FEEDBACK_LOOP_SPEC.md`)
 - Wiring do `--feedback-file` no `collect.yml` ✅ (17/08/2026 — baixa `feedback.json` da raiz da branch `data` quando existe)
+- Wiring da auto-calibração no `collect.yml` ✅ (17/08/2026 — baixa `calibration.json`, passa `--samples-file`, persiste o arquivo atualizado na raiz da branch `data`)
 
 ### Phase 5: Hardening & Scale (1 week)
 - Error handling & retries ✅ (17/08/2026 — `services/resilience` (22 testes, 100%) + retry de transporte em `mcp_salesforce.py`; nunca protocolo/4xx)

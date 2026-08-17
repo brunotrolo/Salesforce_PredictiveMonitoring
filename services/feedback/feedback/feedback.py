@@ -201,6 +201,41 @@ class FeedbackStore:
         )
 
 
+class SampleStore:
+    """Accumulate calibration observations ``{threshold, fp_rate}``.
+
+    One observation per cycle that flagged an anomaly (a correct rejection
+    carries no FP information). The window is rolling — only the last
+    ``max_samples`` observations count, so the calibration tracks the current
+    reality. Missing file means an empty window (first run); invalid JSON is
+    a loud ``ValueError`` so the pipeline records it as a step error instead
+    of silently resetting the history.
+    """
+
+    def __init__(self, max_samples: int = 50) -> None:
+        self.max_samples = max_samples
+
+    def load(self, path: str | Path) -> list[dict]:
+        path = Path(path)
+        if not path.exists():
+            return []
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"invalid JSON in samples file {path}: {exc}") from exc
+        if not isinstance(data, list):
+            raise ValueError(f"samples file {path} must contain a JSON list")
+        return [row for row in data if isinstance(row, dict)]
+
+    def add(self, samples: list[dict], threshold: float, fp_rate: float) -> list[dict]:
+        return (samples + [{"threshold": threshold, "fp_rate": fp_rate}])[
+            -self.max_samples :
+        ]
+
+    def save(self, path: str | Path, samples: list[dict]) -> None:
+        Path(path).write_text(json.dumps(samples, indent=2) + "\n", encoding="utf-8")
+
+
 class Calibrator:
     """Recommend an AnomalyEngine threshold from observed false-positive rates.
 

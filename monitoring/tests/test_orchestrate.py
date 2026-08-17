@@ -148,6 +148,7 @@ class TestMain:
             history=None,
             prev_snapshot=None,
             feedback_file=None,
+            samples_file=None,
         ):
             return ({"risk_score": 0.5}, [])
 
@@ -170,6 +171,7 @@ class TestMain:
             history=None,
             prev_snapshot=None,
             feedback_file=None,
+            samples_file=None,
         ):
             return (bad_result, [])
 
@@ -412,6 +414,141 @@ class TestFeedbackLoop:
         assert result["pipeline"]["step_errors"][0]["step"] == "feedback"
 
 
+class TestCalibration:
+    """Phase 4 auto-calibration: --samples-file tunes the shadow threshold."""
+
+    def test_calibration_absent_without_samples_file(self):
+        result, _ = orchestrate.run_pipeline()
+        assert "calibration_summary" not in result
+        assert "calibration" not in result["pipeline"]["steps"]
+
+    def test_insufficient_with_missing_file_uses_default_threshold(self, tmp_path):
+        result, _ = orchestrate.run_pipeline(samples_file=str(tmp_path / "nope.json"))
+        summary = result["calibration_summary"]
+        assert summary["status"] == "insufficient"
+        assert summary["samples"] == 0
+        assert summary["threshold_used"] == 3.5
+        assert summary["recommended_threshold"] is None
+        assert result["shadow_mode"]["anomalies"]["threshold"] == 3.5
+        assert "calibration" in result["pipeline"]["steps"]
+
+    def test_recommended_threshold_tunes_shadow_engine(self, tmp_path):
+        samples = tmp_path / "samples.json"
+        samples.write_text(
+            json.dumps(
+                [
+                    {"threshold": 3.5, "fp_rate": 0.8},
+                    {"threshold": 3.5, "fp_rate": 0.9},
+                    {"threshold": 3.5, "fp_rate": 0.7},
+                ]
+            )
+        )
+        result, _ = orchestrate.run_pipeline(samples_file=str(samples))
+        summary = result["calibration_summary"]
+        assert summary["status"] == "recommended"
+        assert summary["samples"] == 3
+        assert summary["recommended_threshold"] == 4.0
+        assert summary["threshold_used"] == 4.0
+        assert result["shadow_mode"]["anomalies"]["threshold"] == 4.0
+
+    def test_invalid_samples_file_is_captured_not_fatal(self, tmp_path):
+        samples = tmp_path / "samples.json"
+        samples.write_text("{not json")
+        result, _ = orchestrate.run_pipeline(samples_file=str(samples))
+        assert "calibration_summary" not in result
+        errors = [
+            e for e in result["pipeline"]["step_errors"] if e["step"] == "calibration"
+        ]
+        assert len(errors) == 1
+        assert "invalid JSON" in errors[0]["error"]
+        assert result["shadow_mode"]["anomalies"]["threshold"] == 3.5
+
+    def test_fp_observation_recorded_when_anomaly_flagged(self, tmp_path, monkeypatch):
+        samples = tmp_path / "samples.json"
+        prev = {
+            "shadow_mode": {
+                "enabled": True,
+                "forecast": {"slope": 2.0, "intercept": 1.0},
+                "anomalies": {"count": 1, "threshold": 4.0},
+                "series": [0.0, 1.0, 2.0],
+            }
+        }
+        monkeypatch.setattr(
+            orchestrate,
+            "_run_shadow",
+            lambda raw, risk, threshold=None: {
+                "enabled": True,
+                "forecast": {"slope": 0.0, "intercept": 0.0},
+                "anomalies": {"count": 0},
+                "series": [0.0, 0.0, 0.0],
+            },
+        )
+        result, _ = orchestrate.run_pipeline(
+            samples_file=str(samples), prev_snapshot=prev
+        )
+        assert result["accuracy"]["anomaly_flagged"] is True
+        assert result["accuracy"]["false_positive"] is True
+        assert json.loads(samples.read_text()) == [{"threshold": 4.0, "fp_rate": 1.0}]
+
+    def test_hit_observation_recorded_with_fp_rate_zero(self, tmp_path, monkeypatch):
+        samples = tmp_path / "samples.json"
+        prev = {
+            "shadow_mode": {
+                "enabled": True,
+                "forecast": {"slope": 2.0, "intercept": 1.0},
+                "anomalies": {"count": 1, "threshold": 4.0},
+                "series": [0.0, 1.0, 2.0],
+            }
+        }
+        monkeypatch.setattr(
+            orchestrate,
+            "_run_shadow",
+            lambda raw, risk, threshold=None: {
+                "enabled": True,
+                "forecast": {"slope": 2.0, "intercept": 1.0},
+                "anomalies": {"count": 1},
+                "series": [0.0, 0.0, 10.0],
+            },
+        )
+        result, _ = orchestrate.run_pipeline(
+            samples_file=str(samples), prev_snapshot=prev
+        )
+        assert result["accuracy"]["false_positive"] is False
+        assert json.loads(samples.read_text()) == [{"threshold": 4.0, "fp_rate": 0.0}]
+
+    def test_no_observation_without_prev_snapshot(self, tmp_path):
+        samples = tmp_path / "samples.json"
+        result, _ = orchestrate.run_pipeline(samples_file=str(samples))
+        assert "accuracy" not in result
+        assert not samples.exists()
+
+    def test_no_observation_when_anomaly_not_flagged(self, tmp_path, monkeypatch):
+        samples = tmp_path / "samples.json"
+        prev = {
+            "shadow_mode": {
+                "enabled": True,
+                "forecast": {"slope": 2.0, "intercept": 1.0},
+                "anomalies": {"count": 0},
+                "series": [0.0, 1.0, 2.0],
+            }
+        }
+        monkeypatch.setattr(
+            orchestrate,
+            "_run_shadow",
+            lambda raw, risk, threshold=None: {
+                "enabled": True,
+                "forecast": {"slope": 2.0, "intercept": 1.0},
+                "anomalies": {"count": 0},
+                "series": [0.0, 0.0, 10.0],
+            },
+        )
+        result, _ = orchestrate.run_pipeline(
+            samples_file=str(samples), prev_snapshot=prev
+        )
+        assert result["accuracy"]["anomaly_flagged"] is False
+        assert not samples.exists()
+
+
 class TestHardening:
     """Phase 5: pipeline metadata, step isolation, Sentry opt-in."""
 
@@ -438,7 +575,7 @@ class TestHardening:
         assert "feedback" in result["pipeline"]["steps"]
 
     def test_shadow_failure_is_captured_not_fatal(self, monkeypatch):
-        def boom(raw_logs, heuristic_risk):
+        def boom(raw_logs, heuristic_risk, threshold=None):
             raise RuntimeError("ml engine exploded")
 
         monkeypatch.setattr(orchestrate, "_run_shadow", boom)
@@ -563,6 +700,7 @@ class TestHardening:
             history=None,
             prev_snapshot=None,
             feedback_file=None,
+            samples_file=None,
         ):
             return ({"risk_score": 0.5}, [])
 
@@ -586,6 +724,7 @@ class TestHardening:
             history=None,
             prev_snapshot=None,
             feedback_file=None,
+            samples_file=None,
         ):
             return ({"risk_score": 0.5}, [])
 

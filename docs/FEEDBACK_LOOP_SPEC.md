@@ -23,7 +23,10 @@ três capacidades, todas **observacionais — nenhuma decide**:
    determinísticos (regressão linear + z-score, sem pesos treináveis), o
    "retraining" honesto é **calibrar o threshold** do `AnomalyEngine` a partir
    do histórico de falsos positivos observados. O Calibrator recomenda um novo
-   threshold; a aplicação é decisão explícita (open question).
+   threshold; a **aplicação é automática por ciclo** (decisão 17/08/2026 —
+   `SampleStore` acumula observações em `calibration.json` na branch `data` e
+   o pipeline usa o threshold recomendado no shadow run seguinte), sempre
+   observacional: nunca mexe em `risk_score`/`alerts`.
 
 Sucesso: o snapshot ganha `accuracy` (quando há snapshot anterior) e
 `feedback_summary` (quando há arquivo); o dashboard mostra o card "Acurácia ML";
@@ -50,7 +53,7 @@ python -m feedback.calibrate --samples samples.json --target 0.2
 
 # Pipeline
 python -m pytest monitoring -q            # de monitoring/
-python orchestrate.py --mode mock --history-file prev.json --feedback-file feedback.json
+python orchestrate.py --mode mock --history-file prev.json --feedback-file feedback.json --samples-file calibration.json
 
 # Frontend
 cd site && npm test
@@ -65,7 +68,7 @@ services/feedback/
   requirements.txt      → pytest/pytest-cov/pydantic/structlog/faker/ruff (sem -e .)
   feedback/
     __init__.py         → exporta AccuracyTracker, FeedbackStore, Calibrator, modelos
-    feedback.py         → engines (AccuracyTracker, FeedbackStore, Calibrator)
+    feedback.py         → engines (AccuracyTracker, FeedbackStore, Calibrator, SampleStore)
     calibrate.py        → CLI do retraining (python -m feedback.calibrate)
   tests/
     conftest.py         → fixtures (prev/current snapshots, feedback samples)
@@ -118,11 +121,11 @@ mortos, `model_dump()` para serializar.
 - **Always:** testar antes de commitar; `sync-dashboard.mjs` antes do commit;
   `ruff format` + `check`; docstrings em PT/EN no estilo existente; nada de
   segredos.
-- **Ask first:** mudar `.github/workflows/*` (o collect.yml continuar passando
-  `--history-file`; o `--feedback-file` na produção e o cron semanal do
-  retraining ficam como open questions); adicionar dependências.
-- **Never:** aplicar o threshold calibrado sem decisão explícita; mexer no
-  `risk_score`/`alerts`; commitar sem CI verde.
+- **Ask first:** mudar `.github/workflows/*` (o collect.yml continua passando
+  `--history-file` e agora também `--samples-file` — auto-calibração, decisão
+  do usuário de 17/08/2026); adicionar dependências.
+- **Never:** mexer no `risk_score`/`alerts` (a calibração só troca o threshold
+  do shadow mode, nunca a saída heurística); commitar sem CI verde.
 
 ## Success Criteria
 
@@ -135,7 +138,12 @@ mortos, `model_dump()` para serializar.
    contagens por ação; arquivo com linha inválida não quebra o pipeline.
 4. Dashboard: card "Acurácia ML" renderiza de snapshot com accuracy; helpers
    testados no jest; sync atualizado.
-5. `SPECIFICATION.md` §3.3 Phase 4 e `PROJECT_ROADMAP_MASTER.md` marcadas
+5. Calibração automática: pipeline com `--samples-file` (3+ amostras com FP
+   alto) → `calibration_summary.status == "recommended"` e o threshold do
+   shadow run reflete o recomendado; ciclo com anomalia avaliada grava a nova
+   amostra `{threshold, fp_rate}` no arquivo; arquivo com menos de
+   `min_samples` → `insufficient` e threshold default (3.5).
+6. `SPECIFICATION.md` §3.3 Phase 4 e `PROJECT_ROADMAP_MASTER.md` marcadas
    implementadas no mesmo commit.
 
 ## Open Questions
@@ -145,8 +153,16 @@ mortos, `model_dump()` para serializar.
    rodar o pipeline e passa `--feedback-file` quando o arquivo existe. Para
    alimentar o feedback: commitar `feedback.json` na branch `data` (mesmo
    formato validado pelo `FeedbackStore`).
-2. **Aplicar a calibração:** o Calibrator recomenda; quem aplica o novo
-   threshold e quando (manual semanal? cron com auto-aplicação?) — v1 entrega
-   só a recomendação via CLI.
+2. ~~**Aplicar a calibração**~~ ✅ **Resolvido (17/08/2026): auto-aplicação
+   por ciclo.** O `SampleStore` acumula observações `{threshold, fp_rate}` (uma
+   por ciclo que sinalizou anomalia, janela rolante de 50) em
+   `calibration.json` na raiz da branch `data`. O `collect.yml` baixa o arquivo
+   e passa `--samples-file`; o pipeline roda o `Calibrator` antes do shadow
+   run e usa `recommended_threshold` (ou o default 3.5 quando insuficiente).
+   Após a avaliação de acurácia, o ciclo grava a nova amostra no arquivo, que
+   volta para a branch `data` no persist. O snapshot ganha
+   `calibration_summary` (status, amostras, `threshold_used`). O cron semanal
+   de retraining ficou desnecessário — a calibração é contínua; o CLI
+   `feedback.calibrate` permanece para uso manual.
 3. **Direção "flat" conta como hit?** v1: `flat` não pontua nem como hit nem
    como miss (indeterminado) — documentado nos testes.

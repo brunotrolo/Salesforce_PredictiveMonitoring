@@ -257,6 +257,15 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
   `python -m feedback.calibrate --samples samples.json [--target 0.2]`: calcula taxa de falsos
   positivos e **recomenda** novo threshold (clamp `[2.0, 6.0]`, passo +0.5/−0.25, `min_samples=3`);
   só recomenda, **nunca aplica** — ver `docs/FEEDBACK_LOOP_SPEC.md`).
+- **Auto-calibração do threshold** ✅ (17/08/2026 — decisão do usuário):
+  `SampleStore` acumula observações `{threshold, fp_rate}` (uma por ciclo com
+  anomalia sinalizada, janela rolante de 50) em `calibration.json`; o pipeline
+  com `--samples-file` roda o `Calibrator` antes do shadow
+  (`_run_calibration`), usa `recommended_threshold` no `AnomalyEngine` quando
+  `status == "recommended"` (senão default 3.5) e expõe
+  `calibration_summary` + `threshold_used` no snapshot; a nova observação é
+  gravada após a avaliação de acurácia (passo observacional, falha vira
+  `step_errors`).
 - Pipeline: `orchestrate.py` ganhou Step 6 (accuracy, com `--history-file` carregando o snapshot
   anterior completo) e Step 7 (feedback_summary, com `--feedback-file`); ambos opcionais e
   observacionais.
@@ -265,10 +274,14 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
   `directionLabel` testados em `site/monitoring/dashboard.js`.
 - Testes: 34 em `services/feedback` (100% cobertura), 51 em `monitoring` (inclui `TestFeedbackLoop`),
   50 frontend; CI verde.
-- Open questions: aplicar a calibração automaticamente no pipeline (recomendação
-  só via CLI por ora).
+- Open questions: ~~aplicar a calibração automaticamente no pipeline~~ ✅ resolvido
+  (17/08/2026 — auto-aplicação por ciclo via `--samples-file` + `SampleStore`,
+  ver `docs/FEEDBACK_LOOP_SPEC.md`).
 - Wiring do `--feedback-file` no `collect.yml` ✅ (17/08/2026): o workflow baixa
   `feedback.json` da raiz da branch `data` quando existe e passa `--feedback-file`.
+- Wiring da auto-calibração no `collect.yml` ✅ (17/08/2026): o workflow baixa
+  `calibration.json` da raiz da branch `data`, passa `--samples-file` e
+  persiste o arquivo atualizado na raiz da branch `data` após o ciclo.
 
 #### Phase 5: Hardening (1 semana)
 - Error handling & retries

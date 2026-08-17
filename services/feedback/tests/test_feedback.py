@@ -13,6 +13,7 @@ from feedback import (
     Calibrator,
     FeedbackRecord,
     FeedbackStore,
+    SampleStore,
     accuracy_direction,
 )
 from feedback.calibrate import main as calibrate_main
@@ -379,3 +380,58 @@ class TestCalibrateCLI:
     def test_missing_samples_file(self, tmp_path: Path):
         with pytest.raises(FileNotFoundError):
             calibrate_main(["--samples", str(tmp_path / "nope.json")])
+
+
+# ---------------------------------------------------------------- SampleStore
+
+
+class TestSampleStore:
+    def test_load_missing_file_returns_empty(self, tmp_path: Path):
+        assert SampleStore().load(tmp_path / "nope.json") == []
+
+    def test_load_valid_list(self, tmp_path: Path):
+        path = tmp_path / "samples.json"
+        path.write_text(json.dumps([{"threshold": 3.5, "fp_rate": 0.4}]))
+        assert SampleStore().load(path) == [{"threshold": 3.5, "fp_rate": 0.4}]
+
+    def test_load_invalid_json_raises(self, tmp_path: Path):
+        path = tmp_path / "samples.json"
+        path.write_text("{not json")
+        with pytest.raises(ValueError, match="invalid JSON"):
+            SampleStore().load(path)
+
+    def test_load_non_list_raises(self, tmp_path: Path):
+        path = tmp_path / "samples.json"
+        path.write_text('{"threshold": 3.5}')
+        with pytest.raises(ValueError, match="must contain a JSON list"):
+            SampleStore().load(path)
+
+    def test_load_skips_non_dict_rows(self, tmp_path: Path):
+        path = tmp_path / "samples.json"
+        path.write_text(json.dumps([{"threshold": 3.5, "fp_rate": 0.4}, "garbage"]))
+        assert SampleStore().load(path) == [{"threshold": 3.5, "fp_rate": 0.4}]
+
+    def test_add_appends_observation(self):
+        samples = [{"threshold": 3.5, "fp_rate": 0.4}]
+        updated = SampleStore().add(samples, 4.0, 1.0)
+        assert updated == [
+            {"threshold": 3.5, "fp_rate": 0.4},
+            {"threshold": 4.0, "fp_rate": 1.0},
+        ]
+        assert samples == [{"threshold": 3.5, "fp_rate": 0.4}]  # imutável
+
+    def test_add_caps_rolling_window(self):
+        store = SampleStore(max_samples=2)
+        samples: list[dict] = []
+        for i in range(4):
+            samples = store.add(samples, 3.5, 0.5)
+        assert samples == [
+            {"threshold": 3.5, "fp_rate": 0.5},
+            {"threshold": 3.5, "fp_rate": 0.5},
+        ]
+
+    def test_save_round_trip(self, tmp_path: Path):
+        path = tmp_path / "samples.json"
+        samples = [{"threshold": 4.0, "fp_rate": 1.0}]
+        SampleStore().save(path, samples)
+        assert SampleStore().load(path) == samples

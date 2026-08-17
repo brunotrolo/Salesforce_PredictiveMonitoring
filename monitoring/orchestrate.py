@@ -165,8 +165,14 @@ def _execute(
         return None
 
 
-def _run_shadow(raw_logs: list[dict], heuristic_risk: float) -> dict:
-    """Run the ML shadow-mode engines (Phase 3) — observes, never decides."""
+def _run_shadow(
+    raw_logs: list[dict], heuristic_risk: float, threshold: float | None = None
+) -> dict:
+    """Run the ML shadow-mode engines (Phase 3) — observes, never decides.
+
+    ``threshold`` (Phase 4 auto-calibration) is the AnomalyEngine threshold
+    recommended by the Calibrator; ``None`` falls back to the engine default.
+    """
     from ml import (
         AnomalyEngine,
         ForecastEngine,
@@ -179,7 +185,11 @@ def _run_shadow(raw_logs: list[dict], heuristic_risk: float) -> dict:
     if len(series) < 3:
         return {"enabled": False, "reason": "insufficient series points (need >= 3)"}
     forecast = ForecastEngine().forecast(series)
-    anomalies = AnomalyEngine().detect(series)
+    if threshold is None:
+        engine = AnomalyEngine()
+    else:
+        engine = AnomalyEngine(threshold=threshold)
+    anomalies = engine.detect(series)
     ml_risk = risk_from_series(series, forecast, anomalies)
     shadow = ShadowComparator().compare(heuristic_risk, ml_risk)
     return {
@@ -194,12 +204,42 @@ def _run_shadow(raw_logs: list[dict], heuristic_risk: float) -> dict:
     }
 
 
+def _run_calibration(samples_file: str) -> dict:
+    """Load accumulated samples and compute this cycle's threshold (Phase 4).
+
+    Auto-calibration (decision 17/08/2026): the Calibrator recommends a new
+    AnomalyEngine threshold from observed false-positive rates. With fewer
+    than ``min_samples`` observations the status is ``insufficient`` and the
+    threshold falls back to the engine default. Observational — the result
+    only annotates the snapshot and tunes shadow mode, never ``risk_score``
+    or ``alerts``.
+    """
+    from feedback import Calibrator, SampleStore
+    from ml import AnomalyEngine
+
+    samples = SampleStore().load(samples_file)
+    result = Calibrator().recommend(samples)
+    return {
+        "status": result.status,
+        "samples": result.samples,
+        "avg_fp_rate": result.avg_fp_rate,
+        "current_threshold": result.current_threshold,
+        "recommended_threshold": result.recommended_threshold,
+        "threshold_used": (
+            result.recommended_threshold
+            if result.status == "recommended"
+            else AnomalyEngine().threshold
+        ),
+    }
+
+
 def run_pipeline(
     mode: str = "mock",
-    client: Any = None,
+    client=None,
     history: dict[str, int] | None = None,
     prev_snapshot: dict | None = None,
     feedback_file: str | None = None,
+    samples_file: str | None = None,
 ) -> tuple[dict, list[dict]]:
     """Run the monitoring pipeline: collector -> heuristic -> alerting ->
     comparison -> shadow mode -> accuracy -> feedback.
@@ -284,8 +324,25 @@ def run_pipeline(
         }
 
     # Step 5: Shadow mode (Phase 3 - ML observes, never decides)
+    # Phase 4 auto-calibration: the recommended threshold from accumulated
+    # samples tunes this cycle's anomaly engine (default 3.5 when the
+    # calibration is missing or has too few samples).
+    calibration: dict | None = None
+    if samples_file is not None:
+        calibration = _execute(
+            step_errors,
+            "calibration",
+            lambda: _run_calibration(samples_file),
+        )
+    shadow_threshold = (
+        calibration["threshold_used"] if calibration is not None else None
+    )
     shadow_mode = _execute(
-        step_errors, "shadow", lambda: _run_shadow(raw_logs, analysis["risk_score"])
+        step_errors,
+        "shadow",
+        lambda: _run_shadow(
+            raw_logs, analysis["risk_score"], threshold=shadow_threshold
+        ),
     )
     if shadow_mode is None:
         shadow_mode = {"enabled": False, "reason": "shadow step failed"}
@@ -304,6 +361,39 @@ def run_pipeline(
                 .model_dump()
             ),
         )
+
+    # Phase 4 auto-calibration: record one observation per cycle that flagged
+    # an anomaly — the threshold used in the previous cycle and whether the
+    # signal turned out to be a false positive. Saved back to the samples
+    # file (persisted to the data branch by collect.yml).
+    if (
+        samples_file is not None
+        and calibration is not None
+        and accuracy is not None
+        and accuracy.get("anomaly_flagged")
+    ):
+        prev_threshold = (
+            (prev_snapshot.get("shadow_mode") or {})
+            .get("anomalies", {})
+            .get("threshold")
+        )
+        if (
+            isinstance(prev_threshold, (int, float))
+            and isinstance(prev_threshold, bool) is False
+        ):
+
+            def record_sample():
+                from feedback import SampleStore
+
+                store = SampleStore()
+                samples = store.add(
+                    store.load(samples_file),
+                    float(prev_threshold),
+                    1.0 if accuracy.get("false_positive") else 0.0,
+                )
+                store.save(samples_file, samples)
+
+            _execute(step_errors, "calibration", record_sample)
 
     # Step 7: User feedback ingestion (Phase 4 - observational only)
     feedback_summary: dict | None = None
@@ -326,6 +416,8 @@ def run_pipeline(
     now = datetime.now(timezone.utc).isoformat()
     duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
     steps = ["collect", "analyze", "aggregate", "compare", "shadow"]
+    if samples_file is not None:
+        steps.append("calibration")
     if prev_snapshot is not None:
         steps.append("accuracy")
     if feedback_file is not None:
@@ -358,6 +450,8 @@ def run_pipeline(
         result["accuracy"] = accuracy
     if feedback_summary is not None:
         result["feedback_summary"] = feedback_summary
+    if calibration is not None:
+        result["calibration_summary"] = calibration
     return result, raw_logs
 
 
@@ -415,6 +509,15 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--samples-file",
+        default=None,
+        help=(
+            "Accumulated calibration samples {threshold, fp_rate} used to "
+            "auto-calibrate the shadow AnomalyEngine threshold (Phase 4); "
+            "optional"
+        ),
+    )
+    parser.add_argument(
         "--metrics-file",
         default=None,
         help=(
@@ -441,6 +544,7 @@ def main() -> None:
             history=history,
             prev_snapshot=prev_snapshot,
             feedback_file=args.feedback_file,
+            samples_file=args.samples_file,
         )
 
         # Validate output

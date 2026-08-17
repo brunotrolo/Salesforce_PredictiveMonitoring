@@ -57,6 +57,14 @@ jobs:
           else
             echo "No feedback file found on branch data"
           fi
+          if [ -f "data-branch/calibration.json" ]; then
+            mkdir -p out
+            cp "data-branch/calibration.json" out/calibration.json
+            echo "calibration-file=out/calibration.json" >> "$GITHUB_OUTPUT"
+            echo "Using calibration samples: calibration.json (branch data)"
+          else
+            echo "No calibration file found on branch data (auto-calibration starts empty)"
+          fi
           git worktree remove data-branch --force 2>/dev/null || true
 
       - name: Run pipeline (real MCP mode)
@@ -77,10 +85,14 @@ jobs:
           if [ -n "${{ steps.history.outputs.feedback-file }}" ]; then
             FEEDBACK="--feedback-file ${{ steps.history.outputs.feedback-file }}"
           fi
+          SAMPLES=""
+          if [ -n "${{ steps.history.outputs.calibration-file }}" ]; then
+            SAMPLES="--samples-file ${{ steps.history.outputs.calibration-file }}"
+          fi
           (cd monitoring && python orchestrate.py --mode real \
             --log-file "../out/${{ steps.stamp.outputs.stamp }}.json" \
             --metrics-file "../out/${{ steps.stamp.outputs.stamp }}.prom" \
-            ${HISTORY} ${FEEDBACK})
+            ${HISTORY} ${FEEDBACK} ${SAMPLES})
 
       - name: Persist snapshot to data branch
         if: always() && steps.stamp.outputs.stamp != ''
@@ -100,7 +112,13 @@ jobs:
           if [ -f "../out/${STAMP}.prom" ]; then
             cp "../out/${STAMP}.prom" "data/${DATE}/${STAMP}.prom"
           fi
+          if [ -f "../out/calibration.json" ]; then
+            cp "../out/calibration.json" calibration.json
+          fi
           git add "data/${DATE}/"
+          if [ -f "calibration.json" ]; then
+            git add calibration.json
+          fi
           git commit -m "data: ${STAMP}" || { echo "No changes"; exit 0; }
           git push origin data
           cd ..

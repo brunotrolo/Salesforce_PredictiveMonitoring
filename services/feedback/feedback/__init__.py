@@ -3,6 +3,7 @@ from .feedback import (
     Calibrator,
     FeedbackRecord,
     FeedbackStore,
+    SampleStore,
     accuracy_direction,
 )
 
@@ -11,5 +12,6 @@ __all__ = [
     "Calibrator",
     "FeedbackRecord",
     "FeedbackStore",
+    "SampleStore",
     "accuracy_direction",
 ]
