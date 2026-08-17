@@ -1,4 +1,4 @@
-import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow, directionLabel, getAccuracyVerdict, summarizeAccuracy } from "../dashboard.js";
+import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow, directionLabel, getAccuracyVerdict, summarizeAccuracy, summarizePipeline } from "../dashboard.js";
 import { mockMonitoringData, mockEmptyData, mockCriticalData } from "../mock-data.js";
 
 describe("Dashboard", () => {
@@ -273,6 +273,53 @@ describe("Dashboard", () => {
       expect(summary.verdict).toBe("SEM DADOS");
       expect(summary.directionExpected).toBe(null);
       expect(summary.anomalyFlagged).toBe(false);
+    });
+  });
+
+  describe("summarizePipeline", () => {
+    test("summarizes an enabled pipeline block", () => {
+      const summary = summarizePipeline(mockMonitoringData.pipeline);
+      expect(summary.available).toBe(true);
+      expect(summary.durationMs).toBe(137);
+      expect(summary.steps).toEqual([
+        "collect",
+        "analyze",
+        "aggregate",
+        "compare",
+        "shadow",
+      ]);
+      expect(summary.stepErrors).toEqual([]);
+      expect(summary.hasErrors).toBe(false);
+    });
+
+    test("flags step errors when present", () => {
+      const summary = summarizePipeline(mockCriticalData.pipeline);
+      expect(summary.hasErrors).toBe(true);
+      expect(summary.stepErrors).toEqual([
+        { step: "feedback", error: "FileNotFoundError: nope.json" },
+      ]);
+      expect(summary.durationMs).toBe(251);
+    });
+
+    test("returns safe fallback when missing", () => {
+      const summary = summarizePipeline(undefined);
+      expect(summary.available).toBe(false);
+      expect(summary.durationMs).toBe(null);
+      expect(summary.steps).toEqual([]);
+      expect(summary.stepErrors).toEqual([]);
+      expect(summary.hasErrors).toBe(false);
+    });
+
+    test("handles non-array fields defensively", () => {
+      const summary = summarizePipeline({ duration_ms: 99 });
+      expect(summary.steps).toEqual([]);
+      expect(summary.stepErrors).toEqual([]);
+      expect(summary.hasErrors).toBe(false);
+    });
+
+    test("treats non-numeric duration as null", () => {
+      const summary = summarizePipeline({ duration_ms: "fast" });
+      expect(summary.durationMs).toBe(null);
     });
   });
 });

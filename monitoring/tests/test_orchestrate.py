@@ -406,8 +406,194 @@ class TestFeedbackLoop:
         assert result["feedback_summary"]["valid"] == 1
         assert result["feedback_summary"]["invalid"] == 2
 
-    def test_missing_feedback_file_raises(self, tmp_path):
+    def test_missing_feedback_file_is_captured_as_step_error(self, tmp_path):
+        result, _ = orchestrate.run_pipeline(feedback_file=str(tmp_path / "nope.json"))
+        assert "feedback_summary" not in result
+        assert result["pipeline"]["step_errors"][0]["step"] == "feedback"
+
+
+class TestHardening:
+    """Phase 5: pipeline metadata, step isolation, Sentry opt-in."""
+
+    def test_pipeline_block_present_in_mock_run(self):
+        result, _ = orchestrate.run_pipeline()
+        pipeline = result["pipeline"]
+        assert pipeline["duration_ms"] >= 0
+        assert pipeline["steps"] == [
+            "collect",
+            "analyze",
+            "aggregate",
+            "compare",
+            "shadow",
+        ]
+        assert pipeline["step_errors"] == []
+
+    def test_steps_include_optional_when_requested(self, tmp_path):
+        feedback_path = tmp_path / "feedback.json"
+        feedback_path.write_text("[]")
+        result, _ = orchestrate.run_pipeline(
+            prev_snapshot={"risk_score": 0.1}, feedback_file=str(feedback_path)
+        )
+        assert "accuracy" in result["pipeline"]["steps"]
+        assert "feedback" in result["pipeline"]["steps"]
+
+    def test_shadow_failure_is_captured_not_fatal(self, monkeypatch):
+        def boom(raw_logs, heuristic_risk):
+            raise RuntimeError("ml engine exploded")
+
+        monkeypatch.setattr(orchestrate, "_run_shadow", boom)
+        result, _ = orchestrate.run_pipeline()
+        assert result["shadow_mode"] == {
+            "enabled": False,
+            "reason": "shadow step failed",
+        }
+        assert result["pipeline"]["step_errors"] == [
+            {"step": "shadow", "error": "RuntimeError: ml engine exploded"}
+        ]
+        assert "risk_score" in result
+
+    def test_compare_failure_is_captured_not_fatal(self, monkeypatch):
+        import comparison
+
+        class BrokenComparison:
+            def compare(self, analysis):
+                raise RuntimeError("comparison exploded")
+
+        monkeypatch.setattr(comparison, "ComparisonService", BrokenComparison)
+        result, _ = orchestrate.run_pipeline()
+        assert result["comparison"]["prediction"] is None
+        assert result["comparison"]["summary"].startswith("comparison step failed")
+        assert result["pipeline"]["step_errors"][0]["step"] == "compare"
+
+    def test_collect_failure_is_fatal(self, monkeypatch):
         import pytest
 
-        with pytest.raises(FileNotFoundError):
-            orchestrate.run_pipeline(feedback_file=str(tmp_path / "nope.json"))
+        def boom(client):
+            raise RuntimeError("mcp down")
+
+        monkeypatch.setattr(orchestrate, "fetch_real_logs", boom)
+        client = FakeMCPClient([])
+        with pytest.raises(RuntimeError, match="mcp down"):
+            orchestrate.run_pipeline(mode="real", client=client)
+
+    def test_analyze_failure_is_fatal(self, monkeypatch):
+        import heuristic
+        import pytest
+
+        class BrokenEngine:
+            def analyze(self, logs):
+                raise RuntimeError("heuristic exploded")
+
+        monkeypatch.setattr(heuristic, "HeuristicEngine", BrokenEngine)
+        with pytest.raises(RuntimeError, match="heuristic exploded"):
+            orchestrate.run_pipeline()
+
+    def test_aggregate_failure_is_fatal(self, monkeypatch):
+        import alerting
+        import pytest
+
+        class BrokenAggregator:
+            def aggregate(self, alerts, history=None):
+                raise RuntimeError("aggregator exploded")
+
+            def severity_counts(self, aggregated):
+                raise RuntimeError("aggregator exploded")
+
+        monkeypatch.setattr(alerting, "AlertAggregator", BrokenAggregator)
+        with pytest.raises(RuntimeError, match="aggregator exploded"):
+            orchestrate.run_pipeline()
+
+    def test_sentry_init_noop_without_dsn(self, monkeypatch):
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+        assert orchestrate.init_sentry() is False
+
+    def test_sentry_init_with_dsn(self, monkeypatch):
+        calls = {}
+
+        class FakeSentry:
+            @staticmethod
+            def init(**kwargs):
+                calls["init"] = kwargs
+
+        monkeypatch.setenv("SENTRY_DSN", "https://fake@sentry.example/1")
+        monkeypatch.setitem(sys.modules, "sentry_sdk", FakeSentry)
+        assert orchestrate.init_sentry() is True
+        assert calls["init"]["dsn"] == "https://fake@sentry.example/1"
+        assert calls["init"]["traces_sample_rate"] == 0.0
+
+    def test_main_writes_metrics_file(self, tmp_path, monkeypatch):
+        output = tmp_path / "output.json"
+        metrics = tmp_path / "metrics.prom"
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "orchestrate.py",
+                "--log-file",
+                str(output),
+                "--metrics-file",
+                str(metrics),
+            ],
+        )
+        orchestrate.main()
+        assert metrics.exists()
+        content = metrics.read_text()
+        assert "monitoring_risk_score" in content
+        assert "monitoring_pipeline_info" in content
+
+    def test_main_captures_exception_when_sentry_active(self, tmp_path, monkeypatch):
+        calls = {"capture": 0}
+
+        class FakeSentry:
+            @staticmethod
+            def init(**kwargs):
+                pass
+
+            @staticmethod
+            def capture_exception():
+                calls["capture"] += 1
+
+        monkeypatch.setenv("SENTRY_DSN", "https://fake@sentry.example/1")
+        monkeypatch.setitem(sys.modules, "sentry_sdk", FakeSentry)
+
+        def stub_run_pipeline(
+            *,
+            mode="mock",
+            client=None,
+            history=None,
+            prev_snapshot=None,
+            feedback_file=None,
+        ):
+            return ({"risk_score": 0.5}, [])
+
+        monkeypatch.setattr(orchestrate, "run_pipeline", stub_run_pipeline)
+        output = tmp_path / "output.json"
+        monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
+        try:
+            orchestrate.main()
+            raise AssertionError("expected ValueError")
+        except ValueError:
+            pass
+        assert calls["capture"] == 1
+
+    def test_main_reraise_without_sentry(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+
+        def stub_run_pipeline(
+            *,
+            mode="mock",
+            client=None,
+            history=None,
+            prev_snapshot=None,
+            feedback_file=None,
+        ):
+            return ({"risk_score": 0.5}, [])
+
+        monkeypatch.setattr(orchestrate, "run_pipeline", stub_run_pipeline)
+        output = tmp_path / "output.json"
+        monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
+        try:
+            orchestrate.main()
+            raise AssertionError("expected ValueError")
+        except ValueError:
+            pass

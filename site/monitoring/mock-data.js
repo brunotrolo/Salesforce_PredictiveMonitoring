@@ -30,6 +30,11 @@ export const mockMonitoringData = {
     false_positive: false,
     series_actual: [2, 4, 6],
   },
+  pipeline: {
+    duration_ms: 137,
+    steps: ["collect", "analyze", "aggregate", "compare", "shadow"],
+    step_errors: [],
+  },
 };
 
 export const mockEmptyData = {
@@ -75,5 +80,18 @@ export const mockCriticalData = {
     anomaly_hit: false,
     false_positive: true,
     series_actual: [3, 3, 3],
+  },
+  pipeline: {
+    duration_ms: 251,
+    steps: [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy",
+      "feedback",
+    ],
+    step_errors: [{ step: "feedback", error: "FileNotFoundError: nope.json" }],
   },
 };

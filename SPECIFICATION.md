@@ -273,6 +273,35 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
 - Rate limiting
 - Sentry + Prometheus
 
+**IMPLEMENTADO (17/08/2026):**
+- Retry de transporte em `mcp_salesforce.py` (`retry()`/`_rpc_once`): apenas 429/5xx/
+  `URLError`/timeout — nunca protocolo MCP/4xx; token bucket com `SF_MAX_QPS`
+  (default sem limite), `SalesforceClientError(code, transient)`.
+- `services/resilience/` (módulo compartilhado): `retry.py` + `rate_limit.py`,
+  22 testes, 100% cobertura.
+- Sentry opt-in: `init_sentry(dsn=None)` lê `SENTRY_DSN` do ambiente; sem DSN é
+  no-op (`False`) e o pipeline roda idêntico. Com DSN, `main()` captura exceção
+  e re-raise (exit code preservado). `sentry-sdk==2.68.0` em `requirements.txt`.
+- Métricas Prometheus: `metrics.py` renderiza o snapshot em text exposition
+  (`metrics.prom` batch, sem servidor HTTP) — `risk_score`, `errors_count`,
+  `slow_requests_count`, `retried_count`, `logs_processed`,
+  `pipeline_duration_ms`, `pipeline_step_errors_count`, `cycle_timestamp_seconds`,
+  `monitoring_pipeline_info{mode,health}`, `monitoring_alerts_total{severity}`,
+  `monitoring_shadow_ml_risk` (só quando shadow habilitado). 100% cobertura.
+- Hardening do pipeline (`orchestrate.py`): passos fatais = `collect`/`analyze`/
+  `aggregate`; passos observacionais = `compare`/`shadow`/`accuracy`/`feedback`
+  (falha vira `step_errors` e o ciclo completa). Bloco `pipeline` no snapshot:
+  `{duration_ms, steps, step_errors}`. Falha de feedback deixou de ser fatal
+  (contrato deliberado, teste atualizado).
+- Dashboard: card "Pipeline (último ciclo)" (duração, steps com estado
+  ok/falhou, lista de `step_errors`); helper `summarizePipeline` testado em
+  `site/monitoring/dashboard.js`.
+- Testes: 22 em `services/resilience`, 89 em `monitoring` (91% cobertura —
+  `metrics.py` 100%), 55 frontend; ruff limpo; CI verde.
+- Open questions: wiring do `--metrics-file`, `SENTRY_DSN` e `--feedback-file`
+  no `collect.yml` (decisão do usuário); calibrar retries (3/1s/30s) com dados
+  de produção.
+
 **TESTE T3.5 - Phases Interconnected:**
 ```bash
 grep -c "Phase [0-5]" PROJECT_ROADMAP_MASTER.md

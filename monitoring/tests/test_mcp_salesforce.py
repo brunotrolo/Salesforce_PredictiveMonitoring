@@ -9,6 +9,17 @@ from urllib.parse import parse_qs
 
 import pytest
 from mcp_salesforce import SalesforceClient, SalesforceClientError
+from resilience import RetryExhausted
+
+
+class FakeSleeper:
+    """Records sleep durations so tests never actually wait."""
+
+    def __init__(self) -> None:
+        self.calls: list[float] = []
+
+    def __call__(self, seconds: float) -> None:
+        self.calls.append(seconds)
 
 
 class MockMCPServer:
@@ -19,11 +30,15 @@ class MockMCPServer:
         - "sse": same, but tools/call answered as text/event-stream
         - "unauthorized_once": first authorized request returns 401, then ok
         - "unauthorized_always": always 401 (no refresh path)
+        - "flaky500": first ``fail_until`` tools/call return 500, then ok
+        - "flaky400": first ``fail_until`` tools/call return 400, then ok
         - "broken": invalid JSON / unexpected initialize response
     """
 
-    def __init__(self, mode: str = "ok") -> None:
+    def __init__(self, mode: str = "ok", fail_until: int = 0) -> None:
         self.mode = mode
+        self.fail_until = fail_until
+        self.tools_calls = 0
         self.calls: list[dict] = []
         self.sessions: list[str | None] = []
         self.authorized_requests = 0
@@ -88,6 +103,14 @@ class MockMCPServer:
                     return
 
                 if body.get("method") == "tools/call":
+                    if server.mode in ("flaky500", "flaky400"):
+                        server.tools_calls += 1
+                        if server.tools_calls <= server.fail_until:
+                            self._json(
+                                500 if server.mode == "flaky500" else 400,
+                                {"error": "injected failure"},
+                            )
+                            return
                     if (
                         server.mode == "unauthorized_once"
                         and server.authorized_requests == 0
@@ -407,9 +430,11 @@ class TestErrors:
         finally:
             server.stop()
 
-    def test_transport_error_raises(self):
-        client = SalesforceClient(url="http://127.0.0.1:1", token="tok-1")
-        with pytest.raises(SalesforceClientError):
+    def test_transport_error_is_retried_then_exhausted(self):
+        client = SalesforceClient(
+            url="http://127.0.0.1:1", token="tok-1", retries=2, sleeper=lambda _: None
+        )
+        with pytest.raises(RetryExhausted):
             client.soql_query("SELECT Id FROM Log__c")
 
     def test_url_from_environment(self, mock_server, monkeypatch):
@@ -417,3 +442,115 @@ class TestErrors:
         monkeypatch.setenv("SALESFORCE_MCP_URL", url)
         client = SalesforceClient()
         assert client.url == url
+
+
+class TestRetryAndRateLimit:
+    def test_retries_transient_500_and_succeeds(self):
+        server = MockMCPServer("flaky500", fail_until=2)
+        url = server.start()
+        try:
+            sleeper = FakeSleeper()
+            client = SalesforceClient(
+                url=url, token="tok-1", retries=3, jitter=0.0, sleeper=sleeper
+            )
+            result = client.soql_query("SELECT Id FROM Log__c")
+            assert json.loads(result)["totalSize"] == 1
+            assert server.tools_calls == 3
+            assert sleeper.calls == [1.0, 2.0]
+        finally:
+            server.stop()
+
+    def test_500_exhausted_raises_retry_exhausted(self):
+        server = MockMCPServer("flaky500", fail_until=10**9)
+        url = server.start()
+        try:
+            client = SalesforceClient(
+                url=url, token="tok-1", retries=2, jitter=0.0, sleeper=lambda _: None
+            )
+            with pytest.raises(RetryExhausted):
+                client.soql_query("SELECT Id FROM Log__c")
+            assert server.tools_calls == 3
+        finally:
+            server.stop()
+
+    def test_400_fails_fast_without_retry(self):
+        server = MockMCPServer("flaky400", fail_until=10**9)
+        url = server.start()
+        try:
+            client = SalesforceClient(
+                url=url, token="tok-1", retries=3, sleeper=lambda _: None
+            )
+            with pytest.raises(SalesforceClientError, match="HTTP 400") as exc_info:
+                client.soql_query("SELECT Id FROM Log__c")
+            assert exc_info.value.code == 400
+            assert not exc_info.value.transient
+            assert server.tools_calls == 1
+        finally:
+            server.stop()
+
+    def test_mcp_protocol_error_is_not_retried(self):
+        server = MockMCPServer("broken")
+        url = server.start()
+        try:
+            client = SalesforceClient(
+                url=url, token="tok-1", retries=3, sleeper=lambda _: None
+            )
+            with pytest.raises(SalesforceClientError):
+                client.soql_query("SELECT Id FROM Log__c")
+            assert len(server.calls) == 1
+        finally:
+            server.stop()
+
+    def test_transport_error_backs_off_between_attempts(self):
+        sleeper = FakeSleeper()
+        client = SalesforceClient(
+            url="http://127.0.0.1:1",
+            token="tok-1",
+            retries=2,
+            jitter=0.0,
+            sleeper=sleeper,
+        )
+        with pytest.raises(RetryExhausted):
+            client.soql_query("SELECT Id FROM Log__c")
+        assert sleeper.calls == [1.0, 2.0]
+
+    def test_rate_limit_exhausted_raises_without_calling_server(self):
+        server = MockMCPServer("ok")
+        url = server.start()
+        try:
+            client = SalesforceClient(
+                url=url, token="tok-1", max_qps=1e-9, bucket_timeout=0.02
+            )
+            with pytest.raises(SalesforceClientError, match="Rate limit"):
+                client.soql_query("SELECT Id FROM Log__c")
+            assert server.calls == []
+        finally:
+            server.stop()
+
+    def test_rate_limit_allows_within_qps(self):
+        server = MockMCPServer("ok")
+        url = server.start()
+        try:
+            client = SalesforceClient(url=url, token="tok-1", max_qps=100.0)
+            result = client.soql_query("SELECT Id FROM Log__c")
+            assert json.loads(result)["totalSize"] == 1
+        finally:
+            server.stop()
+
+    def test_max_qps_from_env(self, monkeypatch):
+        monkeypatch.setenv("SF_MAX_QPS", "2.5")
+        client = SalesforceClient()
+        assert client.max_qps == 2.5
+        assert client._bucket is not None
+
+    def test_no_bucket_without_max_qps(self):
+        assert SalesforceClient()._bucket is None
+
+    def test_transient_classification(self):
+        client = SalesforceClient()
+        assert client._is_retryable_transport(
+            SalesforceClientError("t", transient=True)
+        )
+        assert client._is_retryable_transport(SalesforceClientError("x", code=503))
+        assert not client._is_retryable_transport(SalesforceClientError("p"))
+        assert not client._is_retryable_transport(SalesforceClientError("a", code=401))

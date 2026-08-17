@@ -128,3 +128,27 @@ export function summarizeAccuracy(accuracy) {
     falsePositive: Boolean(accuracy.false_positive),
   };
 }
+
+export function summarizePipeline(pipeline) {
+  if (!pipeline || typeof pipeline !== "object") {
+    return {
+      available: false,
+      durationMs: null,
+      steps: [],
+      stepErrors: [],
+      hasErrors: false,
+    };
+  }
+  const steps = Array.isArray(pipeline.steps) ? pipeline.steps : [];
+  const stepErrors = Array.isArray(pipeline.step_errors)
+    ? pipeline.step_errors
+    : [];
+  return {
+    available: true,
+    durationMs:
+      typeof pipeline.duration_ms === "number" ? pipeline.duration_ms : null,
+    steps,
+    stepErrors,
+    hasErrors: stepErrors.length > 0,
+  };
+}

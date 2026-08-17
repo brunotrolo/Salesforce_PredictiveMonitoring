@@ -14,10 +14,13 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from typing import Any
+
+from resilience import TokenBucket, is_retryable_error, retry
 
 DEFAULT_MCP_URL = "https://api.salesforce.com/platform/mcp/v1/platform/sobject-all"
 DEFAULT_PROTOCOL_VERSION = "2025-03-26"
@@ -27,7 +30,20 @@ OAUTH_DISCOVERY_URL = (
 
 
 class SalesforceClientError(RuntimeError):
-    """Raised for MCP protocol, transport or authentication failures."""
+    """Raised for MCP protocol, transport or authentication failures.
+
+    ``code`` mirrors an HTTP status when the failure came from an HTTP
+    response (urllib HTTPError shape); ``transient`` marks transport-level
+    failures that are safe to retry (429/5xx, connection/timeout). Protocol
+    and validation errors are never transient.
+    """
+
+    def __init__(
+        self, message: str, *, code: int | None = None, transient: bool = False
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.transient = transient
 
 
 class SalesforceClient:
@@ -44,6 +60,14 @@ class SalesforceClient:
         client_secret: str | None = None,
         refresh_token: str | None = None,
         discovery_url: str | None = None,
+        *,
+        retries: int = 3,
+        base_delay: float = 1.0,
+        max_delay: float = 30.0,
+        jitter: float = 0.1,
+        max_qps: float | None = None,
+        bucket_timeout: float = 30.0,
+        sleeper: Any = time.sleep,
     ) -> None:
         self.url = url or os.environ.get("SALESFORCE_MCP_URL", DEFAULT_MCP_URL)
         self.token = token or ""
@@ -52,6 +76,21 @@ class SalesforceClient:
         self.discovery_url = discovery_url or OAUTH_DISCOVERY_URL
         self.refresh_token = refresh_token or os.environ.get("SF_REFRESH_TOKEN") or ""
         self._session_id: str | None = None
+        self._retries = retries
+        self._base_delay = base_delay
+        self._max_delay = max_delay
+        self._jitter = jitter
+        self._bucket_timeout = bucket_timeout
+        self._sleeper = sleeper
+        raw_qps = os.environ.get("SF_MAX_QPS")
+        if max_qps is None and raw_qps:
+            max_qps = float(raw_qps)
+        self.max_qps = max_qps if max_qps and max_qps > 0 else None
+        self._bucket: TokenBucket | None = (
+            TokenBucket(rate=max_qps, capacity=max_qps, sleeper=sleeper)
+            if self.max_qps
+            else None
+        )
 
     # ------------------------------------------------------------------ public
 
@@ -79,6 +118,29 @@ class SalesforceClient:
     # -------------------------------------------------------------- transport
 
     def _rpc(self, method: str, params: dict[str, Any]) -> Any:
+        """Send one JSON-RPC request with retry on transient transport errors.
+
+        Retries (exponential backoff + jitter) only transient failures:
+        HTTP 429/5xx, connection and timeout errors. Protocol errors
+        (MCP error responses, invalid JSON, 4xx other than 429) fail fast.
+        """
+        return retry(
+            lambda: self._rpc_once(method, params),
+            retries=self._retries,
+            base_delay=self._base_delay,
+            max_delay=self._max_delay,
+            jitter=self._jitter,
+            retryable=self._is_retryable_transport,
+            sleeper=self._sleeper,
+        )
+
+    def _is_retryable_transport(self, exc: BaseException) -> bool:
+        """True when the failure came from the transport, not the protocol."""
+        return is_retryable_error(exc) or (
+            isinstance(exc, SalesforceClientError) and exc.transient
+        )
+
+    def _rpc_once(self, method: str, params: dict[str, Any]) -> Any:
         """Send one JSON-RPC request; returns the result (parsed JSON or SSE)."""
         payload = json.dumps(
             {"jsonrpc": "2.0", "id": 1, "method": method, "params": params}
@@ -107,13 +169,25 @@ class SalesforceClient:
                 return self._unwrap_rpc(message)
             raise AssertionError("unreachable")
         except urllib.error.HTTPError as exc:
+            code = exc.code
             raise SalesforceClientError(
-                f"HTTP {exc.code}: {exc.read().decode()[:300]}"
+                f"HTTP {code}: {exc.read().decode()[:300]}",
+                code=code,
+                transient=code == 429 or 500 <= code <= 599,
             ) from exc
         except urllib.error.URLError as exc:
-            raise SalesforceClientError(f"Transport error: {exc.reason}") from exc
+            raise SalesforceClientError(
+                f"Transport error: {exc.reason}", transient=True
+            ) from exc
 
     def _call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
+        if self._bucket is not None and not self._bucket.acquire(
+            block=True, timeout=self._bucket_timeout
+        ):
+            raise SalesforceClientError(
+                f"Rate limit: SF_MAX_QPS={self.max_qps} exhausted after "
+                f"{self._bucket_timeout}s wait"
+            )
         if self._session_id is None:
             self._initialize()
         result = self._rpc("tools/call", {"name": name, "arguments": arguments})

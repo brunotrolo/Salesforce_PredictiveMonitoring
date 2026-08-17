@@ -1,1 +1,2 @@
 cryptography==50.0.0
+sentry-sdk==2.68.0

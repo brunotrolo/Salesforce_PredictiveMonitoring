@@ -482,6 +482,47 @@
       color: var(--text-dim);
     }
 
+    /* ---------- pipeline ---------- */
+
+    .pipeline-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 4px 0 12px;
+    }
+    .pipeline-step {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--text-dim);
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 2px 8px;
+      white-space: nowrap;
+    }
+    .pipeline-step.ok { color: var(--green); border-color: rgba(34, 197, 94, 0.35); }
+    .pipeline-step.failed { color: var(--red); border-color: rgba(239, 68, 68, 0.4); }
+
+    .pipeline-errors {
+      margin: 4px 0 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 8px;
+      background: rgba(239, 68, 68, 0.06);
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #fca5a5;
+      overflow-wrap: anywhere;
+    }
+    .pipeline-errors strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--red);
+    }
+
     /* ---------- skeleton ---------- */
 
     .skeleton {
@@ -700,6 +741,19 @@
         </div>
       </dl>
       <p id="accuracy-caption" class="shadow-caption"></p>
+    </section>
+
+    <section class="card" aria-labelledby="pipeline-title">
+      <div class="card-head">
+        <h2 id="pipeline-title">Pipeline (último ciclo)</h2>
+        <span id="pipeline-duration" class="card-note">—</span>
+      </div>
+      <div id="pipeline-steps" class="pipeline-steps"></div>
+      <div id="pipeline-errors" class="pipeline-errors hidden"></div>
+      <p id="pipeline-caption" class="shadow-caption">
+        Cadeia de passos do ciclo: coleta, análise, agregação, comparação e
+        shadow mode. Falhas em passos observacionais não interrompem a coleta.
+      </p>
     </section>
   </main>
 

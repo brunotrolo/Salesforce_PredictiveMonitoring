@@ -137,11 +137,12 @@ site/
 - Calibração automática no pipeline e wiring do `--feedback-file` no `collect.yml` → open questions (ver `docs/FEEDBACK_LOOP_SPEC.md`)
 
 ### Phase 5: Hardening & Scale (1 week)
-- Error handling & retries
-- Rate limiting & backoff
-- Sentry error tracking
-- Prometheus metrics
-- Production monitoring
+- Error handling & retries ✅ (17/08/2026 — `services/resilience` (22 testes, 100%) + retry de transporte em `mcp_salesforce.py`; nunca protocolo/4xx)
+- Rate limiting & backoff ✅ (17/08/2026 — token bucket com `SF_MAX_QPS` em `mcp_salesforce.py`)
+- Sentry error tracking ✅ (17/08/2026 — `init_sentry` opt-in via `SENTRY_DSN`; no-op sem DSN)
+- Prometheus metrics ✅ (17/08/2026 — `metrics.py` em text exposition, 100% cobertura; `--metrics-file` no pipeline)
+- Production monitoring ✅ (17/08/2026 — hardening do pipeline: passos fatais = collect/analyze/aggregate, observacionais = compare/shadow/accuracy/feedback com `step_errors`; bloco `pipeline` no snapshot; card "Pipeline (último ciclo)" no dashboard; 89 testes monitoring, 91% cobertura)
+- Wiring do `--metrics-file`, `SENTRY_DSN` e `--feedback-file` no `collect.yml` → open question (decisão do usuário)
 
 ---
 

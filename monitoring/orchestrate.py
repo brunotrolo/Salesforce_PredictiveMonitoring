@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -145,6 +146,54 @@ def fetch_real_logs(client: Any) -> list[dict[str, Any]]:
     return []
 
 
+def _execute(
+    step_errors: list[dict[str, str]], name: str, fn: Any, *, fatal: bool = False
+) -> Any:
+    """Run a pipeline step; non-fatal failures are recorded, never raised.
+
+    Fatal steps (``fatal=True``) re-raise — a pipeline without logs or
+    analysis is meaningless. Observational steps (compare, shadow, accuracy,
+    feedback) degrade to ``None`` and the failure is appended to
+    ``step_errors`` so the cycle still completes and produces a snapshot.
+    """
+    try:
+        return fn()
+    except Exception as exc:
+        if fatal:
+            raise
+        step_errors.append({"step": name, "error": f"{type(exc).__name__}: {exc}"})
+        return None
+
+
+def _run_shadow(raw_logs: list[dict], heuristic_risk: float) -> dict:
+    """Run the ML shadow-mode engines (Phase 3) — observes, never decides."""
+    from ml import (
+        AnomalyEngine,
+        ForecastEngine,
+        ShadowComparator,
+        build_series,
+        risk_from_series,
+    )
+
+    series = build_series(raw_logs)
+    if len(series) < 3:
+        return {"enabled": False, "reason": "insufficient series points (need >= 3)"}
+    forecast = ForecastEngine().forecast(series)
+    anomalies = AnomalyEngine().detect(series)
+    ml_risk = risk_from_series(series, forecast, anomalies)
+    shadow = ShadowComparator().compare(heuristic_risk, ml_risk)
+    return {
+        "enabled": True,
+        "heuristic_risk": heuristic_risk,
+        "ml_risk": ml_risk,
+        "agreement": shadow.agreement,
+        "verdict": shadow.verdict,
+        "forecast": forecast.model_dump(),
+        "anomalies": anomalies.model_dump(),
+        "series": [float(v) for v in series],
+    }
+
+
 def run_pipeline(
     mode: str = "mock",
     client: Any = None,
@@ -167,77 +216,93 @@ def run_pipeline(
     evaluate shadow accuracy against the current series; ``feedback_file``
     is a user-supplied feedback.json consumed by the FeedbackStore. Both are
     optional and observational — neither decides anything.
+
+    Phase 5 hardening: ``collect``, ``analyze`` and ``aggregate`` are fatal
+    (no snapshot without them); ``compare``, ``shadow``, ``accuracy`` and
+    ``feedback`` are observational — a failure is recorded in
+    ``pipeline.step_errors`` and the cycle still completes.
     """
     from alerting import AlertAggregator
     from collector import LogCollector
     from comparison import ComparisonService
     from heuristic import HeuristicEngine
-    from ml import (
-        AnomalyEngine,
-        ForecastEngine,
-        ShadowComparator,
-        build_series,
-        risk_from_series,
-    )
 
-    # Step 1: Collect
+    started = datetime.now(timezone.utc)
+    step_errors: list[dict[str, str]] = []
+
+    # Step 1: Collect (fatal - without logs there is no pipeline)
     collector = LogCollector()
     if mode == "real":
         if client is None:
             from mcp_salesforce import SalesforceClient
 
             client = SalesforceClient()
-        raw_logs = fetch_real_logs(client)
+        raw_logs = _execute(
+            step_errors, "collect", lambda: fetch_real_logs(client), fatal=True
+        )
     else:
         raw_logs = generate_mock_logs()
     logs = collector.load(raw_logs)
     validation = collector.validate(raw_logs)
 
-    # Step 2: Analyze
+    # Step 2: Analyze (fatal - core risk computation)
     engine = HeuristicEngine()
-    analysis = engine.analyze([log.model_dump() for log in logs])
+    analysis = _execute(
+        step_errors,
+        "analyze",
+        lambda: engine.analyze([log.model_dump() for log in logs]),
+        fatal=True,
+    )
 
-    # Step 3: Aggregate & deduplicate alerts (Phase 2)
+    # Step 3: Aggregate & deduplicate alerts (Phase 2; fatal)
     aggregator = AlertAggregator()
-    aggregated = aggregator.aggregate(analysis["alerts"], history=history)
+    aggregated = _execute(
+        step_errors,
+        "aggregate",
+        lambda: aggregator.aggregate(analysis["alerts"], history=history),
+        fatal=True,
+    )
     severity_counts = aggregator.severity_counts(aggregated)
 
-    # Step 4: Compare
-    comparator = ComparisonService()
-    comparison = comparator.compare(analysis)
-
-    # Step 5: Shadow mode (Phase 3 - ML observes, never decides)
-    series = build_series(raw_logs)
-    if len(series) >= 3:
-        forecast = ForecastEngine().forecast(series)
-        anomalies = AnomalyEngine().detect(series)
-        ml_risk = risk_from_series(series, forecast, anomalies)
-        shadow = ShadowComparator().compare(analysis["risk_score"], ml_risk)
-        shadow_mode = {
-            "enabled": True,
-            "heuristic_risk": analysis["risk_score"],
-            "ml_risk": ml_risk,
-            "agreement": shadow.agreement,
-            "verdict": shadow.verdict,
-            "forecast": forecast.model_dump(),
-            "anomalies": anomalies.model_dump(),
-            "series": [float(v) for v in series],
+    # Step 4: Compare (observational - never breaks the cycle)
+    comparison_result = _execute(
+        step_errors, "compare", lambda: ComparisonService().compare(analysis)
+    )
+    if comparison_result is None:
+        comparison = {
+            "prediction": None,
+            "confidence": 0.0,
+            "risk_delta": 0.0,
+            "summary": "comparison step failed (see pipeline.step_errors)",
         }
     else:
-        shadow_mode = {
-            "enabled": False,
-            "reason": "insufficient series points (need >= 3)",
+        comparison = {
+            "prediction": comparison_result.prediction,
+            "confidence": comparison_result.confidence,
+            "risk_delta": comparison_result.risk_delta,
+            "summary": comparison_result.summary,
         }
+
+    # Step 5: Shadow mode (Phase 3 - ML observes, never decides)
+    shadow_mode = _execute(
+        step_errors, "shadow", lambda: _run_shadow(raw_logs, analysis["risk_score"])
+    )
+    if shadow_mode is None:
+        shadow_mode = {"enabled": False, "reason": "shadow step failed"}
 
     # Step 6: Model accuracy (Phase 4 - evaluate previous shadow vs reality)
     accuracy: dict | None = None
     if prev_snapshot is not None:
         from feedback import AccuracyTracker
 
-        accuracy = (
-            AccuracyTracker()
-            .evaluate(prev_snapshot, {"shadow_mode": shadow_mode})
-            .model_dump()
+        accuracy = _execute(
+            step_errors,
+            "accuracy",
+            lambda: (
+                AccuracyTracker()
+                .evaluate(prev_snapshot, {"shadow_mode": shadow_mode})
+                .model_dump()
+            ),
         )
 
     # Step 7: User feedback ingestion (Phase 4 - observational only)
@@ -245,17 +310,26 @@ def run_pipeline(
     if feedback_file is not None:
         from feedback import FeedbackStore
 
-        loaded = FeedbackStore().load(feedback_file)
-        feedback_summary = {
-            "loaded": loaded.loaded,
-            "valid": loaded.valid,
-            "invalid": loaded.invalid,
-            "by_action": loaded.by_action,
-            "by_target": loaded.by_target,
-        }
+        loaded = _execute(
+            step_errors, "feedback", lambda: FeedbackStore().load(feedback_file)
+        )
+        if loaded is not None:
+            feedback_summary = {
+                "loaded": loaded.loaded,
+                "valid": loaded.valid,
+                "invalid": loaded.invalid,
+                "by_action": loaded.by_action,
+                "by_target": loaded.by_target,
+            }
 
     # Build result
     now = datetime.now(timezone.utc).isoformat()
+    duration_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+    steps = ["collect", "analyze", "aggregate", "compare", "shadow"]
+    if prev_snapshot is not None:
+        steps.append("accuracy")
+    if feedback_file is not None:
+        steps.append("feedback")
     result = {
         "timestamp": now,
         "mode": mode,
@@ -267,18 +341,18 @@ def run_pipeline(
         "alerts_aggregated": [a.model_dump() for a in aggregated],
         "severity_counts": severity_counts,
         "shadow_mode": shadow_mode,
-        "comparison": {
-            "prediction": comparison.prediction,
-            "confidence": comparison.confidence,
-            "risk_delta": comparison.risk_delta,
-            "summary": comparison.summary,
-        },
+        "comparison": comparison,
         "health_check": {
             "status": "HEALTHY" if analysis["risk_score"] < 0.7 else "WARNING",
             "last_updated": now,
         },
         "validation": validation,
         "logs_processed": len(logs),
+        "pipeline": {
+            "duration_ms": duration_ms,
+            "steps": steps,
+            "step_errors": step_errors,
+        },
     }
     if accuracy is not None:
         result["accuracy"] = accuracy
@@ -292,6 +366,22 @@ def _build_client() -> Any:
     from mcp_salesforce import SalesforceClient
 
     return SalesforceClient()
+
+
+def init_sentry(dsn: str | None = None) -> bool:
+    """Initialize Sentry when ``SENTRY_DSN`` is set; no-op (False) otherwise.
+
+    Phase 5 opt-in error tracking: the pipeline never fails because Sentry
+    is missing — without a DSN the function returns ``False`` and nothing
+    is imported or sent.
+    """
+    dsn = dsn or os.environ.get("SENTRY_DSN")
+    if not dsn:
+        return False
+    import sentry_sdk
+
+    sentry_sdk.init(dsn=dsn, traces_sample_rate=0.0)
+    return True
 
 
 def main() -> None:
@@ -324,37 +414,59 @@ def main() -> None:
             "(Phase 4); optional"
         ),
     )
+    parser.add_argument(
+        "--metrics-file",
+        default=None,
+        help=(
+            "Write Prometheus text-format metrics alongside the snapshot "
+            "(Phase 5); optional"
+        ),
+    )
     args = parser.parse_args()
 
-    history: dict[str, int] | None = None
-    prev_snapshot: dict | None = None
-    if args.history_file:
-        from alerting import AlertAggregator
+    sentry_active = init_sentry()
+    try:
+        history: dict[str, int] | None = None
+        prev_snapshot: dict | None = None
+        if args.history_file:
+            from alerting import AlertAggregator
 
-        with open(args.history_file) as f:
-            prev_snapshot = json.load(f)
-        history = AlertAggregator.history_from_snapshot(prev_snapshot)
+            with open(args.history_file) as f:
+                prev_snapshot = json.load(f)
+            history = AlertAggregator.history_from_snapshot(prev_snapshot)
 
-    result, logs = run_pipeline(
-        mode=args.mode,
-        client=_build_client() if args.mode == "real" else None,
-        history=history,
-        prev_snapshot=prev_snapshot,
-        feedback_file=args.feedback_file,
-    )
+        result, logs = run_pipeline(
+            mode=args.mode,
+            client=_build_client() if args.mode == "real" else None,
+            history=history,
+            prev_snapshot=prev_snapshot,
+            feedback_file=args.feedback_file,
+        )
 
-    # Validate output
-    if not {"risk_score", "alerts", "health_check"}.issubset(result):
-        raise ValueError("Pipeline result missing required keys")
-    if not 0 <= result["risk_score"] <= 1:
-        raise ValueError(f"risk_score out of range: {result['risk_score']}")
+        # Validate output
+        if not {"risk_score", "alerts", "health_check"}.issubset(result):
+            raise ValueError("Pipeline result missing required keys")
+        if not 0 <= result["risk_score"] <= 1:
+            raise ValueError(f"risk_score out of range: {result['risk_score']}")
 
-    # Write JSON output
-    with open(args.log_file, "w") as f:
-        json.dump(result, f, indent=2)
+        # Write JSON output
+        with open(args.log_file, "w") as f:
+            json.dump(result, f, indent=2)
 
-    print(f"Pipeline complete: {args.log_file}")
-    print(json.dumps(result, indent=2))
+        if args.metrics_file:
+            from metrics import build_prometheus_metrics
+
+            with open(args.metrics_file, "w") as f:
+                f.write(build_prometheus_metrics(result))
+
+        print(f"Pipeline complete: {args.log_file}")
+        print(json.dumps(result, indent=2))
+    except Exception:
+        if sentry_active:
+            import sentry_sdk
+
+            sentry_sdk.capture_exception()
+        raise
 
 
 if __name__ == "__main__":

@@ -16,6 +16,9 @@ import {
   formatTimestamp,
   summarizeAggregated,
   summarizeShadow,
+  summarizeAccuracy,
+  summarizePipeline,
+  directionLabel,
 } from "./dashboard.js";
 
 const REFRESH_MS = 5 * 60 * 1000; // auto-refresh every 5 min
@@ -48,6 +51,9 @@ const els = {
   accuracyActual: () => document.getElementById("accuracy-actual"),
   accuracyAnomaly: () => document.getElementById("accuracy-anomaly"),
   accuracyCaption: () => document.getElementById("accuracy-caption"),
+  pipelineDuration: () => document.getElementById("pipeline-duration"),
+  pipelineSteps: () => document.getElementById("pipeline-steps"),
+  pipelineErrors: () => document.getElementById("pipeline-errors"),
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
@@ -391,6 +397,41 @@ function renderAccuracy(snapshot) {
   );
 }
 
+function renderPipeline(snapshot) {
+  const summary = summarizePipeline(snapshot.pipeline);
+  const duration = els.pipelineDuration();
+  if (duration) {
+    duration.textContent = summary.available
+      ? `último ciclo em ${summary.durationMs !== null ? `${summary.durationMs} ms` : "tempo não medido"}`
+      : "sem dados do ciclo";
+  }
+
+  const steps = els.pipelineSteps();
+  if (steps) {
+    const failed = new Set(
+      summary.stepErrors.map((e) => (e && e.step ? e.step : ""))
+    );
+    steps.innerHTML = summary.steps
+      .map(
+        (s) =>
+          `<span class="pipeline-step ${failed.has(s) ? "failed" : "ok"}">${escapeHtml(s)}</span>`
+      )
+      .join("");
+  }
+
+  const errors = els.pipelineErrors();
+  if (errors) {
+    if (summary.hasErrors) {
+      errors.innerHTML = `<strong>Passos com falha neste ciclo</strong>${summary.stepErrors
+        .map((e) => escapeHtml(`${e.step}: ${e.error}`))
+        .join("<br>")}`;
+      errors.classList.remove("hidden");
+    } else {
+      errors.classList.add("hidden");
+    }
+  }
+}
+
 /* ---------------------------------------------------------------- render */
 
 function escapeHtml(value) {
@@ -416,6 +457,7 @@ async function renderAll() {
   renderStats(latest);
   renderShadow(latest);
   renderAccuracy(latest);
+  renderPipeline(latest);
 }
 
 /* ---------------------------------------------------------------- wiring */
