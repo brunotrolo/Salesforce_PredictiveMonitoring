@@ -48,3 +48,24 @@ export function getAlertCounts(alerts) {
     total: alerts.length,
   };
 }
+
+export function getRecurringCount(aggregated) {
+  return Array.isArray(aggregated)
+    ? aggregated.filter((a) => a.recurring).length
+    : 0;
+}
+
+export function summarizeAggregated(aggregated) {
+  const list = Array.isArray(aggregated) ? aggregated : [];
+  const counts = {
+    CRITICAL: list.filter((a) => a.severity === "CRITICAL").length,
+    WARNING: list.filter((a) => a.severity === "WARNING").length,
+    INFO: list.filter((a) => a.severity === "INFO").length,
+    total: list.length,
+  };
+  return {
+    counts,
+    recurring: getRecurringCount(list),
+    totalOccurrences: list.reduce((sum, a) => sum + (a.count || 1), 0),
+  };
+}

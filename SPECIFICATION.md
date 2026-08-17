@@ -203,9 +203,24 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
 ### 3.3 PHASE 2-5: FEATURES & HARDENING
 
 #### Phase 2: Alerting (1 semana)
-- Email/Slack notifications
-- Alert aggregation
+- ~~Email/Slack notifications~~ (removido por decisão do usuário em 16/08/2026)
+- Alert aggregation & deduplication
 - Severity levels
+
+**Status (16/08/2026):** ✅ **Fase 2 implementada** (sem Email/Slack, conforme decisão).
+- Novo serviço `services/alerting/` (`AlertAggregator`): dedup de alertas por chave canônica
+  (`severidade|kind|recurso`), `count`, `log_ids`, `first_seen`/`last_seen`, marcação de
+  **recorrência** entre ciclos (`recurring`/`repeat_count`) a partir de histórico de snapshots
+  anteriores, contagens por severidade (`severity_counts`, rank INFO < WARNING < CRITICAL).
+- `HeuristicEngine` agora emite `kind`/`resource`/`timestamp` em cada alerta.
+- `orchestrate.py` ganhou o passo de agregação (`alerts_aggregated` no resultado) e o flag
+  `--history-file` para alimentar o histórico de recorrência.
+- `collect.yml` busca o snapshot anterior na branch `data` e o passa ao pipeline — a partir do
+  segundo ciclo, alertas recorrentes aparecem sinalizados no dashboard.
+- Dashboard: contagem agregada (badge `×N`), tag "recorrente", caption de resumo e contagens
+  por severidade; helpers testados em `site/monitoring/dashboard.js` (`getRecurringCount`,
+  `summarizeAggregated`).
+- Testes: 12 em `services/alerting` (100% cobertura), 41 em `monitoring`, 35 frontend; CI verde.
 
 #### Phase 3: ML Shadow Mode (2 semanas)
 - Prophet forecasting

@@ -120,9 +120,9 @@ site/
 ## 🎯 PHASES 2-5: PRODUCTION FEATURES (4-5 weeks)
 
 ### Phase 2: Alerting & Notifications (1 week)
-- Email/Slack notifications on critical alerts
-- Alert aggregation & deduplication
-- Severity levels in dashboard
+- ~~Email/Slack notifications on critical alerts~~ (removido por decisão do usuário em 16/08/2026)
+- Alert aggregation & deduplication ✅ (16/08/2026 — `services/alerting`, ver SPECIFICATION.md §3.3)
+- Severity levels in dashboard ✅ (16/08/2026 — contagens, badge ×N, tag "recorrente")
 
 ### Phase 3: ML Shadow Mode (2 weeks)
 - Prophet forecasting integration

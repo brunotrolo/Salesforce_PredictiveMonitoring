@@ -57,8 +57,11 @@ class HeuristicEngine:
             alerts.append(
                 {
                     "severity": "CRITICAL",
+                    "kind": "error",
                     "message": message,
                     "log_id": e.get("log_id", ""),
+                    "timestamp": e.get("timestamp", ""),
+                    "resource": resource,
                 }
             )
         for s in slow:
@@ -66,8 +69,11 @@ class HeuristicEngine:
             alerts.append(
                 {
                     "severity": "WARNING",
+                    "kind": "slow",
                     "message": f"Slow request on {resource}: {s.get('duration_ms')}ms",
                     "log_id": s.get("log_id", ""),
+                    "timestamp": s.get("timestamp", ""),
+                    "resource": resource,
                 }
             )
         for r in retried:
@@ -75,8 +81,11 @@ class HeuristicEngine:
             alerts.append(
                 {
                     "severity": "WARNING",
+                    "kind": "retry",
                     "message": f"Retry on {resource}: call was retried",
                     "log_id": r.get("log_id", ""),
+                    "timestamp": r.get("timestamp", ""),
+                    "resource": resource,
                 }
             )
 

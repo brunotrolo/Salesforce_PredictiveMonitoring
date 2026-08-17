@@ -33,6 +33,24 @@ jobs:
           echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
           echo "stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)" >> "$GITHUB_OUTPUT"
 
+      - name: Fetch previous snapshot (recurrence history)
+        id: history
+        run: |
+          set -e
+          git fetch origin data 2>/dev/null || { echo "no previous snapshot (first run)"; exit 0; }
+          git worktree add data-branch origin/data 2>/dev/null || \
+            git worktree add data-branch -b data origin/data 2>/dev/null || true
+          LATEST=$(cd data-branch && find data -name '*.json' -type f | sort | tail -n 1)
+          if [ -n "$LATEST" ]; then
+            mkdir -p out
+            cp "data-branch/${LATEST}" out/previous.json
+            echo "history-file=out/previous.json" >> "$GITHUB_OUTPUT"
+            echo "Using previous snapshot: ${LATEST}"
+          else
+            echo "No previous snapshot found (first run)"
+          fi
+          git worktree remove data-branch --force 2>/dev/null || true
+
       - name: Run pipeline (real MCP mode)
         id: pipeline
         env:
@@ -42,8 +60,12 @@ jobs:
           SF_REFRESH_TOKEN: ${{ secrets.SF_REFRESH_TOKEN }}
         run: |
           mkdir -p out
+          HISTORY=""
+          if [ -n "${{ steps.history.outputs.history-file }}" ]; then
+            HISTORY="--history-file ${{ steps.history.outputs.history-file }}"
+          fi
           (cd monitoring && python orchestrate.py --mode real \
-            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json")
+            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json" ${HISTORY})
 
       - name: Persist snapshot to data branch
         if: always() && steps.stamp.outputs.stamp != ''

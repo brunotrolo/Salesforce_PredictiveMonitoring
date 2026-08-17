@@ -140,13 +140,20 @@ def fetch_real_logs(client: Any) -> list[dict[str, Any]]:
     return []
 
 
-def run_pipeline(mode: str = "mock", client: Any = None) -> tuple[dict, list[dict]]:
-    """Run the monitoring pipeline: collector -> heuristic -> comparison.
+def run_pipeline(
+    mode: str = "mock",
+    client: Any = None,
+    history: dict[str, int] | None = None,
+) -> tuple[dict, list[dict]]:
+    """Run the monitoring pipeline: collector -> heuristic -> alerting -> comparison.
 
     ``mode="mock"`` uses synthetic logs (Phase 0).  ``mode="real"`` fetches
     logs from Salesforce via the MCP client (Phase 1).  Pass a ``client``
     with a ``query(soql)`` method to avoid hitting the real MCP in tests.
+    ``history`` maps alert keys to the number of previous snapshots where
+    they appeared, so recurring alerts are flagged (Phase 2 aggregation).
     """
+    from alerting import AlertAggregator
     from collector import LogCollector
     from comparison import ComparisonService
     from heuristic import HeuristicEngine
@@ -168,7 +175,12 @@ def run_pipeline(mode: str = "mock", client: Any = None) -> tuple[dict, list[dic
     engine = HeuristicEngine()
     analysis = engine.analyze([log.model_dump() for log in logs])
 
-    # Step 3: Compare
+    # Step 3: Aggregate & deduplicate alerts (Phase 2)
+    aggregator = AlertAggregator()
+    aggregated = aggregator.aggregate(analysis["alerts"], history=history)
+    severity_counts = aggregator.severity_counts(aggregated)
+
+    # Step 4: Compare
     comparator = ComparisonService()
     comparison = comparator.compare(analysis)
 
@@ -182,6 +194,8 @@ def run_pipeline(mode: str = "mock", client: Any = None) -> tuple[dict, list[dic
         "slow_requests_count": analysis["slow_count"],
         "retried_count": analysis["retried_count"],
         "alerts": analysis["alerts"],
+        "alerts_aggregated": [a.model_dump() for a in aggregated],
+        "severity_counts": severity_counts,
         "comparison": {
             "prediction": comparison.prediction,
             "confidence": comparison.confidence,
@@ -218,11 +232,27 @@ def main() -> None:
     parser.add_argument(
         "--log-file", default="monitoring_output.json", help="Output JSON file path"
     )
+    parser.add_argument(
+        "--history-file",
+        default=None,
+        help=(
+            "Previous snapshot JSON used to flag recurring alerts "
+            "(Phase 2 aggregation); optional"
+        ),
+    )
     args = parser.parse_args()
+
+    history: dict[str, int] | None = None
+    if args.history_file:
+        from alerting import AlertAggregator
+
+        with open(args.history_file) as f:
+            history = AlertAggregator.history_from_snapshot(json.load(f))
 
     result, logs = run_pipeline(
         mode=args.mode,
         client=_build_client() if args.mode == "real" else None,
+        history=history,
     )
 
     # Validate output

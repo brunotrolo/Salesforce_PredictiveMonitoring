@@ -1,4 +1,4 @@
-import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts } from "../dashboard.js";
+import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated } from "../dashboard.js";
 import { mockMonitoringData, mockEmptyData, mockCriticalData } from "../mock-data.js";
 
 describe("Dashboard", () => {
@@ -90,6 +90,50 @@ describe("Dashboard", () => {
       expect(counts.CRITICAL).toBe(0);
       expect(counts.WARNING).toBe(0);
       expect(counts.total).toBe(0);
+    });
+  });
+
+  describe("getRecurringCount", () => {
+    test("counts recurring aggregated alerts", () => {
+      const aggregated = [
+        { key: "A", recurring: true },
+        { key: "B", recurring: false },
+        { key: "C", recurring: true },
+      ];
+      expect(getRecurringCount(aggregated)).toBe(2);
+    });
+
+    test("returns zero for empty or missing", () => {
+      expect(getRecurringCount([])).toBe(0);
+      expect(getRecurringCount(undefined)).toBe(0);
+    });
+  });
+
+  describe("summarizeAggregated", () => {
+    const aggregated = [
+      { severity: "CRITICAL", count: 3, recurring: true },
+      { severity: "WARNING", count: 2, recurring: false },
+      { severity: "WARNING", count: 1, recurring: true },
+    ];
+
+    test("computes counts by severity", () => {
+      const { counts } = summarizeAggregated(aggregated);
+      expect(counts.CRITICAL).toBe(1);
+      expect(counts.WARNING).toBe(2);
+      expect(counts.INFO).toBe(0);
+      expect(counts.total).toBe(3);
+    });
+
+    test("sums occurrences and recurring", () => {
+      const summary = summarizeAggregated(aggregated);
+      expect(summary.totalOccurrences).toBe(6);
+      expect(summary.recurring).toBe(2);
+    });
+
+    test("handles missing input", () => {
+      const summary = summarizeAggregated(undefined);
+      expect(summary.counts.total).toBe(0);
+      expect(summary.totalOccurrences).toBe(0);
     });
   });
 

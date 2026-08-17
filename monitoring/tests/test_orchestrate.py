@@ -15,6 +15,8 @@ class TestRunPipeline:
             "errors_count",
             "slow_requests_count",
             "alerts",
+            "alerts_aggregated",
+            "severity_counts",
             "comparison",
             "health_check",
             "validation",
@@ -66,6 +68,28 @@ class TestRunPipeline:
         assert result["validation"]["valid"] is True
         assert result["validation"]["errors"] == []
 
+    def test_alerts_aggregated_and_severity_counts(self):
+        result, _ = orchestrate.run_pipeline()
+        assert isinstance(result["alerts_aggregated"], list)
+        assert result["alerts_aggregated"], "mock logs must produce alerts"
+        for agg in result["alerts_aggregated"]:
+            assert agg["count"] >= 1
+            assert agg["severity"] in ("INFO", "WARNING", "CRITICAL")
+            assert agg["key"]
+        counts = result["severity_counts"]
+        assert counts["CRITICAL"] >= 1
+        assert counts["WARNING"] >= 1
+        assert sum(counts.values()) == len(result["alerts_aggregated"])
+
+    def test_history_flags_recurring_alert(self):
+        first, _ = orchestrate.run_pipeline()
+        from alerting import AlertAggregator
+
+        history = AlertAggregator.history_from_snapshot(first)
+        second, _ = orchestrate.run_pipeline(history=history)
+        recurring = [a for a in second["alerts_aggregated"] if a["recurring"]]
+        assert recurring, "repeated pipeline must flag at least one recurring alert"
+
 
 class TestMain:
     def test_writes_json_output_file(self, tmp_path, monkeypatch):
@@ -89,7 +113,7 @@ class TestMain:
         monkeypatch.setattr(
             orchestrate,
             "run_pipeline",
-            lambda mode="mock", client=None: ({"risk_score": 0.5}, []),
+            lambda mode="mock", client=None, history=None: ({"risk_score": 0.5}, []),
         )
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
@@ -104,7 +128,7 @@ class TestMain:
         monkeypatch.setattr(
             orchestrate,
             "run_pipeline",
-            lambda mode="mock", client=None: (bad_result, []),
+            lambda mode="mock", client=None, history=None: (bad_result, []),
         )
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])

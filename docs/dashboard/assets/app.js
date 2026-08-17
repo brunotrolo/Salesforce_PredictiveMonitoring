@@ -14,6 +14,7 @@ import {
   getRiskLevel,
   getRiskColor,
   formatTimestamp,
+  summarizeAggregated,
 } from "./dashboard.js";
 
 const REFRESH_MS = 5 * 60 * 1000; // auto-refresh every 5 min
@@ -35,6 +36,7 @@ const els = {
   alertsList: () => document.getElementById("alerts-list"),
   alertsEmpty: () => document.getElementById("alerts-empty"),
   alertsCount: () => document.getElementById("alerts-count"),
+  alertsCaption: () => document.getElementById("alerts-caption"),
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
@@ -216,9 +218,17 @@ function buildChart(snapshots) {
 function renderAlerts(snapshot) {
   const list = els.alertsList();
   if (!list) return;
-  const alerts = Array.isArray(snapshot.alerts) ? snapshot.alerts : [];
+  const aggregated = Array.isArray(snapshot.alerts_aggregated)
+    ? snapshot.alerts_aggregated
+    : null;
+  const alerts = aggregated || (Array.isArray(snapshot.alerts) ? snapshot.alerts : []);
 
-  setText(els.alertsCount(), fmtNumber(alerts.length));
+  const summary = summarizeAggregated(aggregated || alerts);
+  const countLabel = aggregated
+    ? `${summary.counts.CRITICAL} críticos · ${summary.counts.WARNING} avisos`
+    : fmtNumber(alerts.length);
+
+  setText(els.alertsCount(), countLabel);
 
   const empty = els.alertsEmpty();
   if (alerts.length === 0) {
@@ -228,21 +238,40 @@ function renderAlerts(snapshot) {
   }
   empty?.classList.add("hidden");
 
+  const recurringNote = summary.recurring > 0
+    ? ` · ${summary.recurring} recorrentes`
+    : "";
+
   const rows = alerts
     .slice(0, 50)
     .map((a) => {
       const ref = a.log_id || (a.timestamp ? formatTimestamp(a.timestamp) : "");
       const dot = `<span class="alert-dot" style="background:${severityColor(a.severity)}"></span>`;
+      const countBadge = aggregated && a.count > 1
+        ? `<span class="alert-count">×${fmtNumber(a.count)}</span>`
+        : "";
+      const recurringTag = aggregated && a.recurring
+        ? `<span class="alert-recurring">recorrente</span>`
+        : "";
       const refNode = ref ? `<span class="alert-ref">${ref}</span>` : "";
       return `<li class="alert-row">
         ${dot}
         <span class="alert-msg">${escapeHtml(a.message || "")}</span>
+        ${countBadge}
+        ${recurringTag}
         ${refNode}
       </li>`;
     })
     .join("");
 
   list.innerHTML = rows;
+
+  const caption = els.alertsCaption();
+  if (caption) {
+    caption.textContent = summary.recurring > 0
+      ? `${summary.recurring} alerta(s) recorrente(s) em ciclos anteriores${recurringNote}`
+      : aggregated ? "agrupados por endpoint" : "";
+  }
 }
 
 /* ------------------------------------------------------------- stats row */
