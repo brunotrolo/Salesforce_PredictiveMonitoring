@@ -1,4 +1,4 @@
-import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated } from "../dashboard.js";
+import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow } from "../dashboard.js";
 import { mockMonitoringData, mockEmptyData, mockCriticalData } from "../mock-data.js";
 
 describe("Dashboard", () => {
@@ -149,6 +149,56 @@ describe("Dashboard", () => {
     test("critical data has multiple critical alerts", () => {
       const critical = filterAlertsBySeverity(mockCriticalData.alerts, "CRITICAL");
       expect(critical.length).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe("getShadowVerdict", () => {
+    test("returns CONCORDA for AGREE", () => {
+      expect(getShadowVerdict({ enabled: true, verdict: "AGREE" })).toBe("CONCORDA");
+    });
+
+    test("returns DIVERGE for DISAGREE", () => {
+      expect(getShadowVerdict({ enabled: true, verdict: "DISAGREE" })).toBe("DIVERGE");
+    });
+
+    test("returns INDISPONÍVEL when disabled or missing", () => {
+      expect(getShadowVerdict({ enabled: false })).toBe("INDISPONÍVEL");
+      expect(getShadowVerdict(undefined)).toBe("INDISPONÍVEL");
+      expect(getShadowVerdict({ enabled: true, verdict: null })).toBe("DIVERGE");
+    });
+  });
+
+  describe("summarizeShadow", () => {
+    test("summarizes an enabled shadow block", () => {
+      const shadow = {
+        enabled: true,
+        ml_risk: 0.4,
+        verdict: "AGREE",
+        anomalies: { count: 2 },
+        forecast: { predicted: [3, 2, 1] },
+      };
+      const summary = summarizeShadow(shadow);
+      expect(summary.enabled).toBe(true);
+      expect(summary.verdict).toBe("CONCORDA");
+      expect(summary.mlRisk).toBe(0.4);
+      expect(summary.anomalies).toBe(2);
+      expect(summary.predicted).toEqual([3, 2, 1]);
+    });
+
+    test("treats missing numbers as zero", () => {
+      const summary = summarizeShadow({ enabled: true, verdict: "AGREE" });
+      expect(summary.mlRisk).toBe(0);
+      expect(summary.anomalies).toBe(0);
+      expect(summary.predicted).toEqual([]);
+    });
+
+    test("returns safe fallback when disabled", () => {
+      const summary = summarizeShadow(undefined);
+      expect(summary.enabled).toBe(false);
+      expect(summary.verdict).toBe("INDISPONÍVEL");
+      expect(summary.mlRisk).toBe(null);
+      expect(summary.anomalies).toBe(0);
+      expect(summary.predicted).toEqual([]);
     });
   });
 });

@@ -223,9 +223,27 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
 - Testes: 12 em `services/alerting` (100% cobertura), 41 em `monitoring`, 35 frontend; CI verde.
 
 #### Phase 3: ML Shadow Mode (2 semanas)
-- Prophet forecasting
-- Isolation Forest anomaly detection
-- A/B testing framework
+- ~~Prophet forecasting~~ → regressão linear stdlib (`ForecastEngine`)
+- ~~Isolation Forest anomaly detection~~ → z-score modificado (mediana/MAD, `AnomalyEngine`)
+- Side-by-side comparison (heuristic vs ML) → `ShadowComparator` (shadow = observação, nunca decide)
+- A/B testing framework → open question (ver `docs/ML_SHADOW_MODE_SPEC.md`)
+
+**Status (16/08/2026):** ✅ **Fase 3 implementada** (ver `docs/ML_SHADOW_MODE_SPEC.md`).
+- Novo serviço `services/ml/` (stdlib puro, **zero dependências novas**): `ForecastEngine`
+  (regressão linear por mínimos quadrados, horizon padrão 3), `AnomalyEngine` (z-score
+  modificado; MAD≈0 → qualquer desvio da mediana é sinalizado; default `min_points=3`),
+  `ShadowComparator` (tolerância 0.05 → `AGREE`/`DISAGREE`), `build_series` (contagem por
+  minuto, ordem cronológica) e `risk_from_series` (0.5·outlier_ratio + 0.5·trend_ratio).
+  Prophet/sklearn podem ser plugados depois pela mesma interface (Open Questions na spec).
+- `orchestrate.py` ganhou o **Step 5 shadow mode**: ML roda em paralelo à heurística e
+  **nunca altera** `risk_score`/`alerts` — produz `shadow_mode` no snapshot
+  (`enabled`, `heuristic_risk`, `ml_risk`, `agreement`, `verdict`, `forecast`, `anomalies`, `series`).
+- Mock agora gera 3 logs com timestamps espalhados (série [1,1,1]) para o shadow rodar no modo mock.
+- Dashboard: card "Shadow Mode" (veredito CONCORDA/DIVERGE/INDISPONÍVEL, risco ML, anomalias,
+  previsão dos próximos 3 pontos); helpers testados em `site/monitoring/dashboard.js`
+  (`getShadowVerdict`, `summarizeShadow` com fallback seguro para `enabled: false`).
+- Testes: 34 em `services/ml` (100% cobertura), 45 em `monitoring` (inclui `TestShadowMode`),
+  41 frontend; CI verde. Bug de data fixa corrigido no teste de query real (usa data UTC dinâmica).
 
 #### Phase 4: Feedback Loop (1 semana)
 - Weekly retraining

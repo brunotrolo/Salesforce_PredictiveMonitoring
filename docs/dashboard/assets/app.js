@@ -15,6 +15,7 @@ import {
   getRiskColor,
   formatTimestamp,
   summarizeAggregated,
+  summarizeShadow,
 } from "./dashboard.js";
 
 const REFRESH_MS = 5 * 60 * 1000; // auto-refresh every 5 min
@@ -37,6 +38,11 @@ const els = {
   alertsEmpty: () => document.getElementById("alerts-empty"),
   alertsCount: () => document.getElementById("alerts-count"),
   alertsCaption: () => document.getElementById("alerts-caption"),
+  shadowVerdict: () => document.getElementById("shadow-verdict"),
+  shadowMlRisk: () => document.getElementById("shadow-ml-risk"),
+  shadowAnomalies: () => document.getElementById("shadow-anomalies"),
+  shadowForecast: () => document.getElementById("shadow-forecast"),
+  shadowCaption: () => document.getElementById("shadow-caption"),
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
@@ -314,6 +320,36 @@ function renderHeader(snapshot) {
   }
 }
 
+/* ---------------------------------------------------------- shadow mode */
+
+function renderShadow(snapshot) {
+  const tag = els.shadowVerdict();
+  if (!tag) return;
+
+  const summary = summarizeShadow(snapshot.shadow_mode);
+  tag.textContent = summary.verdict;
+  tag.dataset.state = summary.enabled
+    ? summary.verdict === "CONCORDA" ? "agree" : "disagree"
+    : "off";
+
+  setText(els.shadowMlRisk(), summary.enabled ? `${fmtPct(summary.mlRisk)}%` : "—");
+  setText(els.shadowAnomalies(), summary.enabled ? fmtNumber(summary.anomalies) : "—");
+  setText(
+    els.shadowForecast(),
+    summary.enabled
+      ? summary.predicted
+          .map((v) => v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }))
+          .join(" · ")
+      : "—"
+  );
+  setText(
+    els.shadowCaption(),
+    summary.enabled
+      ? "Apenas observação: o ML prevê a tendência e sinaliza picos sem alterar o risco heurístico."
+      : "Sem série temporal suficiente nesta coleta para o shadow mode."
+  );
+}
+
 /* ---------------------------------------------------------------- render */
 
 function escapeHtml(value) {
@@ -337,6 +373,7 @@ async function renderAll() {
   buildChart(recent);
   renderAlerts(latest);
   renderStats(latest);
+  renderShadow(latest);
 }
 
 /* ---------------------------------------------------------------- wiring */

@@ -69,3 +69,29 @@ export function summarizeAggregated(aggregated) {
     totalOccurrences: list.reduce((sum, a) => sum + (a.count || 1), 0),
   };
 }
+
+export function getShadowVerdict(shadow) {
+  if (!shadow || shadow.enabled !== true) return "INDISPONÍVEL";
+  return shadow.verdict === "AGREE" ? "CONCORDA" : "DIVERGE";
+}
+
+export function summarizeShadow(shadow) {
+  if (!shadow || shadow.enabled !== true) {
+    return {
+      enabled: false,
+      verdict: getShadowVerdict(shadow),
+      mlRisk: null,
+      anomalies: 0,
+      predicted: [],
+    };
+  }
+  return {
+    enabled: true,
+    verdict: getShadowVerdict(shadow),
+    mlRisk: Number(shadow.ml_risk ?? 0),
+    anomalies: Number(shadow.anomalies?.count ?? 0),
+    predicted: Array.isArray(shadow.forecast?.predicted)
+      ? shadow.forecast.predicted.map(Number)
+      : [],
+  };
+}

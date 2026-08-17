@@ -402,6 +402,56 @@
       color: var(--text-dim);
     }
 
+    /* ---------- shadow mode ---------- */
+
+    .shadow-verdict {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 1px 8px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+    .shadow-verdict[data-state="agree"] {
+      color: var(--green);
+      border-color: rgba(34, 197, 94, 0.4);
+    }
+    .shadow-verdict[data-state="disagree"] {
+      color: var(--amber);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .shadow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 4px 0 12px;
+    }
+    .shadow-metric dt {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .shadow-metric dd {
+      margin: 6px 0 0;
+      font-family: var(--mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .shadow-forecast { font-size: 14px; color: var(--text-dim); }
+    .shadow-caption {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+
     .empty-note {
       padding: 14px 2px;
       font-size: 13px;
@@ -461,6 +511,7 @@
     @media (max-width: 760px) {
       .grid { grid-template-columns: 1fr; }
       .stats { grid-template-columns: repeat(2, 1fr); }
+      .shadow-grid { grid-template-columns: 1fr; }
       .topbar { gap: 8px 12px; }
       .brand { margin-right: 0; }
     }
@@ -581,6 +632,28 @@
       <ul id="alerts-list" class="alerts"></ul>
       <div id="alerts-empty" class="empty-note hidden">Nenhum alerta neste ciclo.</div>
       <div id="alerts-caption" class="alerts-caption"></div>
+    </section>
+
+    <section class="card" aria-labelledby="shadow-title">
+      <div class="card-head">
+        <h2 id="shadow-title">Shadow mode (ML)</h2>
+        <span id="shadow-verdict" class="shadow-verdict" data-state="off">—</span>
+      </div>
+      <dl class="shadow-grid">
+        <div class="shadow-metric">
+          <dt>Risco ML</dt>
+          <dd id="shadow-ml-risk">—</dd>
+        </div>
+        <div class="shadow-metric">
+          <dt>Anomalias</dt>
+          <dd id="shadow-anomalies">—</dd>
+        </div>
+        <div class="shadow-metric">
+          <dt>Previsão (próx. 3)</dt>
+          <dd id="shadow-forecast" class="shadow-forecast">—</dd>
+        </div>
+      </dl>
+      <p id="shadow-caption" class="shadow-caption"></p>
     </section>
   </main>
 

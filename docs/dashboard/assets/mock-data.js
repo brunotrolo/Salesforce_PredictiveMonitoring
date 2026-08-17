@@ -16,6 +16,16 @@ export const mockMonitoringData = {
   },
   errors_count: 1,
   slow_requests_count: 1,
+  shadow_mode: {
+    enabled: true,
+    heuristic_risk: 0.42,
+    ml_risk: 0.4,
+    agreement: 0.05,
+    verdict: "AGREE",
+    forecast: { predicted: [1, 1, 1] },
+    anomalies: { count: 0 },
+    series: [1, 1, 1],
+  },
 };
 
 export const mockEmptyData = {
@@ -42,4 +52,14 @@ export const mockCriticalData = {
   },
   errors_count: 15,
   slow_requests_count: 8,
+  shadow_mode: {
+    enabled: true,
+    heuristic_risk: 0.95,
+    ml_risk: 0.9,
+    agreement: 0.05,
+    verdict: "AGREE",
+    forecast: { predicted: [12, 14, 16] },
+    anomalies: { count: 3 },
+    series: [1, 2, 8, 10, 12],
+  },
 };

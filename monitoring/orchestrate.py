@@ -34,14 +34,19 @@ def build_soql_query(window_start: str) -> str:
 
 
 def generate_mock_logs() -> list[dict]:
-    """Generate mock Salesforce logs for testing."""
-    now = datetime.now(timezone.utc).isoformat()
+    """Generate mock Salesforce logs for testing.
+
+    Timestamps are spread across the last minutes so the ML shadow mode
+    (Phase 3) has a real series to analyze: [1, 1, 1] counts per minute.
+    """
+    now = datetime.now(timezone.utc)
+    minutes = [now - timedelta(minutes=2), now - timedelta(minutes=1), now]
     return [
         {
             "log_id": "L1",
             "status_code": 200,
             "duration_ms": 100,
-            "timestamp": now,
+            "timestamp": minutes[0].isoformat(),
             "org_id": "ORG-MOCK",
             "resource": "/api/accounts",
         },
@@ -49,7 +54,7 @@ def generate_mock_logs() -> list[dict]:
             "log_id": "L2",
             "status_code": 500,
             "duration_ms": 1500,
-            "timestamp": now,
+            "timestamp": minutes[1].isoformat(),
             "org_id": "ORG-MOCK",
             "resource": "/api/users",
         },
@@ -57,7 +62,7 @@ def generate_mock_logs() -> list[dict]:
             "log_id": "L3",
             "status_code": 200,
             "duration_ms": 200,
-            "timestamp": now,
+            "timestamp": minutes[2].isoformat(),
             "org_id": "ORG-MOCK",
             "resource": "/api/products",
         },
@@ -145,18 +150,29 @@ def run_pipeline(
     client: Any = None,
     history: dict[str, int] | None = None,
 ) -> tuple[dict, list[dict]]:
-    """Run the monitoring pipeline: collector -> heuristic -> alerting -> comparison.
+    """Run the monitoring pipeline: collector -> heuristic -> alerting ->
+    comparison -> shadow mode.
 
     ``mode="mock"`` uses synthetic logs (Phase 0).  ``mode="real"`` fetches
     logs from Salesforce via the MCP client (Phase 1).  Pass a ``client``
     with a ``query(soql)`` method to avoid hitting the real MCP in tests.
     ``history`` maps alert keys to the number of previous snapshots where
     they appeared, so recurring alerts are flagged (Phase 2 aggregation).
+    Shadow mode (Phase 3) runs the ML engines in parallel and annotates the
+    snapshot with ``shadow_mode`` — it observes and compares, it never
+    changes the heuristically-computed ``risk_score`` or ``alerts``.
     """
     from alerting import AlertAggregator
     from collector import LogCollector
     from comparison import ComparisonService
     from heuristic import HeuristicEngine
+    from ml import (
+        AnomalyEngine,
+        ForecastEngine,
+        ShadowComparator,
+        build_series,
+        risk_from_series,
+    )
 
     # Step 1: Collect
     collector = LogCollector()
@@ -184,6 +200,29 @@ def run_pipeline(
     comparator = ComparisonService()
     comparison = comparator.compare(analysis)
 
+    # Step 5: Shadow mode (Phase 3 - ML observes, never decides)
+    series = build_series(raw_logs)
+    if len(series) >= 3:
+        forecast = ForecastEngine().forecast(series)
+        anomalies = AnomalyEngine().detect(series)
+        ml_risk = risk_from_series(series, forecast, anomalies)
+        shadow = ShadowComparator().compare(analysis["risk_score"], ml_risk)
+        shadow_mode = {
+            "enabled": True,
+            "heuristic_risk": analysis["risk_score"],
+            "ml_risk": ml_risk,
+            "agreement": shadow.agreement,
+            "verdict": shadow.verdict,
+            "forecast": forecast.model_dump(),
+            "anomalies": anomalies.model_dump(),
+            "series": [float(v) for v in series],
+        }
+    else:
+        shadow_mode = {
+            "enabled": False,
+            "reason": "insufficient series points (need >= 3)",
+        }
+
     # Build result
     now = datetime.now(timezone.utc).isoformat()
     result = {
@@ -196,6 +235,7 @@ def run_pipeline(
         "alerts": analysis["alerts"],
         "alerts_aggregated": [a.model_dump() for a in aggregated],
         "severity_counts": severity_counts,
+        "shadow_mode": shadow_mode,
         "comparison": {
             "prediction": comparison.prediction,
             "confidence": comparison.confidence,

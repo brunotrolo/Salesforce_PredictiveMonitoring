@@ -2,6 +2,7 @@
 
 import json
 import sys
+from datetime import datetime, timezone
 
 import orchestrate
 
@@ -89,6 +90,36 @@ class TestRunPipeline:
         second, _ = orchestrate.run_pipeline(history=history)
         recurring = [a for a in second["alerts_aggregated"] if a["recurring"]]
         assert recurring, "repeated pipeline must flag at least one recurring alert"
+
+
+class TestShadowMode:
+    def test_mock_snapshot_has_enabled_shadow_mode(self):
+        result, _ = orchestrate.run_pipeline()
+        shadow = result["shadow_mode"]
+        assert shadow["enabled"] is True
+        assert 0 <= shadow["ml_risk"] <= 1
+        assert isinstance(shadow["agreement"], bool)
+        assert shadow["verdict"] in ("AGREE", "DISAGREE")
+        assert shadow["forecast"]["predicted"]
+        assert isinstance(shadow["anomalies"]["count"], int)
+        assert shadow["series"] == [1.0, 1.0, 1.0]
+
+    def test_shadow_mode_does_not_change_heuristic_result(self):
+        result, raw_logs = orchestrate.run_pipeline()
+        from collector import LogCollector
+        from heuristic import HeuristicEngine
+
+        logs = LogCollector().load(raw_logs)
+        analysis = HeuristicEngine().analyze([log.model_dump() for log in logs])
+        assert result["risk_score"] == analysis["risk_score"]
+        assert result["alerts"] == analysis["alerts"]
+        assert result["health_check"] is not None
+
+    def test_shadow_disabled_without_series_points(self):
+        client = FakeMCPClient([])
+        result, _ = orchestrate.run_pipeline(mode="real", client=client)
+        assert result["shadow_mode"]["enabled"] is False
+        assert "reason" in result["shadow_mode"]
 
 
 class TestMain:
@@ -251,17 +282,18 @@ class TestMapSoqlRecords:
 
 class TestRunPipelineRealMode:
     def test_uses_mcp_client_to_fetch_logs(self):
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         records = [
             {
                 "Id": "log-1",
-                "CreatedDate": "2026-08-16T10:00:00Z",
+                "CreatedDate": f"{today}T10:00:00Z",
                 "Status": "200",
                 "DurationMilliseconds": 100,
                 "Application": "ORG-REAL",
             },
             {
                 "Id": "log-2",
-                "CreatedDate": "2026-08-16T10:01:00Z",
+                "CreatedDate": f"{today}T10:01:00Z",
                 "Status": "500",
                 "DurationMilliseconds": 2000,
                 "Application": "ORG-REAL",
@@ -271,7 +303,7 @@ class TestRunPipelineRealMode:
         result, raw_logs = orchestrate.run_pipeline(mode="real", client=client)
         assert len(client.calls) == 1
         assert "FROM Log__c" in client.calls[0]
-        assert "CreatedDate >= 2026-08-16T" in client.calls[0]
+        assert f"CreatedDate >= {today}T" in client.calls[0]
         assert "LAST_N_HOURS" not in client.calls[0]
         assert raw_logs[0]["log_id"] == "log-1"
         assert result["mode"] == "real"

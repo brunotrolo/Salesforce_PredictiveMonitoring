@@ -125,10 +125,10 @@ site/
 - Severity levels in dashboard ✅ (16/08/2026 — contagens, badge ×N, tag "recorrente")
 
 ### Phase 3: ML Shadow Mode (2 weeks)
-- Prophet forecasting integration
-- Isolation Forest anomaly detection
-- Side-by-side comparison (heuristic vs ML)
-- A/B testing framework
+- ~~Prophet forecasting~~ → regressão linear stdlib (`ForecastEngine`) ✅ (16/08/2026 — `services/ml`, ver SPECIFICATION.md §3.3)
+- ~~Isolation Forest anomaly detection~~ → z-score modificado (`AnomalyEngine`) ✅ (16/08/2026 — mediana/MAD, MAD≈0 trata série degenerada)
+- Side-by-side comparison (heuristic vs ML) ✅ (16/08/2026 — `ShadowComparator`, shadow = observação, nunca decide)
+- A/B testing framework → open question (ver `docs/ML_SHADOW_MODE_SPEC.md`)
 
 ### Phase 4: Feedback Loop (1 week)
 - Weekly retraining pipeline
@@ -299,7 +299,7 @@ site/api/client.js                       ← API fetcher (MODIFIED)
 - **Data Validation:** Pydantic
 - **Logging:** structlog (JSON Lines)
 - **Data Processing:** pandas
-- **ML (Phase 3):** scikit-learn, Prophet
+- **ML (Phase 3):** stdlib puro (regressão linear + z-score modificado); Prophet/sklearn plugáveis pela interface (`docs/ML_SHADOW_MODE_SPEC.md`)
 
 ### Frontend
 - **Framework:** Vanilla JS (no build required)
