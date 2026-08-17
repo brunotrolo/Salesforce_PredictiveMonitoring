@@ -3,9 +3,15 @@
 Thin wrapper around the Salesforce Platform MCP server (Streamable HTTP).
 No credentials are stored in code: token comes from environment.
 
+The Salesforce Hosted MCP servers require an External Client App (not a
+legacy Connected App) with PKCE + JWT-based access tokens enabled and the
+scopes ``api``, ``sfap_api`` and ``refresh_token``. Obtain the initial
+refresh token with scripts/get_sf_mcp_tokens.py; this client then refreshes
+the access token automatically on 401.
+
 Environments:
     SALESFORCE_MCP_URL              MCP server URL (default: sobject-all endpoint)
-    SF_CLIENT_ID                    OAuth2 client id (Connected App Consumer Key)
+    SF_CLIENT_ID                    OAuth2 client id (External Client App Consumer Key)
     SF_CLIENT_SECRET                OAuth2 client secret (Consumer Secret)
     SF_REFRESH_TOKEN                OAuth2 refresh token
 """
