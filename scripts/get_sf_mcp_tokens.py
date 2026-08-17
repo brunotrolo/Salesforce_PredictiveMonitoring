@@ -8,10 +8,15 @@ require an External Client App (not a legacy Connected App) configured with:
   * Require Proof Key for Code Exchange (PKCE): enabled
   * Issue JSON Web Token (JWT)-based access tokens for named users: enabled
 
-This script runs the authorization-code + PKCE flow once, opens the browser,
-captures the redirect on localhost, exchanges the code for tokens and prints
-the refresh token (the access token is never printed; it expires in ~2h and
-the pipeline refreshes it automatically via grant_type=refresh_token).
+External Client Apps do not accept plain-HTTP redirect URIs, so this script
+uses Salesforce's own success callback (https://login.salesforce.com/
+services/oauth2/success) and a manual copy-paste of the ``code``: it opens
+the authorization URL in the browser, you approve, the browser lands on the
+success page whose URL contains ``?code=...``, and you paste that URL (or
+just the code) back into the terminal.
+
+The access token is never printed; the pipeline refreshes it automatically
+via grant_type=refresh_token.
 
 Usage:
     python get_sf_mcp_tokens.py <client_id> <client_secret>
@@ -26,8 +31,8 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
-import http.server
 import json
+import re
 import secrets
 import sys
 import urllib.parse
@@ -36,37 +41,8 @@ import webbrowser
 
 AUTHORIZE_URL = "https://login.salesforce.com/services/oauth2/authorize"
 TOKEN_URL = "https://login.salesforce.com/services/oauth2/token"
-REDIRECT_PORT = 8899
-REDIRECT_URI = f"http://127.0.0.1:{REDIRECT_PORT}/callback"
+REDIRECT_URI = "https://login.salesforce.com/services/oauth2/success"
 SCOPES = "api sfap_api refresh_token"
-
-
-class CallbackHandler(http.server.BaseHTTPRequestHandler):
-    """Captures the ?code=...&state=... redirect from the browser."""
-
-    captured = {}
-
-    def do_GET(self) -> None:  # noqa: N802
-        parsed = urllib.parse.urlparse(self.path)
-        params = urllib.parse.parse_qs(parsed.query)
-        if parsed.path == "/callback" and "code" in params:
-            CallbackHandler.captured = {
-                "code": params["code"][0],
-                "state": params.get("state", [""])[0],
-            }
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            self.wfile.write(
-                b"<html><body><h2>Autorizado.</h2>"
-                b"<p>Voce pode fechar esta aba.</p></body></html>"
-            )
-        else:
-            self.send_response(404)
-            self.end_headers()
-
-    def log_message(self, *args: object) -> None:
-        pass
 
 
 def _pkce_pair() -> tuple[str, str]:
@@ -125,21 +101,24 @@ def main() -> None:
             "prompt": "consent",
         }
     )
+    url = f"{AUTHORIZE_URL}?{params}"
+    print("Abra a URL a seguir no navegador, aprove o acesso e espere a")
+    print("pagina de sucesso do Salesforce carregar:")
+    print(f"  {url}")
+    print(f"state esperado: {state}")
+    webbrowser.open(url)
 
-    server = http.server.HTTPServer(("127.0.0.1", REDIRECT_PORT), CallbackHandler)
-    print("Abra a URL a seguir no navegador e aprove o acesso:")
-    print(f"  {AUTHORIZE_URL}?{params}")
-    webbrowser.open(f"{AUTHORIZE_URL}?{params}")
-    server.handle_request()
-    server.server_close()
-
-    captured = CallbackHandler.captured
-    if not captured or captured.get("state") != state:
-        raise SystemExit("Falha: callback sem code ou state invalido.")
+    pasted = input("\nCole aqui a URL final do navegador (ou so o code): ").strip()
+    code_match = re.search(r"[?&#]code=([^&#]+)", pasted)
+    state_match = re.search(r"[?&#]state=([^&#]+)", pasted)
+    if not code_match:
+        raise SystemExit("Falha: nao encontrei o parametro code na entrada.")
+    if state_match and state_match.group(1) != state:
+        raise SystemExit("Falha: state nao confere (possivel CSRF).")
     print("Code recebido. Trocando por tokens...")
 
     tokens = _exchange_code(
-        args.client_id, args.client_secret, captured["code"], verifier
+        args.client_id, args.client_secret, code_match.group(1), verifier
     )
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:
@@ -148,8 +127,10 @@ def main() -> None:
     print("\n=== Tokens obtidos ===")
     print(f"instance_url: {tokens.get('instance_url', 'N/A')}")
     print(f"scope: {tokens.get('scope', 'N/A')}")
-    print(f"access_token (nao compartilhe, expira em ~2h): "
-          f"{tokens['access_token'][:12]}...")
+    print(
+        f"access_token (nao compartilhe, expira em ~2h): "
+        f"{tokens['access_token'][:12]}..."
+    )
     print("\nGrave o refresh token abaixo como secret (copie a linha inteira):")
     print(f"SF_REFRESH_TOKEN = {refresh_token}")
     print("\nDepois rode:")
