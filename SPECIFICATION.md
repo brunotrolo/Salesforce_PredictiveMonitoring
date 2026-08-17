@@ -265,8 +265,10 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
   `directionLabel` testados em `site/monitoring/dashboard.js`.
 - Testes: 34 em `services/feedback` (100% cobertura), 51 em `monitoring` (inclui `TestFeedbackLoop`),
   50 frontend; CI verde.
-- Open questions: ligar `--feedback-file` no `collect.yml` (exigiria baixar o arquivo da branch
-  `data`); aplicar a calibração automaticamente no pipeline.
+- Open questions: aplicar a calibração automaticamente no pipeline (recomendação
+  só via CLI por ora).
+- Wiring do `--feedback-file` no `collect.yml` ✅ (17/08/2026): o workflow baixa
+  `feedback.json` da raiz da branch `data` quando existe e passa `--feedback-file`.
 
 #### Phase 5: Hardening (1 semana)
 - Error handling & retries
@@ -298,9 +300,12 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
   `site/monitoring/dashboard.js`.
 - Testes: 22 em `services/resilience`, 89 em `monitoring` (91% cobertura —
   `metrics.py` 100%), 55 frontend; ruff limpo; CI verde.
-- Open questions: wiring do `--metrics-file`, `SENTRY_DSN` e `--feedback-file`
-  no `collect.yml` (decisão do usuário); calibrar retries (3/1s/30s) com dados
-  de produção.
+- Wiring no `collect.yml` ✅ (17/08/2026): `--metrics-file` (grava
+  `${STAMP}.prom` na branch `data` e no artifact), `SENTRY_DSN` (secret,
+  opt-in — sem o secret o pipeline roda idêntico) e `--feedback-file`
+  (baixa `feedback.json` da raiz da branch `data` quando existe).
+- Open questions: calibrar retries (3/1s/30s) com dados de produção; scraping
+  Prometheus se um dia houver servidor.
 
 **TESTE T3.5 - Phases Interconnected:**
 ```bash

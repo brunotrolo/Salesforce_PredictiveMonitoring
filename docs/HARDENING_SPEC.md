@@ -9,8 +9,9 @@ Status: **Implemented (17/08/2026)** — `services/resilience` (22 testes, 100%)
 retry/rate-limit em `mcp_salesforce.py`, Sentry opt-in, `metrics.py` (100%),
 hardening do pipeline com bloco `pipeline` e `step_errors`, card "Pipeline
 (último ciclo)" no dashboard. 89 testes em `monitoring` (91% cobertura), 55
-frontend, ruff limpo, CI verde. Wiring do `collect.yml` (`--metrics-file`,
-`SENTRY_DSN`, `--feedback-file`) permanece open question (decisão do usuário).
+frontend, ruff limpo, CI verde. Wiring do `collect.yml` feito no mesmo dia:
+`--metrics-file` (`.prom` na branch `data`), `SENTRY_DSN` (secret opt-in) e
+`--feedback-file` (lido da branch `data`).
 
 ---
 
@@ -176,9 +177,11 @@ docs/dashboard/               → header mostra status do último ciclo
 
 ## Open Questions
 
-1. **Wiring no `collect.yml`** (produção): passar `--metrics-file`,
-   `SENTRY_DSN` (secret) e o `--feedback-file` da Fase 4 no workflow de
-   coleta. Mudança de workflow → decisão explícita do usuário (ask-first).
+1. ~~**Wiring no `collect.yml`**~~ ✅ **Resolvido (17/08/2026):** o workflow
+   agora passa `--metrics-file` (grava `${STAMP}.prom` na branch `data` junto
+   do snapshot e no artifact), `SENTRY_DSN` (secret, opt-in — sem o secret o
+   pipeline roda idêntico) e `--feedback-file` (baixa `feedback.json` da raiz
+   da branch `data` quando existe).
 2. **Thresholds de retry em produção:** `retries=3`, `base_delay=1s`,
    `max_delay=30s` como defaults; calibrar com a realidade do MCP depois de
    observar `step_errors` acumulado.

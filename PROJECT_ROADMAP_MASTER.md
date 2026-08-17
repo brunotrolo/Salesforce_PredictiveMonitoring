@@ -134,7 +134,8 @@ site/
 - Model accuracy tracking ✅ (16/08/2026 — `AccuracyTracker` em `services/feedback`, ver SPECIFICATION.md §3.3)
 - User feedback ingestion ✅ (16/08/2026 — `FeedbackStore` + flag `--feedback-file` no pipeline)
 - Weekly retraining pipeline ✅ (16/08/2026 — `Calibrator.recommend` + CLI `python -m feedback.calibrate`; recomendação, nunca aplicação automática)
-- Calibração automática no pipeline e wiring do `--feedback-file` no `collect.yml` → open questions (ver `docs/FEEDBACK_LOOP_SPEC.md`)
+- Calibração automática no pipeline → open question (ver `docs/FEEDBACK_LOOP_SPEC.md`)
+- Wiring do `--feedback-file` no `collect.yml` ✅ (17/08/2026 — baixa `feedback.json` da raiz da branch `data` quando existe)
 
 ### Phase 5: Hardening & Scale (1 week)
 - Error handling & retries ✅ (17/08/2026 — `services/resilience` (22 testes, 100%) + retry de transporte em `mcp_salesforce.py`; nunca protocolo/4xx)
@@ -142,7 +143,7 @@ site/
 - Sentry error tracking ✅ (17/08/2026 — `init_sentry` opt-in via `SENTRY_DSN`; no-op sem DSN)
 - Prometheus metrics ✅ (17/08/2026 — `metrics.py` em text exposition, 100% cobertura; `--metrics-file` no pipeline)
 - Production monitoring ✅ (17/08/2026 — hardening do pipeline: passos fatais = collect/analyze/aggregate, observacionais = compare/shadow/accuracy/feedback com `step_errors`; bloco `pipeline` no snapshot; card "Pipeline (último ciclo)" no dashboard; 89 testes monitoring, 91% cobertura)
-- Wiring do `--metrics-file`, `SENTRY_DSN` e `--feedback-file` no `collect.yml` → open question (decisão do usuário)
+- Wiring do `--metrics-file`, `SENTRY_DSN` e `--feedback-file` no `collect.yml` ✅ (17/08/2026 — `metrics.prom` persistido na branch `data`, Sentry opt-in via secret, feedback lido da branch `data`)
 
 ---
 

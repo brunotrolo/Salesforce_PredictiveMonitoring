@@ -140,10 +140,11 @@ mortos, `model_dump()` para serializar.
 
 ## Open Questions
 
-1. **Coleta do feedback em produção:** o `--feedback-file` no `collect.yml`
-   exigiria baixar `feedback.json` da branch `data` antes de rodar o pipeline
-   (mudança de workflow). Por ora o flag existe no pipeline; a integração no
-   workflow é decisão explícita.
+1. ~~**Coleta do feedback em produção**~~ ✅ **Resolvido (17/08/2026):** o
+   `collect.yml` agora baixa `feedback.json` da raiz da branch `data` antes de
+   rodar o pipeline e passa `--feedback-file` quando o arquivo existe. Para
+   alimentar o feedback: commitar `feedback.json` na branch `data` (mesmo
+   formato validado pelo `FeedbackStore`).
 2. **Aplicar a calibração:** o Calibrator recomenda; quem aplica o novo
    threshold e quando (manual semanal? cron com auto-aplicação?) — v1 entrega
    só a recomendação via CLI.
