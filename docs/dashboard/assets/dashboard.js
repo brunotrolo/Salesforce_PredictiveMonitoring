@@ -95,3 +95,42 @@ export function summarizeShadow(shadow) {
       : [],
   };
 }
+
+export function directionLabel(direction) {
+  if (direction === "up") return "subindo";
+  if (direction === "down") return "caindo";
+  if (direction === "flat") return "estável";
+  return direction ?? "desconhecida";
+}
+
+export function getAccuracyVerdict(accuracy) {
+  if (!accuracy || accuracy.status !== "evaluated") return "SEM DADOS";
+  if (accuracy.forecast_hit === true) return "ACERTOU";
+  if (accuracy.forecast_hit === false) return "ERROU";
+  return "INDETERMINADO";
+}
+
+export function summarizeAccuracy(accuracy) {
+  if (!accuracy || accuracy.status !== "evaluated") {
+    return {
+      available: false,
+      verdict: getAccuracyVerdict(accuracy),
+      directionExpected: null,
+      directionActual: null,
+      forecastHit: null,
+      anomalyFlagged: false,
+      anomalyHit: null,
+      falsePositive: false,
+    };
+  }
+  return {
+    available: true,
+    verdict: getAccuracyVerdict(accuracy),
+    directionExpected: accuracy.direction_expected ?? null,
+    directionActual: accuracy.direction_actual ?? null,
+    forecastHit: accuracy.forecast_hit ?? null,
+    anomalyFlagged: Boolean(accuracy.anomaly_flagged),
+    anomalyHit: accuracy.anomaly_hit ?? null,
+    falsePositive: Boolean(accuracy.false_positive),
+  };
+}

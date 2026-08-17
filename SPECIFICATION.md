@@ -246,9 +246,27 @@ python -c "from mcp_salesforce import SalesforceClient; client = SalesforceClien
   41 frontend; CI verde. Bug de data fixa corrigido no teste de query real (usa data UTC dinâmica).
 
 #### Phase 4: Feedback Loop (1 semana)
-- Weekly retraining
-- User feedback ingestion
-- Model accuracy tracking
+- **Model accuracy tracking** ✅ (16/08/2026 — `AccuracyTracker` em `services/feedback`: compara
+  direção prevista (slope do forecast) com a direção real da série do snapshot anterior; direção
+  `flat` é **indeterminada** (nem acerto nem erro); anomalia é hit se `max(actual) > baseline×1.5`
+  (mediana da série anterior); `no_data` quando faltam dados; `ValueError` em séries não-finitas).
+- **User feedback ingestion** ✅ (16/08/2026 — `FeedbackStore`: carrega e valida `feedback.json`
+  com `{id, target, action}`; linhas inválidas ignoradas com contagem; resumo por ação/domínio no
+  resultado do pipeline via `--feedback-file`).
+- **Weekly retraining pipeline** ✅ (16/08/2026 — `Calibrator.recommend` + CLI
+  `python -m feedback.calibrate --samples samples.json [--target 0.2]`: calcula taxa de falsos
+  positivos e **recomenda** novo threshold (clamp `[2.0, 6.0]`, passo +0.5/−0.25, `min_samples=3`);
+  só recomenda, **nunca aplica** — ver `docs/FEEDBACK_LOOP_SPEC.md`).
+- Pipeline: `orchestrate.py` ganhou Step 6 (accuracy, com `--history-file` carregando o snapshot
+  anterior completo) e Step 7 (feedback_summary, com `--feedback-file`); ambos opcionais e
+  observacionais.
+- Dashboard: card "Acurácia (ML)" (veredito ACERTOU/ERROU/INDETERMINADO/SEM DADOS, direção
+  prevista vs real, status da anomalia); helpers `getAccuracyVerdict`/`summarizeAccuracy`/
+  `directionLabel` testados em `site/monitoring/dashboard.js`.
+- Testes: 34 em `services/feedback` (100% cobertura), 51 em `monitoring` (inclui `TestFeedbackLoop`),
+  50 frontend; CI verde.
+- Open questions: ligar `--feedback-file` no `collect.yml` (exigiria baixar o arquivo da branch
+  `data`); aplicar a calibração automaticamente no pipeline.
 
 #### Phase 5: Hardening (1 semana)
 - Error handling & retries

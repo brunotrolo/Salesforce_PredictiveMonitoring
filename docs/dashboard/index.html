@@ -424,6 +424,30 @@
       border-color: rgba(245, 158, 11, 0.4);
     }
 
+    .accuracy-verdict {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      border: 1px solid var(--hairline);
+      border-radius: 8px;
+      padding: 1px 8px;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+    .accuracy-verdict[data-state="hit"] {
+      color: var(--green);
+      border-color: rgba(34, 197, 94, 0.4);
+    }
+    .accuracy-verdict[data-state="miss"] {
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+    .accuracy-verdict[data-state="unknown"] {
+      color: var(--amber);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
     .shadow-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -654,6 +678,28 @@
         </div>
       </dl>
       <p id="shadow-caption" class="shadow-caption"></p>
+    </section>
+
+    <section class="card" aria-labelledby="accuracy-title">
+      <div class="card-head">
+        <h2 id="accuracy-title">Acurácia (ML)</h2>
+        <span id="accuracy-verdict" class="accuracy-verdict" data-state="off">—</span>
+      </div>
+      <dl class="shadow-grid">
+        <div class="shadow-metric">
+          <dt>Direção prevista</dt>
+          <dd id="accuracy-expected">—</dd>
+        </div>
+        <div class="shadow-metric">
+          <dt>Direção real</dt>
+          <dd id="accuracy-actual">—</dd>
+        </div>
+        <div class="shadow-metric">
+          <dt>Anomalia sinalizada</dt>
+          <dd id="accuracy-anomaly">—</dd>
+        </div>
+      </dl>
+      <p id="accuracy-caption" class="shadow-caption"></p>
     </section>
   </main>
 

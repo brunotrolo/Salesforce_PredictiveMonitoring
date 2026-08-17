@@ -26,6 +26,16 @@ export const mockMonitoringData = {
     anomalies: { count: 0 },
     series: [1, 1, 1],
   },
+  accuracy: {
+    status: "evaluated",
+    direction_expected: "up",
+    direction_actual: "up",
+    forecast_hit: true,
+    anomaly_flagged: true,
+    anomaly_hit: true,
+    false_positive: false,
+    series_actual: [2, 4, 6],
+  },
 };
 
 export const mockEmptyData = {
@@ -61,5 +71,15 @@ export const mockCriticalData = {
     forecast: { predicted: [12, 14, 16] },
     anomalies: { count: 3 },
     series: [1, 2, 8, 10, 12],
+  },
+  accuracy: {
+    status: "evaluated",
+    direction_expected: "up",
+    direction_actual: "flat",
+    forecast_hit: false,
+    anomaly_flagged: true,
+    anomaly_hit: false,
+    false_positive: true,
+    series_actual: [3, 3, 3],
   },
 };

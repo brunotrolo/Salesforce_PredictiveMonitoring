@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monitoring-feedback"
+version = "0.1.0"
+description = "Salesforce monitoring feedback loop: model accuracy, user feedback ingestion, threshold calibration (deterministic, stdlib-only)"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.13",
+]
+
+[tool.setuptools]
+packages = ["feedback"]

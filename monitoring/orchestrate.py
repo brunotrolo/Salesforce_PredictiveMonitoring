@@ -149,9 +149,11 @@ def run_pipeline(
     mode: str = "mock",
     client: Any = None,
     history: dict[str, int] | None = None,
+    prev_snapshot: dict | None = None,
+    feedback_file: str | None = None,
 ) -> tuple[dict, list[dict]]:
     """Run the monitoring pipeline: collector -> heuristic -> alerting ->
-    comparison -> shadow mode.
+    comparison -> shadow mode -> accuracy -> feedback.
 
     ``mode="mock"`` uses synthetic logs (Phase 0).  ``mode="real"`` fetches
     logs from Salesforce via the MCP client (Phase 1).  Pass a ``client``
@@ -161,6 +163,10 @@ def run_pipeline(
     Shadow mode (Phase 3) runs the ML engines in parallel and annotates the
     snapshot with ``shadow_mode`` — it observes and compares, it never
     changes the heuristically-computed ``risk_score`` or ``alerts``.
+    ``prev_snapshot`` (Phase 4) is the previous full snapshot, used to
+    evaluate shadow accuracy against the current series; ``feedback_file``
+    is a user-supplied feedback.json consumed by the FeedbackStore. Both are
+    optional and observational — neither decides anything.
     """
     from alerting import AlertAggregator
     from collector import LogCollector
@@ -223,6 +229,31 @@ def run_pipeline(
             "reason": "insufficient series points (need >= 3)",
         }
 
+    # Step 6: Model accuracy (Phase 4 - evaluate previous shadow vs reality)
+    accuracy: dict | None = None
+    if prev_snapshot is not None:
+        from feedback import AccuracyTracker
+
+        accuracy = (
+            AccuracyTracker()
+            .evaluate(prev_snapshot, {"shadow_mode": shadow_mode})
+            .model_dump()
+        )
+
+    # Step 7: User feedback ingestion (Phase 4 - observational only)
+    feedback_summary: dict | None = None
+    if feedback_file is not None:
+        from feedback import FeedbackStore
+
+        loaded = FeedbackStore().load(feedback_file)
+        feedback_summary = {
+            "loaded": loaded.loaded,
+            "valid": loaded.valid,
+            "invalid": loaded.invalid,
+            "by_action": loaded.by_action,
+            "by_target": loaded.by_target,
+        }
+
     # Build result
     now = datetime.now(timezone.utc).isoformat()
     result = {
@@ -249,6 +280,10 @@ def run_pipeline(
         "validation": validation,
         "logs_processed": len(logs),
     }
+    if accuracy is not None:
+        result["accuracy"] = accuracy
+    if feedback_summary is not None:
+        result["feedback_summary"] = feedback_summary
     return result, raw_logs
 
 
@@ -277,22 +312,35 @@ def main() -> None:
         default=None,
         help=(
             "Previous snapshot JSON used to flag recurring alerts "
-            "(Phase 2 aggregation); optional"
+            "(Phase 2 aggregation) and evaluate shadow accuracy "
+            "(Phase 4); optional"
+        ),
+    )
+    parser.add_argument(
+        "--feedback-file",
+        default=None,
+        help=(
+            "User-supplied feedback.json consumed by the FeedbackStore "
+            "(Phase 4); optional"
         ),
     )
     args = parser.parse_args()
 
     history: dict[str, int] | None = None
+    prev_snapshot: dict | None = None
     if args.history_file:
         from alerting import AlertAggregator
 
         with open(args.history_file) as f:
-            history = AlertAggregator.history_from_snapshot(json.load(f))
+            prev_snapshot = json.load(f)
+        history = AlertAggregator.history_from_snapshot(prev_snapshot)
 
     result, logs = run_pipeline(
         mode=args.mode,
         client=_build_client() if args.mode == "real" else None,
         history=history,
+        prev_snapshot=prev_snapshot,
+        feedback_file=args.feedback_file,
     )
 
     # Validate output

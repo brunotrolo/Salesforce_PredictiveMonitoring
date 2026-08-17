@@ -131,9 +131,10 @@ site/
 - A/B testing framework → open question (ver `docs/ML_SHADOW_MODE_SPEC.md`)
 
 ### Phase 4: Feedback Loop (1 week)
-- Weekly retraining pipeline
-- User feedback ingestion
-- Model accuracy tracking
+- Model accuracy tracking ✅ (16/08/2026 — `AccuracyTracker` em `services/feedback`, ver SPECIFICATION.md §3.3)
+- User feedback ingestion ✅ (16/08/2026 — `FeedbackStore` + flag `--feedback-file` no pipeline)
+- Weekly retraining pipeline ✅ (16/08/2026 — `Calibrator.recommend` + CLI `python -m feedback.calibrate`; recomendação, nunca aplicação automática)
+- Calibração automática no pipeline e wiring do `--feedback-file` no `collect.yml` → open questions (ver `docs/FEEDBACK_LOOP_SPEC.md`)
 
 ### Phase 5: Hardening & Scale (1 week)
 - Error handling & retries

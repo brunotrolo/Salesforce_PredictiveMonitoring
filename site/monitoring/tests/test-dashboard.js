@@ -1,4 +1,4 @@
-import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow } from "../dashboard.js";
+import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow, directionLabel, getAccuracyVerdict, summarizeAccuracy } from "../dashboard.js";
 import { mockMonitoringData, mockEmptyData, mockCriticalData } from "../mock-data.js";
 
 describe("Dashboard", () => {
@@ -199,6 +199,80 @@ describe("Dashboard", () => {
       expect(summary.mlRisk).toBe(null);
       expect(summary.anomalies).toBe(0);
       expect(summary.predicted).toEqual([]);
+    });
+  });
+
+  describe("directionLabel", () => {
+    test("maps up/down/flat to Portuguese", () => {
+      expect(directionLabel("up")).toBe("subindo");
+      expect(directionLabel("down")).toBe("caindo");
+      expect(directionLabel("flat")).toBe("estável");
+    });
+
+    test("falls back for unknown values", () => {
+      expect(directionLabel(undefined)).toBe("desconhecida");
+      expect(directionLabel("bogus")).toBe("bogus");
+    });
+  });
+
+  describe("getAccuracyVerdict", () => {
+    test("returns ACERTOU on forecast hit", () => {
+      expect(getAccuracyVerdict({ status: "evaluated", forecast_hit: true })).toBe("ACERTOU");
+    });
+
+    test("returns ERROU on forecast miss", () => {
+      expect(getAccuracyVerdict({ status: "evaluated", forecast_hit: false })).toBe("ERROU");
+    });
+
+    test("returns INDETERMINADO for flat direction", () => {
+      expect(getAccuracyVerdict({ status: "evaluated", forecast_hit: null })).toBe("INDETERMINADO");
+    });
+
+    test("returns SEM DADOS when not evaluated", () => {
+      expect(getAccuracyVerdict(undefined)).toBe("SEM DADOS");
+      expect(getAccuracyVerdict({ status: "no_data" })).toBe("SEM DADOS");
+    });
+  });
+
+  describe("summarizeAccuracy", () => {
+    test("summarizes an evaluated accuracy block", () => {
+      const summary = summarizeAccuracy({
+        status: "evaluated",
+        direction_expected: "up",
+        direction_actual: "up",
+        forecast_hit: true,
+        anomaly_flagged: true,
+        anomaly_hit: true,
+        false_positive: false,
+      });
+      expect(summary.available).toBe(true);
+      expect(summary.verdict).toBe("ACERTOU");
+      expect(summary.directionExpected).toBe("up");
+      expect(summary.directionActual).toBe("up");
+      expect(summary.forecastHit).toBe(true);
+      expect(summary.anomalyFlagged).toBe(true);
+      expect(summary.anomalyHit).toBe(true);
+      expect(summary.falsePositive).toBe(false);
+    });
+
+    test("coerces booleans on missing flags", () => {
+      const summary = summarizeAccuracy({
+        status: "evaluated",
+        direction_expected: "down",
+        direction_actual: "flat",
+        forecast_hit: false,
+      });
+      expect(summary.anomalyFlagged).toBe(false);
+      expect(summary.anomalyHit).toBe(null);
+      expect(summary.falsePositive).toBe(false);
+    });
+
+    test("returns safe fallback when not evaluated", () => {
+      const summary = summarizeAccuracy(undefined);
+      expect(summary.available).toBe(false);
+      expect(summary.verdict).toBe("SEM DADOS");
+      expect(summary.directionExpected).toBe(null);
+      expect(summary.anomalyFlagged).toBe(false);
     });
   });
 });

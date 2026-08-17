@@ -141,11 +141,17 @@ class TestMain:
             assert e.code == 2
 
     def test_raises_when_pipeline_result_missing_keys(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(
-            orchestrate,
-            "run_pipeline",
-            lambda mode="mock", client=None, history=None: ({"risk_score": 0.5}, []),
-        )
+        def stub_run_pipeline(
+            *,
+            mode="mock",
+            client=None,
+            history=None,
+            prev_snapshot=None,
+            feedback_file=None,
+        ):
+            return ({"risk_score": 0.5}, [])
+
+        monkeypatch.setattr(orchestrate, "run_pipeline", stub_run_pipeline)
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
         try:
@@ -156,11 +162,18 @@ class TestMain:
 
     def test_raises_when_risk_score_out_of_range(self, tmp_path, monkeypatch):
         bad_result = {"risk_score": 1.5, "alerts": [], "health_check": {}}
-        monkeypatch.setattr(
-            orchestrate,
-            "run_pipeline",
-            lambda mode="mock", client=None, history=None: (bad_result, []),
-        )
+
+        def stub_run_pipeline(
+            *,
+            mode="mock",
+            client=None,
+            history=None,
+            prev_snapshot=None,
+            feedback_file=None,
+        ):
+            return (bad_result, [])
+
+        monkeypatch.setattr(orchestrate, "run_pipeline", stub_run_pipeline)
         output = tmp_path / "output.json"
         monkeypatch.setattr(sys, "argv", ["orchestrate.py", "--log-file", str(output)])
         try:
@@ -327,3 +340,74 @@ class TestRunPipelineRealMode:
         client.query = lambda soql: _json.dumps(payload)
         result, raw_logs = orchestrate.run_pipeline(mode="real", client=client)
         assert raw_logs[0]["log_id"] == "L1"
+
+
+class TestFeedbackLoop:
+    """Phase 4: accuracy evaluation (Step 6) and feedback ingestion (Step 7)."""
+
+    def test_accuracy_absent_without_prev_snapshot(self):
+        result, _ = orchestrate.run_pipeline()
+        assert "accuracy" not in result
+
+    def test_accuracy_evaluated_with_prev_shadow_snapshot(self):
+        prev = {
+            "timestamp": "2026-08-16T10:00:00+00:00",
+            "shadow_mode": {
+                "enabled": True,
+                "forecast": {"slope": 2.0, "intercept": 1.0},
+                "anomalies": {"count": 0},
+                "series": [0.0, 1.0, 2.0],
+            },
+        }
+        result, _ = orchestrate.run_pipeline(prev_snapshot=prev)
+        accuracy = result["accuracy"]
+        assert accuracy["status"] == "evaluated"
+        assert accuracy["direction_expected"] in ("up", "down", "flat")
+        assert "series_actual" in accuracy
+
+    def test_accuracy_no_data_when_prev_without_shadow(self):
+        result, _ = orchestrate.run_pipeline(prev_snapshot={"risk_score": 0.1})
+        assert result["accuracy"]["status"] == "no_data"
+
+    def test_feedback_summary_present_with_file(self, tmp_path):
+        feedback_path = tmp_path / "feedback.json"
+        feedback_path.write_text(
+            json.dumps(
+                [
+                    {"id": "a1", "target": "anomaly", "action": "true_positive"},
+                    {"id": "a2", "target": "anomaly", "action": "false_positive"},
+                ]
+            )
+        )
+        result, _ = orchestrate.run_pipeline(feedback_file=str(feedback_path))
+        summary = result["feedback_summary"]
+        assert summary["loaded"] == 2
+        assert summary["valid"] == 2
+        assert summary["invalid"] == 0
+        assert summary["by_action"] == {"true_positive": 1, "false_positive": 1}
+        assert summary["by_target"] == {"anomaly": 2}
+
+    def test_feedback_summary_absent_without_file(self):
+        result, _ = orchestrate.run_pipeline()
+        assert "feedback_summary" not in result
+
+    def test_invalid_feedback_rows_do_not_break_pipeline(self, tmp_path):
+        feedback_path = tmp_path / "feedback.json"
+        feedback_path.write_text(
+            json.dumps(
+                [
+                    {"id": "ok", "target": "alert", "action": "true_positive"},
+                    {"id": 42, "target": "alert", "action": "true_positive"},
+                    "garbage",
+                ]
+            )
+        )
+        result, _ = orchestrate.run_pipeline(feedback_file=str(feedback_path))
+        assert result["feedback_summary"]["valid"] == 1
+        assert result["feedback_summary"]["invalid"] == 2
+
+    def test_missing_feedback_file_raises(self, tmp_path):
+        import pytest
+
+        with pytest.raises(FileNotFoundError):
+            orchestrate.run_pipeline(feedback_file=str(tmp_path / "nope.json"))

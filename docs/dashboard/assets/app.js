@@ -43,6 +43,11 @@ const els = {
   shadowAnomalies: () => document.getElementById("shadow-anomalies"),
   shadowForecast: () => document.getElementById("shadow-forecast"),
   shadowCaption: () => document.getElementById("shadow-caption"),
+  accuracyVerdict: () => document.getElementById("accuracy-verdict"),
+  accuracyExpected: () => document.getElementById("accuracy-expected"),
+  accuracyActual: () => document.getElementById("accuracy-actual"),
+  accuracyAnomaly: () => document.getElementById("accuracy-anomaly"),
+  accuracyCaption: () => document.getElementById("accuracy-caption"),
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
@@ -350,6 +355,42 @@ function renderShadow(snapshot) {
   );
 }
 
+function renderAccuracy(snapshot) {
+  const tag = els.accuracyVerdict();
+  if (!tag) return;
+
+  const summary = summarizeAccuracy(snapshot.accuracy);
+  tag.textContent = summary.verdict;
+  tag.dataset.state = !summary.available
+    ? "off"
+    : summary.verdict === "ACERTOU"
+      ? "hit"
+      : summary.verdict === "ERROU"
+        ? "miss"
+        : "unknown";
+
+  setText(els.accuracyExpected(), summary.available ? directionLabel(summary.directionExpected) : "—");
+  setText(els.accuracyActual(), summary.available ? directionLabel(summary.directionActual) : "—");
+  setText(
+    els.accuracyAnomaly(),
+    summary.available
+      ? summary.anomalyFlagged
+        ? summary.anomalyHit === true
+          ? "confirmada"
+          : summary.anomalyHit === false
+            ? "falso positivo"
+            : "em análise"
+        : "nenhuma"
+      : "—"
+  );
+  setText(
+    els.accuracyCaption(),
+    summary.available
+      ? "Avaliação observacional do ciclo anterior: sem efeito no risco heurístico."
+      : "Sem avaliação anterior: rode o pipeline com --history-file para medir acurácia."
+  );
+}
+
 /* ---------------------------------------------------------------- render */
 
 function escapeHtml(value) {
@@ -374,6 +415,7 @@ async function renderAll() {
   renderAlerts(latest);
   renderStats(latest);
   renderShadow(latest);
+  renderAccuracy(latest);
 }
 
 /* ---------------------------------------------------------------- wiring */
