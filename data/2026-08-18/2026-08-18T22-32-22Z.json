@@ -1,0 +1,126 @@
+{
+  "timestamp": "2026-08-18T22:32:28.849481+00:00",
+  "mode": "real",
+  "risk_score": 0.003,
+  "errors_count": 1,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371138694008: status 500 - None",
+      "log_id": "a05bL00000VGp1YQAT",
+      "timestamp": "2026-08-18T22:30:55.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371138694008"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=2&BANKACCOUNT=0005365371138694008",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371138694008",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371138694008: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGp1YQAT"
+      ],
+      "first_seen": "2026-08-18T22:30:55.000+0000",
+      "last_seen": "2026-08-18T22:30:55.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 1
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.003,
+    "ml_risk": 0.15795968737145208,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": 0.44755244755244755,
+      "intercept": 5.871794871794872,
+      "predicted": [
+        11.242424242424242,
+        11.68997668997669,
+        12.137529137529139
+      ],
+      "last_value": 7.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      9.0,
+      3.0,
+      10.0,
+      6.0,
+      5.0,
+      13.0,
+      4.0,
+      5.0,
+      7.0,
+      14.0,
+      17.0,
+      7.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.003,
+    "summary": "Risk changed by +0.0030 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T22:32:28.849481+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 5032,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "down",
+    "forecast_hit": true,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      9.0,
+      3.0,
+      10.0,
+      6.0,
+      5.0,
+      13.0,
+      4.0,
+      5.0,
+      7.0,
+      14.0,
+      17.0,
+      7.0
+    ]
+  }
+}
