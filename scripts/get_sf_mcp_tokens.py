@@ -113,13 +113,12 @@ def main() -> None:
     state_match = re.search(r"[?&#]state=([^&#]+)", pasted)
     if not code_match:
         raise SystemExit("Falha: nao encontrei o parametro code na entrada.")
-    if state_match and state_match.group(1) != state:
+    code = urllib.parse.unquote(code_match.group(1))
+    if state_match and urllib.parse.unquote(state_match.group(1)) != state:
         raise SystemExit("Falha: state nao confere (possivel CSRF).")
     print("Code recebido. Trocando por tokens...")
 
-    tokens = _exchange_code(
-        args.client_id, args.client_secret, code_match.group(1), verifier
-    )
+    tokens = _exchange_code(args.client_id, args.client_secret, code, verifier)
     refresh_token = tokens.get("refresh_token")
     if not refresh_token:
         raise SystemExit(f"Falha: sem refresh_token na resposta: {tokens}")
