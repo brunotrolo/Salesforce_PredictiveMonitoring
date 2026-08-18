@@ -88,11 +88,11 @@ jobs:
           if [ -n "${{ steps.history.outputs.calibration-file }}" ]; then
             SAMPLES="--samples-file ${{ steps.history.outputs.calibration-file }}"
           fi
-          (cd monitoring && python orchestrate.py --mode real \
-            --log-file "../out/${{ steps.stamp.outputs.stamp }}.json" \
-            --metrics-file "../out/${{ steps.stamp.outputs.stamp }}.prom" \
-            --auth-state-out "../out/auth_state.json" \
-            ${HISTORY} ${FEEDBACK} ${SAMPLES})
+          python monitoring/orchestrate.py --mode real \
+            --log-file "out/${{ steps.stamp.outputs.stamp }}.json" \
+            --metrics-file "out/${{ steps.stamp.outputs.stamp }}.prom" \
+            --auth-state-out "out/auth_state.json" \
+            ${HISTORY} ${FEEDBACK} ${SAMPLES}
 
       - name: Rotate auth secret (refresh token rotation)
         # Salesforce rotates the refresh token on every refresh (mandatory in
