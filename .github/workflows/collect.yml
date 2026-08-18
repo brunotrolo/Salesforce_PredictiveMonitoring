@@ -91,7 +91,35 @@ jobs:
           (cd monitoring && python orchestrate.py --mode real \
             --log-file "../out/${{ steps.stamp.outputs.stamp }}.json" \
             --metrics-file "../out/${{ steps.stamp.outputs.stamp }}.prom" \
+            --auth-state-out "../out/auth_state.json" \
             ${HISTORY} ${FEEDBACK} ${SAMPLES})
+
+      - name: Rotate auth secret (refresh token rotation)
+        # Salesforce rotates the refresh token on every refresh (mandatory in
+        # this org). The pipeline persists the latest token to out/auth_state.json;
+        # this step writes it back to the SF_REFRESH_TOKEN secret so the next run
+        # always starts with the current token. Needs a fine-grained PAT with
+        # Actions -> Secrets read/write (GITHUB_TOKEN cannot update secrets).
+        if: always() && steps.stamp.outputs.stamp != ''
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          set -e
+          if [ -z "$GH_TOKEN" ]; then
+            echo "GH_PAT not configured - skipping secret rotation"
+            exit 0
+          fi
+          if [ ! -f "out/auth_state.json" ]; then
+            echo "No auth_state.json - nothing to rotate"
+            exit 0
+          fi
+          NEW_TOKEN=$(python -c "import json;print(json.load(open('out/auth_state.json'))['refresh_token'])")
+          if [ -z "$NEW_TOKEN" ]; then
+            echo "Empty refresh token in auth_state.json - skipping"
+            exit 0
+          fi
+          gh secret set SF_REFRESH_TOKEN --body "$NEW_TOKEN"
+          echo "SF_REFRESH_TOKEN rotated"
 
       - name: Persist snapshot to data branch
         if: always() && steps.stamp.outputs.stamp != ''

@@ -462,6 +462,17 @@ def _build_client() -> Any:
     return SalesforceClient()
 
 
+def _write_auth_state(path: str, refresh_token: str) -> None:
+    """Persist the current (possibly rotated) refresh token for the next run.
+
+    Salesforce rotates the refresh token on every refresh (Refresh Token
+    Rotation is mandatory in this org), so the token that just worked must
+    be handed back to the caller (the CI workflow) before the process exits.
+    """
+    with open(path, "w") as f:
+        json.dump({"refresh_token": refresh_token}, f)
+
+
 def init_sentry(dsn: str | None = None) -> bool:
     """Initialize Sentry when ``SENTRY_DSN`` is set; no-op (False) otherwise.
 
@@ -525,9 +536,19 @@ def main() -> None:
             "(Phase 5); optional"
         ),
     )
+    parser.add_argument(
+        "--auth-state-out",
+        default=None,
+        help=(
+            "Write {\"refresh_token\": ...} after the run, so the caller can "
+            "persist the rotated refresh token (Salesforce Refresh Token "
+            "Rotation); optional"
+        ),
+    )
     args = parser.parse_args()
 
     sentry_active = init_sentry()
+    client = _build_client() if args.mode == "real" else None
     try:
         history: dict[str, int] | None = None
         prev_snapshot: dict | None = None
@@ -540,7 +561,7 @@ def main() -> None:
 
         result, logs = run_pipeline(
             mode=args.mode,
-            client=_build_client() if args.mode == "real" else None,
+            client=client,
             history=history,
             prev_snapshot=prev_snapshot,
             feedback_file=args.feedback_file,
@@ -571,6 +592,9 @@ def main() -> None:
 
             sentry_sdk.capture_exception()
         raise
+    finally:
+        if args.auth_state_out and client is not None and client.refresh_token:
+            _write_auth_state(args.auth_state_out, client.refresh_token)
 
 
 if __name__ == "__main__":

@@ -736,3 +736,91 @@ class TestHardening:
             raise AssertionError("expected ValueError")
         except ValueError:
             pass
+
+
+class TestWriteAuthState:
+    def test_writes_refresh_token_json(self, tmp_path):
+        out = tmp_path / "auth_state.json"
+        orchestrate._write_auth_state(str(out), "rotated-rt-1")
+        assert json.loads(out.read_text()) == {"refresh_token": "rotated-rt-1"}
+
+    def test_main_writes_auth_state_on_success(self, tmp_path, monkeypatch):
+        class FakeClient:
+            refresh_token = "rotated-rt-1"
+
+        def stub_run_pipeline(
+            *,
+            mode="mock",
+            client=None,
+            history=None,
+            prev_snapshot=None,
+            feedback_file=None,
+            samples_file=None,
+        ):
+            return (
+                {
+                    "risk_score": 0.5,
+                    "alerts": [],
+                    "health_check": {"status": "HEALTHY"},
+                },
+                [],
+            )
+
+        monkeypatch.setattr(orchestrate, "run_pipeline", stub_run_pipeline)
+        monkeypatch.setattr(orchestrate, "_build_client", lambda: FakeClient())
+        output = tmp_path / "output.json"
+        auth_out = tmp_path / "auth_state.json"
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "orchestrate.py",
+                "--mode",
+                "real",
+                "--log-file",
+                str(output),
+                "--auth-state-out",
+                str(auth_out),
+            ],
+        )
+        orchestrate.main()
+        assert json.loads(auth_out.read_text()) == {"refresh_token": "rotated-rt-1"}
+
+    def test_main_writes_auth_state_on_failure(self, tmp_path, monkeypatch):
+        class FakeClient:
+            refresh_token = "rotated-rt-2"
+
+        def failing(
+            *,
+            mode="mock",
+            client=None,
+            history=None,
+            prev_snapshot=None,
+            feedback_file=None,
+            samples_file=None,
+        ):
+            raise RuntimeError("boom")
+
+        monkeypatch.setattr(orchestrate, "run_pipeline", failing)
+        monkeypatch.setattr(orchestrate, "_build_client", lambda: FakeClient())
+        output = tmp_path / "output.json"
+        auth_out = tmp_path / "auth_state.json"
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "orchestrate.py",
+                "--mode",
+                "real",
+                "--log-file",
+                str(output),
+                "--auth-state-out",
+                str(auth_out),
+            ],
+        )
+        try:
+            orchestrate.main()
+            raise AssertionError("expected RuntimeError")
+        except RuntimeError:
+            pass
+        assert json.loads(auth_out.read_text()) == {"refresh_token": "rotated-rt-2"}
