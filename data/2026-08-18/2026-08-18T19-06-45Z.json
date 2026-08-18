@@ -1,0 +1,133 @@
+{
+  "timestamp": "2026-08-18T19:06:50.603468+00:00",
+  "mode": "real",
+  "risk_score": 0.006,
+  "errors_count": 2,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300732812000: status 500 - None",
+      "log_id": "a05bL00000VGYLdQAP",
+      "timestamp": "2026-08-18T19:04:25.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300732812000"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "log_id": "a05bL00000VFvx0QAD",
+      "timestamp": "2026-08-18T19:03:47.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=2&BANKACCOUNT=0005329300732812000",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300732812000",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300732812000: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGYLdQAP"
+      ],
+      "first_seen": "2026-08-18T19:04:25.000+0000",
+      "last_seen": "2026-08-18T19:04:25.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/RISCOS-FINANCEIROS/PIS-WORKFLOW/V1/PROPOSTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFvx0QAD"
+      ],
+      "first_seen": "2026-08-18T19:03:47.000+0000",
+      "last_seen": "2026-08-18T19:03:47.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 2
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.006,
+    "ml_risk": 0.30303030303030304,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": 5.0,
+      "intercept": 17.5,
+      "predicted": [
+        37.5,
+        42.5,
+        47.5
+      ],
+      "last_value": 30.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      11.0,
+      33.0,
+      26.0,
+      30.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.006,
+    "summary": "Risk changed by +0.0060 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T19:06:50.603468+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4078,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "up",
+    "forecast_hit": false,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      11.0,
+      33.0,
+      26.0,
+      30.0
+    ]
+  }
+}
