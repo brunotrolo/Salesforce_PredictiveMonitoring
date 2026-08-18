@@ -150,7 +150,7 @@ jobs:
             git add calibration.json
           fi
           git commit -m "data: ${STAMP}" || { echo "No changes"; exit 0; }
-          git push origin data
+          git push origin HEAD:data
           cd ..
           git worktree remove data-branch --force 2>/dev/null || true
 
