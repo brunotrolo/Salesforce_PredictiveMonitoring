@@ -1,0 +1,125 @@
+{
+  "timestamp": "2026-08-18T07:49:11.204340+00:00",
+  "mode": "real",
+  "risk_score": 0.0,
+  "errors_count": 0,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [],
+  "alerts_aggregated": [],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 0
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.0,
+    "ml_risk": 0.28352272727272726,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": 0.08181818181818182,
+      "intercept": 2.0454545454545454,
+      "predicted": [
+        2.9454545454545453,
+        3.0272727272727273,
+        3.1090909090909093
+      ],
+      "last_value": 8.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 0,
+          "value": 5.0,
+          "z_score": null
+        },
+        {
+          "index": 2,
+          "value": 4.0,
+          "z_score": null
+        },
+        {
+          "index": 6,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 7,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 10,
+          "value": 8.0,
+          "z_score": null
+        }
+      ],
+      "threshold": 3.5,
+      "count": 5
+    },
+    "series": [
+      5.0,
+      1.0,
+      4.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      2.0,
+      1.0,
+      1.0,
+      8.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.0,
+    "summary": "Risk changed by +0.0000 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T07:49:11.204340+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 27,
+  "pipeline": {
+    "duration_ms": 5123,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "up",
+    "forecast_hit": true,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      5.0,
+      1.0,
+      4.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      2.0,
+      1.0,
+      1.0,
+      8.0
+    ]
+  }
+}
