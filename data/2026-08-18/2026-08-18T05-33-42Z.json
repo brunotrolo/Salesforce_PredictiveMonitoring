@@ -1,0 +1,152 @@
+{
+  "timestamp": "2026-08-18T05:33:51.827818+00:00",
+  "mode": "real",
+  "risk_score": 0.0057,
+  "errors_count": 1,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/tech4humans/v2/ticket/create: status 504 - None",
+      "log_id": "a05bL00000VDcYfQAL",
+      "timestamp": "2026-08-18T05:00:42.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/tech4humans/v2/ticket/create"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/TECH4HUMANS/V2/TICKET/CREATE",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/tech4humans/v2/ticket/create",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/tech4humans/v2/ticket/create: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VDcYfQAL"
+      ],
+      "first_seen": "2026-08-18T05:00:42.000+0000",
+      "last_seen": "2026-08-18T05:00:42.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 1
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.0057,
+    "ml_risk": 0.28114287673111205,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": 0.20629370629370633,
+      "intercept": 3.282051282051282,
+      "predicted": [
+        5.757575757575758,
+        5.9638694638694645,
+        6.170163170163171
+      ],
+      "last_value": 1.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 3,
+          "value": 17.0,
+          "z_score": null
+        },
+        {
+          "index": 7,
+          "value": 11.0,
+          "z_score": null
+        },
+        {
+          "index": 8,
+          "value": 4.0,
+          "z_score": null
+        },
+        {
+          "index": 9,
+          "value": 8.0,
+          "z_score": null
+        },
+        {
+          "index": 10,
+          "value": 6.0,
+          "z_score": null
+        }
+      ],
+      "threshold": 3.5,
+      "count": 5
+    },
+    "series": [
+      1.0,
+      1.0,
+      1.0,
+      17.0,
+      1.0,
+      1.0,
+      1.0,
+      11.0,
+      4.0,
+      8.0,
+      6.0,
+      1.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.0057,
+    "summary": "Risk changed by +0.0057 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T05:33:51.827818+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 53,
+  "pipeline": {
+    "duration_ms": 8036,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "flat",
+    "forecast_hit": false,
+    "anomaly_flagged": true,
+    "anomaly_hit": true,
+    "false_positive": false,
+    "series_actual": [
+      1.0,
+      1.0,
+      1.0,
+      17.0,
+      1.0,
+      1.0,
+      1.0,
+      11.0,
+      4.0,
+      8.0,
+      6.0,
+      1.0
+    ]
+  }
+}
