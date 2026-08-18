@@ -66,6 +66,9 @@ jobs:
         working-directory: site
         run: npm test
 
+      - name: Check dashboard mirrors are in sync
+        run: node site/scripts/sync-dashboard.mjs --check
+
       - name: Security audit (npm)
         working-directory: site
         run: npm audit --audit-level=high

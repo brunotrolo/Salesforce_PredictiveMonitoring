@@ -3,14 +3,18 @@
  * sync-dashboard.mjs
  *
  * GitHub Pages serves ONLY `main/docs` (classic Jekyll build). The canonical,
- * tested modules live under `site/`. This script mirrors them into
- * `docs/dashboard/assets/` so the published page works without duplicating
- * source of truth.
+ * tested modules and the page itself live under `site/`. This script mirrors
+ * them into `docs/` so the published site works without duplicating the
+ * source of truth:
  *
- * Mirrors (with a "GENERATED" header):
- *   - site/api/client.js            -> docs/dashboard/assets/client.js
- *   - site/monitoring/mock-data.js  -> docs/dashboard/assets/mock-data.js
- *   - site/monitoring/dashboard.js  -> docs/dashboard/assets/dashboard.js
+ *   - site/monitoring/index.html    -> docs/index.html        (root = dashboard)
+ *   - site/monitoring/app.js        -> docs/assets/app.js
+ *   - site/api/client.js            -> docs/assets/client.js
+ *   - site/monitoring/mock-data.js  -> docs/assets/mock-data.js
+ *   - site/monitoring/dashboard.js  -> docs/assets/dashboard.js
+ *
+ * Each mirror gets a "GENERATED MIRROR" header (JS comment for .js files,
+ * HTML comment for .html files).
  *
  * The only rewrite: client.js imports mock data via "../monitoring/mock-data.js";
  * in the mirror the path must be "./mock-data.js".
@@ -30,16 +34,35 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const CHECK = process.argv.includes("--check");
 
-const HEADER = `/**
+const JS_HEADER = `/**
  * GENERATED MIRROR — do not edit by hand.
  * Source: %s
  * Regenerate: node site/scripts/sync-dashboard.mjs
  */`;
 
+const HTML_HEADER = `<!--
+  GENERATED MIRROR — do not edit by hand.
+  Source: %s
+  Regenerate: node site/scripts/sync-dashboard.mjs
+-->`;
+
 const TARGETS = [
   {
+    source: "site/monitoring/index.html",
+    target: "docs/index.html",
+    header: HTML_HEADER,
+    rewrite: [],
+  },
+  {
+    source: "site/monitoring/app.js",
+    target: "docs/assets/app.js",
+    header: JS_HEADER,
+    rewrite: [],
+  },
+  {
     source: "site/api/client.js",
-    target: "docs/dashboard/assets/client.js",
+    target: "docs/assets/client.js",
+    header: JS_HEADER,
     rewrite: [
       [
         'import { mockMonitoringData, mockEmptyData } from "../monitoring/mock-data.js";',
@@ -49,12 +72,14 @@ const TARGETS = [
   },
   {
     source: "site/monitoring/mock-data.js",
-    target: "docs/dashboard/assets/mock-data.js",
+    target: "docs/assets/mock-data.js",
+    header: JS_HEADER,
     rewrite: [],
   },
   {
     source: "site/monitoring/dashboard.js",
-    target: "docs/dashboard/assets/dashboard.js",
+    target: "docs/assets/dashboard.js",
+    header: JS_HEADER,
     rewrite: [],
   },
 ];
@@ -66,7 +91,7 @@ function fail(message) {
 
 let dirty = false;
 
-for (const { source, target, rewrite } of TARGETS) {
+for (const { source, target, header, rewrite } of TARGETS) {
   const sourcePath = join(ROOT, source);
   const targetPath = join(ROOT, target);
   if (!existsSync(sourcePath)) fail(`source missing: ${source}`);
@@ -80,7 +105,7 @@ for (const { source, target, rewrite } of TARGETS) {
   }
 
   const relSource = relative(ROOT, sourcePath).split("\\").join("/");
-  const generated = `${HEADER.replace("%s", relSource)}\n\n${content}`;
+  const generated = `${header.replace("%s", relSource)}\n\n${content}`;
   const existing = existsSync(targetPath) ? readFileSync(targetPath, "utf8") : null;
 
   if (existing === generated) {

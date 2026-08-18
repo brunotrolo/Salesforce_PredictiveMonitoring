@@ -2,8 +2,10 @@ name: Collect
 
 on:
   schedule:
-    # Every 15 minutes (24/7 data collection per ADR-008)
-    - cron: "*/15 * * * *"
+    # Every 5 minutes (24/7 data collection per ADR-008).
+    # GitHub schedules are not guaranteed to fire exactly on time and can
+    # skip runs under load; 5 min is the shortest reliable cadence.
+    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 permissions:

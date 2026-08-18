@@ -57,7 +57,7 @@ python orchestrate.py --mode mock --history-file prev.json --feedback-file feedb
 
 # Frontend
 cd site && npm test
-node site/scripts/sync-dashboard.mjs      # espelha assets no docs/dashboard
+node site/scripts/sync-dashboard.mjs      # espelha página + assets no docs/ (raiz = dashboard)
 ```
 
 ## Project Structure
@@ -77,7 +77,7 @@ monitoring/orchestrate.py → Steps 6 (accuracy) e 7 (feedback), flags opcionais
 monitoring/tests/test_orchestrate.py → TestFeedbackLoop
 site/monitoring/dashboard.js + tests → summarizeAccuracy/getAccuracyVerdict
 site/monitoring/mock-data.js → accuracy realista nos mocks
-docs/dashboard/assets/app.js + index.html → card "Acurácia ML"
+site/monitoring/app.js + index.html → página única (raiz do Pages) com card "Acurácia ML"
 docs/FEEDBACK_LOOP_SPEC.md (este) → spec viva
 ```
 

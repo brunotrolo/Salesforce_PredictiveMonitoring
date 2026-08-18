@@ -7,6 +7,7 @@ export default {
   collectCoverageFrom: [
     "monitoring/**/*.js",
     "api/**/*.js",
+    "!monitoring/app.js",
     "!monitoring/tests/**",
     "!api/tests/**",
     "!**/node_modules/**"

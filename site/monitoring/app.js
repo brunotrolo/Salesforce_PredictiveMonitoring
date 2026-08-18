@@ -1,12 +1,18 @@
 /**
- * Dashboard application — view logic for docs/dashboard/index.html.
+ * Dashboard application — view logic for the monitoring page.
+ *
+ * Canonical location: site/monitoring/app.js
+ * Published mirror:  docs/assets/app.js (via site/scripts/sync-dashboard.mjs)
  *
  * Consumes the synced mirrors of the canonical tested modules:
  *   - ./client.js     (site/api/client.js — fetcher, fallback mock)
  *   - ./dashboard.js  (site/monitoring/dashboard.js — risk levels, formatting)
  *
  * States: loading (skeleton) -> real data | mock fallback (labeled).
- * Scope v1: overview (risk instrument, stats, alerts) + trend (SVG chart).
+ *
+ * The page is deliberately simple: one column, one explanation per number,
+ * and a diagnostics panel ("Copiar diagnóstico") that dumps everything the
+ * page sees so support can reproduce issues without guesswork.
  */
 
 import { fetchLatestSnapshot, fetchRecentSnapshots } from "./client.js";
@@ -27,20 +33,26 @@ const els = {
   statusBadge: () => document.getElementById("mode-badge"),
   lastUpdate: () => document.getElementById("last-update"),
   refreshBtn: () => document.getElementById("refresh-btn"),
-  gaugeValue: () => document.getElementById("gauge-value"),
+  hero: () => document.getElementById("hero"),
+  heroLevel: () => document.getElementById("hero-level"),
+  heroExplained: () => document.getElementById("hero-explained"),
+  heroRisk: () => document.getElementById("hero-risk"),
+  heroErrors: () => document.getElementById("hero-errors"),
+  heroTime: () => document.getElementById("hero-time"),
   gaugeLevel: () => document.getElementById("gauge-level"),
   gaugeMarker: () => document.getElementById("gauge-marker"),
   gaugeReadout: () => document.getElementById("gauge-readout"),
   chart: () => document.getElementById("trend-chart"),
   chartEmpty: () => document.getElementById("trend-empty"),
-  statErrors: () => document.getElementById("stat-errors"),
-  statSlow: () => document.getElementById("stat-slow"),
-  statLogs: () => document.getElementById("stat-logs"),
-  statValidation: () => document.getElementById("stat-validation"),
+  factsStamp: () => document.getElementById("facts-stamp"),
+  factLogs: () => document.getElementById("fact-logs"),
+  factErrors: () => document.getElementById("fact-errors"),
+  factSlow: () => document.getElementById("fact-slow"),
+  factRetries: () => document.getElementById("fact-retries"),
+  factValidation: () => document.getElementById("fact-validation"),
   alertsList: () => document.getElementById("alerts-list"),
   alertsEmpty: () => document.getElementById("alerts-empty"),
   alertsCount: () => document.getElementById("alerts-count"),
-  alertsCaption: () => document.getElementById("alerts-caption"),
   shadowVerdict: () => document.getElementById("shadow-verdict"),
   shadowMlRisk: () => document.getElementById("shadow-ml-risk"),
   shadowAnomalies: () => document.getElementById("shadow-anomalies"),
@@ -57,11 +69,11 @@ const els = {
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
+  diagCopy: () => document.getElementById("diag-copy"),
+  diagStatus: () => document.getElementById("diag-status"),
 };
 
 const THRESHOLDS = [0.4, 0.7]; // WARNING / CRITICAL (matches dashboard.js)
-
-let isFirstRender = true;
 
 /* ---------------------------------------------------------------- helpers */
 
@@ -70,7 +82,16 @@ function fmtNumber(value) {
 }
 
 function fmtPct(value) {
-  return (value * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+  return (Number(value ?? 0) * 100).toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+  });
+}
+
+function fmtAge(seconds) {
+  if (seconds === null || !isFinite(seconds)) return "";
+  if (seconds < 60) return `há ${Math.max(0, Math.round(seconds))} s`;
+  if (seconds < 3600) return `há ${Math.round(seconds / 60)} min`;
+  return `há ${(seconds / 3600).toFixed(1)} h`;
 }
 
 function severityColor(severity) {
@@ -87,6 +108,67 @@ function setText(node, value) {
   if (node) node.textContent = value;
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+/* ------------------------------------------------------------- diagnostics */
+
+const DIAG = {
+  version: "2.0",
+  page: typeof location !== "undefined" ? location.pathname : "?",
+  generatedAt: null,
+  userAgent: navigator.userAgent,
+  viewport: `${window.innerWidth}x${window.innerHeight}`,
+  mode: null,
+  latestSnapshotTimestamp: null,
+  dataAgeSeconds: null,
+  renderErrors: [],
+  snapshot: null,
+};
+
+window.addEventListener("error", (event) => {
+  DIAG.renderErrors.push(String(event.message || event.error || "erro desconhecido"));
+});
+window.addEventListener("unhandledrejection", (event) => {
+  DIAG.renderErrors.push(`promise: ${String(event.reason)}`);
+});
+
+function buildDiagnostics() {
+  DIAG.generatedAt = new Date().toISOString();
+  return JSON.stringify(DIAG, null, 2);
+}
+
+function wireDiagnostics() {
+  const btn = els.diagCopy();
+  const status = els.diagStatus();
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    const text = buildDiagnostics();
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    if (status) {
+      status.textContent = "Copiado! Cole na conversa do assistente.";
+      setTimeout(() => {
+        status.textContent = "";
+      }, 4000);
+    }
+  });
+}
+
 /* ------------------------------------------------------------- skeleton */
 
 function showSkeleton() {
@@ -99,6 +181,30 @@ function hideSkeleton() {
   els.content()?.classList.remove("hidden");
 }
 
+/* ------------------------------------------------------- hero / estado atual */
+
+function renderHero(snapshot) {
+  const hero = els.hero();
+  if (!hero) return;
+
+  const risk = Number(snapshot.risk_score ?? 0);
+  const level = getRiskLevel(risk);
+
+  hero.dataset.level = level;
+  setText(els.heroLevel(), level);
+  setText(
+    els.heroExplained(),
+    level === "CRITICAL"
+      ? "Crítico: o risco está acima de 70% — a integração provavelmente está com problemas agora. Veja os alertas."
+      : level === "WARNING"
+        ? "Atenção: o risco está entre 40% e 70% — vale conferir os alertas abaixo."
+        : "Nada urgente: o risco calculado está abaixo de 40%."
+  );
+  setText(els.heroRisk(), `${fmtPct(risk)}%`);
+  setText(els.heroErrors(), fmtNumber(snapshot.errors_count));
+  setText(els.heroTime(), formatTimestamp(snapshot.timestamp));
+}
+
 /* ---------------------------------------------------------- gauge render */
 
 function renderGauge(snapshot) {
@@ -108,7 +214,6 @@ function renderGauge(snapshot) {
   const marker = els.gaugeMarker();
   const readout = els.gaugeReadout();
 
-  setText(els.gaugeValue(), fmtPct(risk));
   setText(els.gaugeLevel(), level);
 
   const pct = Math.min(1, Math.max(0, risk)) * 100;
@@ -119,13 +224,6 @@ function renderGauge(snapshot) {
   if (readout) {
     readout.textContent = `${fmtPct(risk)}%`;
     readout.style.color = color;
-  }
-
-  if (isFirstRender && marker && readout) {
-    marker.style.transition = "left 0.8s cubic-bezier(0.16, 1, 0.3, 1)";
-    readout.style.transition = "opacity 0.6s ease-out";
-    readout.style.opacity = "1";
-    isFirstRender = false;
   }
 }
 
@@ -212,9 +310,7 @@ function buildChart(snapshots) {
     })
     .join("");
 
-  const lastTimestamp = last.timestamp
-    ? formatTimestamp(last.timestamp)
-    : "";
+  const lastTimestamp = last.timestamp ? formatTimestamp(last.timestamp) : "";
 
   container.innerHTML = `
     <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Tendência do risco de integração nas últimas ${chronological.length} coletas" class="trend-svg">
@@ -255,10 +351,6 @@ function renderAlerts(snapshot) {
   }
   empty?.classList.add("hidden");
 
-  const recurringNote = summary.recurring > 0
-    ? ` · ${summary.recurring} recorrentes`
-    : "";
-
   const rows = alerts
     .slice(0, 50)
     .map((a) => {
@@ -282,28 +374,23 @@ function renderAlerts(snapshot) {
     .join("");
 
   list.innerHTML = rows;
-
-  const caption = els.alertsCaption();
-  if (caption) {
-    caption.textContent = summary.recurring > 0
-      ? `${summary.recurring} alerta(s) recorrente(s) em ciclos anteriores${recurringNote}`
-      : aggregated ? "agrupados por endpoint" : "";
-  }
 }
 
-/* ------------------------------------------------------------- stats row */
+/* ------------------------------------------------------------- facts row */
 
-function renderStats(snapshot) {
-  setText(els.statErrors(), fmtNumber(snapshot.errors_count));
-  setText(els.statSlow(), fmtNumber(snapshot.slow_requests_count));
-  setText(els.statLogs(), fmtNumber(snapshot.logs_processed));
+function renderFacts(snapshot) {
+  setText(els.factsStamp(), formatTimestamp(snapshot.timestamp));
+  setText(els.factLogs(), fmtNumber(snapshot.logs_processed));
+  setText(els.factErrors(), fmtNumber(snapshot.errors_count));
+  setText(els.factSlow(), fmtNumber(snapshot.slow_requests_count));
+  setText(els.factRetries(), fmtNumber(snapshot.retried_count));
 
   const validation = snapshot.validation;
   const ok = !validation || validation.valid !== false;
-  const validationNode = els.statValidation();
-  if (validationNode) {
-    validationNode.textContent = ok ? "OK" : "FALHA";
-    validationNode.style.color = ok ? "#2fbf71" : "#ef4444";
+  const node = els.factValidation();
+  if (node) {
+    node.textContent = ok ? "OK" : "FALHA";
+    node.style.color = ok ? "#2fbf71" : "#ef4444";
   }
 }
 
@@ -317,9 +404,14 @@ function renderHeader(snapshot) {
   badge.textContent = real ? "DADOS REAIS" : "DADOS DE EXEMPLO";
   badge.dataset.mode = real ? "real" : "mock";
 
+  const age = snapshot.timestamp
+    ? (Date.now() - new Date(snapshot.timestamp).getTime()) / 1000
+    : null;
   setText(
     els.lastUpdate(),
-    snapshot.timestamp ? `atualizado ${formatTimestamp(snapshot.timestamp)}` : ""
+    snapshot.timestamp
+      ? `atualizado ${formatTimestamp(snapshot.timestamp)} (${fmtAge(age)})`
+      : ""
   );
 
   const status = els.pageStatus();
@@ -356,8 +448,8 @@ function renderShadow(snapshot) {
   setText(
     els.shadowCaption(),
     summary.enabled
-      ? "Apenas observação: o ML prevê a tendência e sinaliza picos sem alterar o risco heurístico."
-      : "Sem série temporal suficiente nesta coleta para o shadow mode."
+      ? "Observação: a IA concorda com a heurística quando os dois riscos caminham juntos."
+      : "Sem série temporal suficiente nesta coleta para a IA."
   );
 }
 
@@ -392,8 +484,8 @@ function renderAccuracy(snapshot) {
   setText(
     els.accuracyCaption(),
     summary.available
-      ? "Avaliação observacional do ciclo anterior: sem efeito no risco heurístico."
-      : "Sem avaliação anterior: rode o pipeline com --history-file para medir acurácia."
+      ? "Avaliação do ciclo anterior: sem efeito no risco heurístico."
+      : "Sem avaliação anterior: o pipeline registra a acurácia automaticamente."
   );
 }
 
@@ -434,27 +526,26 @@ function renderPipeline(snapshot) {
 
 /* ---------------------------------------------------------------- render */
 
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
 async function renderAll() {
   const [latest, recent] = await Promise.all([
     fetchLatestSnapshot(),
     fetchRecentSnapshots(12),
   ]);
 
+  DIAG.mode = latest && latest.mode ? latest.mode : null;
+  DIAG.latestSnapshotTimestamp = latest && latest.timestamp ? latest.timestamp : null;
+  DIAG.dataAgeSeconds = latest && latest.timestamp
+    ? Math.round((Date.now() - new Date(latest.timestamp).getTime()) / 1000)
+    : null;
+  DIAG.snapshot = latest;
+
   hideSkeleton();
   renderHeader(latest);
+  renderHero(latest);
   renderGauge(latest);
   buildChart(recent);
+  renderFacts(latest);
   renderAlerts(latest);
-  renderStats(latest);
   renderShadow(latest);
   renderAccuracy(latest);
   renderPipeline(latest);
@@ -485,8 +576,17 @@ function onResize() {
     .catch(() => {});
 }
 
+function debounce(fn, ms) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), ms);
+  };
+}
+
 async function boot() {
   showSkeleton();
+  wireDiagnostics();
   document
     .getElementById("refresh-btn")
     ?.addEventListener("click", onRefresh);
@@ -496,14 +596,6 @@ async function boot() {
   setInterval(() => {
     if (!document.hidden) onRefresh();
   }, REFRESH_MS);
-}
-
-function debounce(fn, ms) {
-  let timer = null;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), ms);
-  };
 }
 
 boot();

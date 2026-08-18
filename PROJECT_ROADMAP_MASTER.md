@@ -397,6 +397,7 @@ site/api/client.js                       ← API fetcher (MODIFIED)
 | 2026-08-16 | Phases 2-5 delivered (alerting, ML shadow, feedback loop) | @claude-code |
 | 2026-08-17 | Phase 4-5 wiring (auto-calibração, metrics, Sentry, feedback no collect.yml) | @claude-code |
 | 2026-08-18 | Phase 1 closed: auth RTR resolvido (rotação automática do secret), 5 ciclos verdes, kit publicado (`salesforce-mcp-auth-kit/` + repo `Salesforce_MCPauthentication`), GitHub Pages live validado, success criteria da Phase 1 marcados | @opencode |
+| 2026-08-18 | Dashboard v2 na raiz do Pages: página única e explicada em `https://brunotrolo.github.io/Salesforce_PredictiveMonitoring/` (fonte da verdade em `site/monitoring/`, espelho gerado para `docs/`), painel de diagnóstico com "Copiar diagnóstico", coleta de 15 → 5 min (`collect.yml`), A/B testing fora de escopo (decisão do usuário) | @opencode |
 
 ---
 
