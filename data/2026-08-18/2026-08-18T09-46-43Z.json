@@ -1,0 +1,132 @@
+{
+  "timestamp": "2026-08-18T09:46:51.203418+00:00",
+  "mode": "real",
+  "risk_score": 0.0081,
+  "errors_count": 1,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-gw.portobank-crossdomain.prd.portoseguro.com.br/atendimento-consorcio/v1/clientes/22160666807: status 504 - None",
+      "log_id": "a05bL00000VDgyrQAD",
+      "timestamp": "2026-08-18T09:16:25.000+0000",
+      "resource": "https://api-gw.portobank-crossdomain.prd.portoseguro.com.br/atendimento-consorcio/v1/clientes/22160666807"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-GW.PORTOBANK-CROSSDOMAIN.PRD.PORTOSEGURO.COM.BR/ATENDIMENTO-CONSORCIO/V1/CLIENTES/22160666807",
+      "severity": "CRITICAL",
+      "resource": "https://api-gw.portobank-crossdomain.prd.portoseguro.com.br/atendimento-consorcio/v1/clientes/22160666807",
+      "kind": "error",
+      "message": "Error on https://api-gw.portobank-crossdomain.prd.portoseguro.com.br/atendimento-consorcio/v1/clientes/22160666807: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VDgyrQAD"
+      ],
+      "first_seen": "2026-08-18T09:16:25.000+0000",
+      "last_seen": "2026-08-18T09:16:25.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 1
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.0081,
+    "ml_risk": 0.0,
+    "agreement": true,
+    "verdict": "AGREE",
+    "forecast": {
+      "slope": -0.010714285714285714,
+      "intercept": 2.541666666666667,
+      "predicted": [
+        2.3809523809523814,
+        2.3702380952380957,
+        2.35952380952381
+      ],
+      "last_value": 1.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      1.0,
+      1.0,
+      3.0,
+      1.0,
+      5.0,
+      3.0,
+      7.0,
+      1.0,
+      3.0,
+      1.0,
+      2.0,
+      2.0,
+      5.0,
+      1.0,
+      1.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.0081,
+    "summary": "Risk changed by +0.0081 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T09:46:51.203418+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 37,
+  "pipeline": {
+    "duration_ms": 5690,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "flat",
+    "forecast_hit": false,
+    "anomaly_flagged": true,
+    "anomaly_hit": true,
+    "false_positive": false,
+    "series_actual": [
+      1.0,
+      1.0,
+      3.0,
+      1.0,
+      5.0,
+      3.0,
+      7.0,
+      1.0,
+      3.0,
+      1.0,
+      2.0,
+      2.0,
+      5.0,
+      1.0,
+      1.0
+    ]
+  }
+}
