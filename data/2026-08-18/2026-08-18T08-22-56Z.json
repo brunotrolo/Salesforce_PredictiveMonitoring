@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-08-18T08:23:03.389445+00:00",
+  "mode": "real",
+  "risk_score": 0.0,
+  "errors_count": 0,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [],
+  "alerts_aggregated": [],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 0
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.0,
+    "ml_risk": 0.2222222222222222,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": -0.08333333333333334,
+      "intercept": 3.0,
+      "predicted": [
+        2.25,
+        2.1666666666666665,
+        2.083333333333333
+      ],
+      "last_value": 1.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 2,
+          "value": 8.0,
+          "z_score": null
+        },
+        {
+          "index": 4,
+          "value": 3.0,
+          "z_score": null
+        },
+        {
+          "index": 5,
+          "value": 4.0,
+          "z_score": null
+        },
+        {
+          "index": 6,
+          "value": 4.0,
+          "z_score": null
+        }
+      ],
+      "threshold": 3.5,
+      "count": 4
+    },
+    "series": [
+      1.0,
+      1.0,
+      8.0,
+      1.0,
+      3.0,
+      4.0,
+      4.0,
+      1.0,
+      1.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.0,
+    "summary": "Risk changed by +0.0000 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T08:23:03.389445+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 24,
+  "pipeline": {
+    "duration_ms": 5202,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "flat",
+    "forecast_hit": false,
+    "anomaly_flagged": true,
+    "anomaly_hit": true,
+    "false_positive": false,
+    "series_actual": [
+      1.0,
+      1.0,
+      8.0,
+      1.0,
+      3.0,
+      4.0,
+      4.0,
+      1.0,
+      1.0
+    ]
+  }
+}
