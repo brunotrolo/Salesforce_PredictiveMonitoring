@@ -1,0 +1,179 @@
+{
+  "timestamp": "2026-08-18T16:01:54.664232+00:00",
+  "mode": "real",
+  "risk_score": 0.012,
+  "errors_count": 4,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on callout:PortoSeguro_Cross/cartao/regulatorios/v1/ddc/visualizar/documento: status 500 - None",
+      "log_id": "a05bL00000VFHmjQAH",
+      "timestamp": "2026-08-18T16:01:32.000+0000",
+      "resource": "callout:PortoSeguro_Cross/cartao/regulatorios/v1/ddc/visualizar/documento"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "log_id": "a05bL00000VF15DQAT",
+      "timestamp": "2026-08-18T16:00:36.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on callout:Sensedia_Card/massified-product/v1/recommendations/accounts/5365371922055002?channel=SalesForce: status 504 - None",
+      "log_id": "a05bL00000VEmB2QAL",
+      "timestamp": "2026-08-18T16:00:26.000+0000",
+      "resource": "callout:Sensedia_Card/massified-product/v1/recommendations/accounts/5365371922055002?channel=SalesForce"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371506760001: status 500 - None",
+      "log_id": "a05bL00000VFUGrQAP",
+      "timestamp": "2026-08-18T16:00:14.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371506760001"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|CALLOUT:PORTOSEGURO_CROSS/CARTAO/REGULATORIOS/V1/DDC/VISUALIZAR/DOCUMENTO",
+      "severity": "CRITICAL",
+      "resource": "callout:PortoSeguro_Cross/cartao/regulatorios/v1/ddc/visualizar/documento",
+      "kind": "error",
+      "message": "Error on callout:PortoSeguro_Cross/cartao/regulatorios/v1/ddc/visualizar/documento: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFHmjQAH"
+      ],
+      "first_seen": "2026-08-18T16:01:32.000+0000",
+      "last_seen": "2026-08-18T16:01:32.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|CALLOUT:SENSEDIA_CARD/MASSIFIED-PRODUCT/V1/RECOMMENDATIONS/ACCOUNTS/5365371922055002?CHANNEL=SALESFORCE",
+      "severity": "CRITICAL",
+      "resource": "callout:Sensedia_Card/massified-product/v1/recommendations/accounts/5365371922055002?channel=SalesForce",
+      "kind": "error",
+      "message": "Error on callout:Sensedia_Card/massified-product/v1/recommendations/accounts/5365371922055002?channel=SalesForce: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VEmB2QAL"
+      ],
+      "first_seen": "2026-08-18T16:00:26.000+0000",
+      "last_seen": "2026-08-18T16:00:26.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=2&BANKACCOUNT=0005365371506760001",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371506760001",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371506760001: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFUGrQAP"
+      ],
+      "first_seen": "2026-08-18T16:00:14.000+0000",
+      "last_seen": "2026-08-18T16:00:14.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/RISCOS-FINANCEIROS/PIS-WORKFLOW/V1/PROPOSTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VF15DQAT"
+      ],
+      "first_seen": "2026-08-18T16:00:36.000+0000",
+      "last_seen": "2026-08-18T16:00:36.000+0000",
+      "recurring": true,
+      "repeat_count": 2
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 4
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.012,
+    "ml_risk": 0.29523809523809524,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": 6.2,
+      "intercept": 15.7,
+      "predicted": [
+        40.5,
+        46.7,
+        52.900000000000006
+      ],
+      "last_value": 29.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      3.0,
+      42.0,
+      26.0,
+      29.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.012,
+    "summary": "Risk changed by +0.0120 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T16:01:54.664232+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 3908,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "up",
+    "forecast_hit": false,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      3.0,
+      42.0,
+      26.0,
+      29.0
+    ]
+  }
+}
