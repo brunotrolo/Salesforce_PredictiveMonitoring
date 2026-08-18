@@ -540,7 +540,7 @@ def main() -> None:
         "--auth-state-out",
         default=None,
         help=(
-            "Write {\"refresh_token\": ...} after the run, so the caller can "
+            'Write {"refresh_token": ...} after the run, so the caller can '
             "persist the rotated refresh token (Salesforce Refresh Token "
             "Rotation); optional"
         ),
