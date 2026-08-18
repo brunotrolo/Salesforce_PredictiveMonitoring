@@ -26,10 +26,11 @@ substituir a heurística:
 3. **Side-by-side comparison (heuristic vs ML)** → `ShadowComparator`:
    compara o `risk_score` heurístico com o `ml_risk` derivado das anomalias +
    tendência; veredito `AGREE`/`DISAGREE`.
-4. **A/B testing framework** → a comparação shadow registra `agreement`/
-   `disagreement` por ciclo, criando o dataset para decidir (com testes
-   estatísticos simples) se o ML pode assumir decisão — sem tocar a decisão
-   atual.
+4. ~~**A/B testing framework**~~ → **fora de escopo** (decisão do usuário em
+   18/08/2026): a comparação shadow registra `agreement`/`disagreement` por
+   ciclo, criando o dataset de decisão; um framework formal de A/B exigiria
+   tráfego real dividido, que o fluxo atual não tem — o shadow mode cumpre o
+   papel de observação sem nunca decidir.
 
 **Shadow mode = observação.** O `risk_score` e as ações do pipeline continuam
 100% heurísticos. O ML só anota o snapshot.

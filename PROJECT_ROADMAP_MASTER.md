@@ -135,7 +135,7 @@ site/
 - ~~Prophet forecasting~~ → regressão linear stdlib (`ForecastEngine`) ✅ (16/08/2026 — `services/ml`, ver SPECIFICATION.md §3.3)
 - ~~Isolation Forest anomaly detection~~ → z-score modificado (`AnomalyEngine`) ✅ (16/08/2026 — mediana/MAD, MAD≈0 trata série degenerada)
 - Side-by-side comparison (heuristic vs ML) ✅ (16/08/2026 — `ShadowComparator`, shadow = observação, nunca decide)
-- A/B testing framework → open question (ver `docs/ML_SHADOW_MODE_SPEC.md`)
+- A/B testing framework → **fora de escopo** (decisão do usuário em 18/08/2026: shadow mode já compara heurística vs ML sem nunca decidir sozinho; A/B exige tráfego real dividido, que o fluxo atual não tem)
 
 ### Phase 4: Feedback Loop (1 week)
 - Model accuracy tracking ✅ (16/08/2026 — `AccuracyTracker` em `services/feedback`, ver SPECIFICATION.md §3.3)
@@ -359,7 +359,7 @@ site/api/client.js                       ← API fetcher (MODIFIED)
 | MCP fails in Actions | Medium | High | Test in Phase 0, switch to API if needed |
 | GitHub API limits | Low | Medium | Batch queries, cache data |
 | Data growth explodes | Low | Medium | Squash data/ branch monthly |
-| Model accuracy bad | Medium | Medium | Phase 3 A/B testing framework |
+| Model accuracy bad | Medium | Medium | Shadow mode tracking + accuracy feedback loop (Fase 4); A/B abandonado — fora de escopo |
 | Salesforce SLA breach | Low | High | Alert escalation (Phase 2) |
 
 ---
@@ -401,7 +401,7 @@ site/api/client.js                       ← API fetcher (MODIFIED)
 ---
 
 **Last reviewed:** 2026-08-18
-**Next review:** A/B testing framework (Fase 3 — open question, aguardando decisão do usuário)
+**Next review:** —
 
 ---
 
