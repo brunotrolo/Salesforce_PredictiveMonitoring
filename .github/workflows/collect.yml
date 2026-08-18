@@ -38,8 +38,7 @@ jobs:
         run: |
           set -e
           git fetch origin data 2>/dev/null || { echo "no previous snapshot (first run)"; exit 0; }
-          git worktree add data-branch origin/data 2>/dev/null || \
-            git worktree add data-branch -b data origin/data 2>/dev/null || true
+          git worktree add data-branch origin/data
           LATEST=$(cd data-branch && find data -name '*.json' -type f | sort | tail -n 1)
           if [ -n "$LATEST" ]; then
             mkdir -p out
@@ -104,8 +103,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin data 2>/dev/null || true
-          git worktree add data-branch origin/data 2>/dev/null || \
-            git worktree add data-branch -b data origin/data 2>/dev/null || true
+          if git rev-parse --verify origin/data >/dev/null 2>&1; then
+            git worktree add data-branch origin/data
+          else
+            git worktree add data-branch -b data
+          fi
           cd data-branch
           mkdir -p "data/${DATE}"
           cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
