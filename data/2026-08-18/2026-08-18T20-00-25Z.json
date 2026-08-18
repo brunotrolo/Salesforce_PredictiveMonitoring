@@ -1,0 +1,156 @@
+{
+  "timestamp": "2026-08-18T20:00:30.462097+00:00",
+  "mode": "real",
+  "risk_score": 0.009,
+  "errors_count": 3,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300868159002: status 500 - None",
+      "log_id": "a05bL00000VGW8ZQAX",
+      "timestamp": "2026-08-18T19:59:35.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300868159002"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/invoice/v1/queries: status 500 - None",
+      "log_id": "a05bL00000VG4PFQA1",
+      "timestamp": "2026-08-18T19:59:30.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772254671001: status 500 - None",
+      "log_id": "a05bL00000VGmlCQAT",
+      "timestamp": "2026-08-18T19:57:44.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772254671001"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/INVOICE/V1/QUERIES",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/invoice/v1/queries: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VG4PFQA1"
+      ],
+      "first_seen": "2026-08-18T19:59:30.000+0000",
+      "last_seen": "2026-08-18T19:59:30.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004121772254671001",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772254671001",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772254671001: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGmlCQAT"
+      ],
+      "first_seen": "2026-08-18T19:57:44.000+0000",
+      "last_seen": "2026-08-18T19:57:44.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=2&BANKACCOUNT=0005329300868159002",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300868159002",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300868159002: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGW8ZQAX"
+      ],
+      "first_seen": "2026-08-18T19:59:35.000+0000",
+      "last_seen": "2026-08-18T19:59:35.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 3
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.009,
+    "ml_risk": 0.0,
+    "agreement": true,
+    "verdict": "AGREE",
+    "forecast": {
+      "slope": 0.0,
+      "intercept": 25.0,
+      "predicted": [
+        25.0,
+        25.0,
+        25.0
+      ],
+      "last_value": 15.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      21.0,
+      23.0,
+      41.0,
+      15.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.009,
+    "summary": "Risk changed by +0.0090 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T20:00:30.462097+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4097,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "down",
+    "forecast_hit": true,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      21.0,
+      23.0,
+      41.0,
+      15.0
+    ]
+  }
+}
