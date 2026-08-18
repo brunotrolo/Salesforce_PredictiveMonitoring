@@ -1,0 +1,179 @@
+{
+  "timestamp": "2026-08-18T18:21:17.191876+00:00",
+  "mode": "real",
+  "risk_score": 0.012,
+  "errors_count": 4,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371995264002: status 500 - None",
+      "log_id": "a05bL00000VGGF3QAP",
+      "timestamp": "2026-08-18T18:20:28.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371995264002"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/journey/v2/journeys?type=cpf&authentication=25234941833&protocol=2026070313040708339: status 504 - None",
+      "log_id": "a05bL00000VGByYQAX",
+      "timestamp": "2026-08-18T18:20:00.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/journey/v2/journeys?type=cpf&authentication=25234941833&protocol=2026070313040708339"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121773127966008: status 500 - None",
+      "log_id": "a05bL00000VG44EQAT",
+      "timestamp": "2026-08-18T18:19:26.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121773127966008"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/account/v1/accounts/5365370416684004/processes?queue=0104,0151,0162,0166,0195,0205,0401,0435,0436,0584,0593,0914,0982,1129,1131,1245,1303,1312,1339,1352,1449,1532,1601,1836,1942,1952,1953,1954,1982,2153,2181,2221,2294,2682,2848,3394,A050,B005,B008,B009,B052,B080,B091,B093,B128,B174,B295,B347,B439,B504,B513,B520,B553,B566,B614,B615,B616,B617,B618,B619,B620,B621,B664,B665,B667,B668,B670,B672,B673,B674,B683,B711,B715,B717,B721,CM01,D002,D003,F000,F040,F042,F057,F064,F065,F066,F067,F068,F071,I053,I103,I104,I162,I203,I204,I208,I237,S000: status 500 - None",
+      "log_id": "a05bL00000VGFUHQA5",
+      "timestamp": "2026-08-18T18:18:37.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/account/v1/accounts/5365370416684004/processes?queue=0104,0151,0162,0166,0195,0205,0401,0435,0436,0584,0593,0914,0982,1129,1131,1245,1303,1312,1339,1352,1449,1532,1601,1836,1942,1952,1953,1954,1982,2153,2181,2221,2294,2682,2848,3394,A050,B005,B008,B009,B052,B080,B091,B093,B128,B174,B295,B347,B439,B504,B513,B520,B553,B566,B614,B615,B616,B617,B618,B619,B620,B621,B664,B665,B667,B668,B670,B672,B673,B674,B683,B711,B715,B717,B721,CM01,D002,D003,F000,F040,F042,F057,F064,F065,F066,F067,F068,F071,I053,I103,I104,I162,I203,I204,I208,I237,S000"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/ACCOUNT/V1/ACCOUNTS/5365370416684004/PROCESSES?QUEUE=0104,0151,0162,0166,0195,0205,0401,0435,0436,0584,0593,0914,0982,1129,1131,1245,1303,1312,1339,1352,1449,1532,1601,1836,1942,1952,1953,1954,1982,2153,2181,2221,2294,2682,2848,3394,A050,B005,B008,B009,B052,B080,B091,B093,B128,B174,B295,B347,B439,B504,B513,B520,B553,B566,B614,B615,B616,B617,B618,B619,B620,B621,B664,B665,B667,B668,B670,B672,B673,B674,B683,B711,B715,B717,B721,CM01,D002,D003,F000,F040,F042,F057,F064,F065,F066,F067,F068,F071,I053,I103,I104,I162,I203,I204,I208,I237,S000",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/account/v1/accounts/5365370416684004/processes?queue=0104,0151,0162,0166,0195,0205,0401,0435,0436,0584,0593,0914,0982,1129,1131,1245,1303,1312,1339,1352,1449,1532,1601,1836,1942,1952,1953,1954,1982,2153,2181,2221,2294,2682,2848,3394,A050,B005,B008,B009,B052,B080,B091,B093,B128,B174,B295,B347,B439,B504,B513,B520,B553,B566,B614,B615,B616,B617,B618,B619,B620,B621,B664,B665,B667,B668,B670,B672,B673,B674,B683,B711,B715,B717,B721,CM01,D002,D003,F000,F040,F042,F057,F064,F065,F066,F067,F068,F071,I053,I103,I104,I162,I203,I204,I208,I237,S000",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/account/v1/accounts/5365370416684004/processes?queue=0104,0151,0162,0166,0195,0205,0401,0435,0436,0584,0593,0914,0982,1129,1131,1245,1303,1312,1339,1352,1449,1532,1601,1836,1942,1952,1953,1954,1982,2153,2181,2221,2294,2682,2848,3394,A050,B005,B008,B009,B052,B080,B091,B093,B128,B174,B295,B347,B439,B504,B513,B520,B553,B566,B614,B615,B616,B617,B618,B619,B620,B621,B664,B665,B667,B668,B670,B672,B673,B674,B683,B711,B715,B717,B721,CM01,D002,D003,F000,F040,F042,F057,F064,F065,F066,F067,F068,F071,I053,I103,I104,I162,I203,I204,I208,I237,S000: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGFUHQA5"
+      ],
+      "first_seen": "2026-08-18T18:18:37.000+0000",
+      "last_seen": "2026-08-18T18:18:37.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/JOURNEY/V2/JOURNEYS?TYPE=CPF&AUTHENTICATION=25234941833&PROTOCOL=2026070313040708339",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/journey/v2/journeys?type=cpf&authentication=25234941833&protocol=2026070313040708339",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/journey/v2/journeys?type=cpf&authentication=25234941833&protocol=2026070313040708339: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGByYQAX"
+      ],
+      "first_seen": "2026-08-18T18:20:00.000+0000",
+      "last_seen": "2026-08-18T18:20:00.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004121773127966008",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121773127966008",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121773127966008: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VG44EQAT"
+      ],
+      "first_seen": "2026-08-18T18:19:26.000+0000",
+      "last_seen": "2026-08-18T18:19:26.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=2&BANKACCOUNT=0005365371995264002",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371995264002",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371995264002: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGGF3QAP"
+      ],
+      "first_seen": "2026-08-18T18:20:28.000+0000",
+      "last_seen": "2026-08-18T18:20:28.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 4
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.012,
+    "ml_risk": 0.0,
+    "agreement": true,
+    "verdict": "AGREE",
+    "forecast": {
+      "slope": -7.6,
+      "intercept": 36.4,
+      "predicted": [
+        6.0,
+        -1.6000000000000014,
+        -9.199999999999996
+      ],
+      "last_value": 5.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      26.0,
+      41.0,
+      28.0,
+      5.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.012,
+    "summary": "Risk changed by +0.0120 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T18:21:17.191876+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4870,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "down",
+    "forecast_hit": false,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      26.0,
+      41.0,
+      28.0,
+      5.0
+    ]
+  }
+}
