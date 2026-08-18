@@ -42,7 +42,7 @@ import webbrowser
 AUTHORIZE_URL = "https://login.salesforce.com/services/oauth2/authorize"
 TOKEN_URL = "https://login.salesforce.com/services/oauth2/token"
 REDIRECT_URI = "https://login.salesforce.com/services/oauth2/success"
-SCOPES = "api sfap_api refresh_token"
+SCOPES = "api sfap_api mcp_api refresh_token"
 
 
 def _pkce_pair() -> tuple[str, str]:
