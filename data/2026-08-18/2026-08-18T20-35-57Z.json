@@ -1,0 +1,116 @@
+{
+  "timestamp": "2026-08-18T20:36:03.339967+00:00",
+  "mode": "real",
+  "risk_score": 0.003,
+  "errors_count": 1,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None",
+      "log_id": "a05bL00000VGxBxQAL",
+      "timestamp": "2026-08-18T20:33:13.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PORTOBANK/PIS-WORKFLOW/OFERTA/V1/OFERTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VGxBxQAL"
+      ],
+      "first_seen": "2026-08-18T20:33:13.000+0000",
+      "last_seen": "2026-08-18T20:33:13.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 1
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.003,
+    "ml_risk": 0.6114864864864865,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": 9.0,
+      "intercept": 11.5,
+      "predicted": [
+        47.5,
+        56.5,
+        65.5
+      ],
+      "last_value": 30.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 0,
+          "value": 2.0,
+          "z_score": -5.492357142857142
+        }
+      ],
+      "threshold": 3.5,
+      "count": 1
+    },
+    "series": [
+      2.0,
+      31.0,
+      37.0,
+      30.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.003,
+    "summary": "Risk changed by +0.0030 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T20:36:03.339967+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4573,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "flat",
+    "direction_actual": "up",
+    "forecast_hit": null,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      2.0,
+      31.0,
+      37.0,
+      30.0
+    ]
+  }
+}
