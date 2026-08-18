@@ -1,0 +1,183 @@
+{
+  "timestamp": "2026-08-18T17:15:18.466755+00:00",
+  "mode": "real",
+  "risk_score": 0.012,
+  "errors_count": 4,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/invoice/v1/invoices/invoice-files/0402026758503585320260818202: status 500 - None",
+      "log_id": "a05bL00000VFrzpQAD",
+      "timestamp": "2026-08-18T17:15:16.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/invoices/invoice-files/0402026758503585320260818202"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "log_id": "a05bL00000VFrWnQAL",
+      "timestamp": "2026-08-18T17:14:24.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VFrADQA1",
+      "timestamp": "2026-08-18T17:13:46.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749807620000: status 500 - None",
+      "log_id": "a05bL00000VFM6TQAX",
+      "timestamp": "2026-08-18T17:13:43.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749807620000"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/CREDIT-CARD/V1/CARDS/ANNUITY-EXEMPTION",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFrADQA1"
+      ],
+      "first_seen": "2026-08-18T17:13:46.000+0000",
+      "last_seen": "2026-08-18T17:13:46.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/INVOICE/V1/INVOICES/INVOICE-FILES/0402026758503585320260818202",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/invoices/invoice-files/0402026758503585320260818202",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/invoice/v1/invoices/invoice-files/0402026758503585320260818202: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFrzpQAD"
+      ],
+      "first_seen": "2026-08-18T17:15:16.000+0000",
+      "last_seen": "2026-08-18T17:15:16.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004152749807620000",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749807620000",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749807620000: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFM6TQAX"
+      ],
+      "first_seen": "2026-08-18T17:13:43.000+0000",
+      "last_seen": "2026-08-18T17:13:43.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/RISCOS-FINANCEIROS/PIS-WORKFLOW/V1/PROPOSTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFrWnQAL"
+      ],
+      "first_seen": "2026-08-18T17:14:24.000+0000",
+      "last_seen": "2026-08-18T17:14:24.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 4
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.012,
+    "ml_risk": 0.16666666666666666,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": -14.5,
+      "intercept": 47.833333333333336,
+      "predicted": [
+        4.333333333333336,
+        -10.166666666666664,
+        -24.666666666666664
+      ],
+      "last_value": 15.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 2,
+          "value": 15.0,
+          "z_score": -5.845666666666666
+        }
+      ],
+      "threshold": 3.5,
+      "count": 1
+    },
+    "series": [
+      44.0,
+      41.0,
+      15.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.012,
+    "summary": "Risk changed by +0.0120 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T17:15:18.466755+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4428,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "down",
+    "forecast_hit": true,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      44.0,
+      41.0,
+      15.0
+    ]
+  }
+}
