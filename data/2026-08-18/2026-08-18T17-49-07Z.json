@@ -1,0 +1,225 @@
+{
+  "timestamp": "2026-08-18T17:49:12.833339+00:00",
+  "mode": "real",
+  "risk_score": 0.018,
+  "errors_count": 6,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None",
+      "log_id": "a05bL00000VFpRnQAL",
+      "timestamp": "2026-08-18T17:48:43.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749115700007: status 500 - None",
+      "log_id": "a05bL00000VFexnQAD",
+      "timestamp": "2026-08-18T17:48:12.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749115700007"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121770819593009: status 500 - None",
+      "log_id": "a05bL00000VG0qEQAT",
+      "timestamp": "2026-08-18T17:47:55.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121770819593009"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772597331008: status 500 - None",
+      "log_id": "a05bL00000VFpGVQA1",
+      "timestamp": "2026-08-18T17:47:17.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772597331008"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772437263007: status 500 - None",
+      "log_id": "a05bL00000VFnzUQAT",
+      "timestamp": "2026-08-18T17:47:09.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772437263007"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152743595570006: status 500 - None",
+      "log_id": "a05bL00000VG1nuQAD",
+      "timestamp": "2026-08-18T17:46:47.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152743595570006"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004121770819593009",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121770819593009",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121770819593009: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VG0qEQAT"
+      ],
+      "first_seen": "2026-08-18T17:47:55.000+0000",
+      "last_seen": "2026-08-18T17:47:55.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004121772437263007",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772437263007",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772437263007: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFnzUQAT"
+      ],
+      "first_seen": "2026-08-18T17:47:09.000+0000",
+      "last_seen": "2026-08-18T17:47:09.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004121772597331008",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772597331008",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772597331008: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFpGVQA1"
+      ],
+      "first_seen": "2026-08-18T17:47:17.000+0000",
+      "last_seen": "2026-08-18T17:47:17.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004152743595570006",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152743595570006",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152743595570006: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VG1nuQAD"
+      ],
+      "first_seen": "2026-08-18T17:46:47.000+0000",
+      "last_seen": "2026-08-18T17:46:47.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004152749115700007",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749115700007",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749115700007: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFexnQAD"
+      ],
+      "first_seen": "2026-08-18T17:48:12.000+0000",
+      "last_seen": "2026-08-18T17:48:12.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PORTOBANK/PIS-WORKFLOW/OFERTA/V1/OFERTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFpRnQAL"
+      ],
+      "first_seen": "2026-08-18T17:48:43.000+0000",
+      "last_seen": "2026-08-18T17:48:43.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 6
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.018,
+    "ml_risk": 0.03333333333333333,
+    "agreement": true,
+    "verdict": "AGREE",
+    "forecast": {
+      "slope": 0.8,
+      "intercept": 23.8,
+      "predicted": [
+        27.0,
+        27.8,
+        28.6
+      ],
+      "last_value": 7.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      8.0,
+      37.0,
+      48.0,
+      7.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.018,
+    "summary": "Risk changed by +0.0180 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T17:49:12.833339+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 2682,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "down",
+    "forecast_hit": true,
+    "anomaly_flagged": true,
+    "anomaly_hit": false,
+    "false_positive": true,
+    "series_actual": [
+      8.0,
+      37.0,
+      48.0,
+      7.0
+    ]
+  }
+}
