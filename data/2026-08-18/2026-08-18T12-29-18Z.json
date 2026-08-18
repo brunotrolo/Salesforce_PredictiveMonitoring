@@ -1,0 +1,277 @@
+{
+  "timestamp": "2026-08-18T12:29:24.536130+00:00",
+  "mode": "real",
+  "risk_score": 0.048,
+  "errors_count": 16,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "log_id": "a05bL00000VEBTCQA5",
+      "timestamp": "2026-08-18T12:29:03.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152742531793003: status 500 - None",
+      "log_id": "a05bL00000VDntxQAD",
+      "timestamp": "2026-08-18T12:29:02.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152742531793003"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VE9nzQAD",
+      "timestamp": "2026-08-18T12:28:53.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VDmUtQAL",
+      "timestamp": "2026-08-18T12:28:35.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VDogIQAT",
+      "timestamp": "2026-08-18T12:28:24.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VEJgrQAH",
+      "timestamp": "2026-08-18T12:28:23.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VE15fQAD",
+      "timestamp": "2026-08-18T12:28:05.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VEJVZQA5",
+      "timestamp": "2026-08-18T12:28:03.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VDn9CQAT",
+      "timestamp": "2026-08-18T12:27:58.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VEDWdQAP",
+      "timestamp": "2026-08-18T12:27:53.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VEJP7QAP",
+      "timestamp": "2026-08-18T12:27:47.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VEJDqQAP",
+      "timestamp": "2026-08-18T12:27:37.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VEEXXQA5",
+      "timestamp": "2026-08-18T12:27:36.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VEJFRQA5",
+      "timestamp": "2026-08-18T12:27:35.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VE5ilQAD",
+      "timestamp": "2026-08-18T12:27:28.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "log_id": "a05bL00000VDwh5QAD",
+      "timestamp": "2026-08-18T12:27:18.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/CREDIT-CARD/V1/CARDS/ANNUITY-EXEMPTION",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None",
+      "count": 14,
+      "log_ids": [
+        "a05bL00000VE9nzQAD",
+        "a05bL00000VDmUtQAL",
+        "a05bL00000VDogIQAT",
+        "a05bL00000VEJgrQAH",
+        "a05bL00000VE15fQAD",
+        "a05bL00000VEJVZQA5",
+        "a05bL00000VDn9CQAT",
+        "a05bL00000VEDWdQAP",
+        "a05bL00000VEJP7QAP",
+        "a05bL00000VEJDqQAP",
+        "a05bL00000VEEXXQA5",
+        "a05bL00000VEJFRQA5",
+        "a05bL00000VE5ilQAD",
+        "a05bL00000VDwh5QAD"
+      ],
+      "first_seen": "2026-08-18T12:27:18.000+0000",
+      "last_seen": "2026-08-18T12:28:53.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=1&BANKACCOUNT=0004152742531793003",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152742531793003",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152742531793003: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VDntxQAD"
+      ],
+      "first_seen": "2026-08-18T12:29:02.000+0000",
+      "last_seen": "2026-08-18T12:29:02.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/RISCOS-FINANCEIROS/PIS-WORKFLOW/V1/PROPOSTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VEBTCQA5"
+      ],
+      "first_seen": "2026-08-18T12:29:03.000+0000",
+      "last_seen": "2026-08-18T12:29:03.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 3
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.048,
+    "ml_risk": 0.16666666666666666,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": -15.0,
+      "intercept": 48.333333333333336,
+      "predicted": [
+        3.3333333333333357,
+        -11.666666666666664,
+        -26.666666666666664
+      ],
+      "last_value": 13.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 2,
+          "value": 13.0,
+          "z_score": -20.235
+        }
+      ],
+      "threshold": 3.5,
+      "count": 1
+    },
+    "series": [
+      43.0,
+      44.0,
+      13.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.048,
+    "summary": "Risk changed by +0.0480 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T12:29:24.536130+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4542,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "down",
+    "forecast_hit": false,
+    "anomaly_flagged": false,
+    "anomaly_hit": null,
+    "false_positive": false,
+    "series_actual": [
+      43.0,
+      44.0,
+      13.0
+    ]
+  }
+}
