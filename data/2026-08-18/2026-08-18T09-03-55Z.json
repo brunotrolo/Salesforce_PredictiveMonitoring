@@ -1,0 +1,104 @@
+{
+  "timestamp": "2026-08-18T09:04:02.840568+00:00",
+  "mode": "real",
+  "risk_score": 0.0,
+  "errors_count": 0,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [],
+  "alerts_aggregated": [],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 0
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.0,
+    "ml_risk": 0.125,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": -0.08333333333333333,
+      "intercept": 1.9166666666666665,
+      "predicted": [
+        1.25,
+        1.1666666666666665,
+        1.0833333333333333
+      ],
+      "last_value": 3.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 0,
+          "value": 4.0,
+          "z_score": null
+        },
+        {
+          "index": 7,
+          "value": 3.0,
+          "z_score": null
+        }
+      ],
+      "threshold": 3.5,
+      "count": 2
+    },
+    "series": [
+      4.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      3.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.0,
+    "summary": "Risk changed by +0.0000 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T09:04:02.840568+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 13,
+  "pipeline": {
+    "duration_ms": 5786,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "down",
+    "forecast_hit": true,
+    "anomaly_flagged": true,
+    "anomaly_hit": true,
+    "false_positive": false,
+    "series_actual": [
+      4.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      3.0
+    ]
+  }
+}
