@@ -1,0 +1,179 @@
+{
+  "timestamp": "2026-08-18T15:34:12.021174+00:00",
+  "mode": "real",
+  "risk_score": 0.012,
+  "errors_count": 4,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "log_id": "a05bL00000VF1JiQAL",
+      "timestamp": "2026-08-18T15:33:36.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None",
+      "log_id": "a05bL00000VEoMVQA1",
+      "timestamp": "2026-08-18T15:32:42.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/account/v1/customers/85766229550: status 504 - None",
+      "log_id": "a05bL00000VF1jXQAT",
+      "timestamp": "2026-08-18T15:31:51.000+0000",
+      "resource": "https://api-portoseg.sensedia.com/account/v1/customers/85766229550"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4466900598835007?channel=SalesForce: status 504 - None",
+      "log_id": "a05bL00000VFOrNQAX",
+      "timestamp": "2026-08-18T15:31:45.000+0000",
+      "resource": "callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4466900598835007?channel=SalesForce"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|CALLOUT:SENSEDIA_CARD/MASSIFIED-PRODUCT/V1/RECOMMENDATIONS/ACCOUNTS/4466900598835007?CHANNEL=SALESFORCE",
+      "severity": "CRITICAL",
+      "resource": "callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4466900598835007?channel=SalesForce",
+      "kind": "error",
+      "message": "Error on callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4466900598835007?channel=SalesForce: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VFOrNQAX"
+      ],
+      "first_seen": "2026-08-18T15:31:45.000+0000",
+      "last_seen": "2026-08-18T15:31:45.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://API-PORTOSEG.SENSEDIA.COM/ACCOUNT/V1/CUSTOMERS/85766229550",
+      "severity": "CRITICAL",
+      "resource": "https://api-portoseg.sensedia.com/account/v1/customers/85766229550",
+      "kind": "error",
+      "message": "Error on https://api-portoseg.sensedia.com/account/v1/customers/85766229550: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VF1jXQAT"
+      ],
+      "first_seen": "2026-08-18T15:31:51.000+0000",
+      "last_seen": "2026-08-18T15:31:51.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PORTOBANK/PIS-WORKFLOW/OFERTA/V1/OFERTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VEoMVQA1"
+      ],
+      "first_seen": "2026-08-18T15:32:42.000+0000",
+      "last_seen": "2026-08-18T15:32:42.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/RISCOS-FINANCEIROS/PIS-WORKFLOW/V1/PROPOSTA",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VF1JiQAL"
+      ],
+      "first_seen": "2026-08-18T15:33:36.000+0000",
+      "last_seen": "2026-08-18T15:33:36.000+0000",
+      "recurring": true,
+      "repeat_count": 1
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 4
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.012,
+    "ml_risk": 0.0,
+    "agreement": true,
+    "verdict": "AGREE",
+    "forecast": {
+      "slope": -4.0,
+      "intercept": 31.0,
+      "predicted": [
+        15.0,
+        11.0,
+        7.0
+      ],
+      "last_value": 9.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      21.0,
+      37.0,
+      33.0,
+      9.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.012,
+    "summary": "Risk changed by +0.0120 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T15:34:12.021174+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4632,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "down",
+    "forecast_hit": false,
+    "anomaly_flagged": true,
+    "anomaly_hit": false,
+    "false_positive": true,
+    "series_actual": [
+      21.0,
+      37.0,
+      33.0,
+      9.0
+    ]
+  }
+}
