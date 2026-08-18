@@ -1,6 +1,6 @@
 # SALESFORCE PREDICTIVE MONITORING - PROJECT ROADMAP
-**Status:** ✅ Validated & Ready for Phase 0  
-**Last Updated:** 2026-08-15  
+**Status:** ✅ Phases 0-5 delivered — Production monitoring live (GitHub Pages)
+**Last Updated:** 2026-08-18
 **Total Duration:** 4-5 weeks
 
 ---
@@ -40,7 +40,7 @@ site/
 
 .github/workflows/
 ├── test.yml            # Run pytest + Jest
-└── deploy.yml          # GitHub Pages (placeholder)
+└── deploy.yml          # GitHub Pages — NÃO é workflow: Pages serve direto de `main/docs` (classic Jekyll build), ver `site/scripts/sync-dashboard.mjs`
 
 docs/
 ├── PHASE_0_IMPLEMENTATION_GUIDE.md
@@ -50,11 +50,11 @@ docs/
 ```
 
 ### Success Criteria
-- [ ] All tests pass (pytest + Jest)
-- [ ] Coverage meets minimums (80/70)
-- [ ] Pipeline runs end-to-end
-- [ ] Logging validated
-- [ ] Team can spin up locally in <10 minutes
+- [x] All tests pass (pytest + Jest)
+- [x] Coverage meets minimums (80/70)
+- [x] Pipeline runs end-to-end
+- [x] Logging validated
+- [x] Team can spin up locally in <10 minutes
 
 **Timeline:** Mon-Wed (Mon AM: MCP validation, Mon PM-Tue: scaffold, Tue-Wed: testing)
 
@@ -88,36 +88,43 @@ monitoring/
 .github/workflows/
 ├── collect.yml         # 15-min cron
 ├── test.yml            # On every commit
-└── deploy.yml          # Deploy to GitHub Pages
+└── deploy.yml          # Pages via branch: `main/docs` (sem workflow — clássico)
 
 data/                   # Separate branch
-├── 2026-08-15/
-│   ├── risk_scores.json
-│   ├── alerts.json
-│   └── metadata.json
-└── 2026-08-16/
-    └── ...
+├── 2026-08-18/
+│   ├── <stamp>.json    # Snapshot completo (risk_score, alerts, shadow_mode, pipeline)
+│   └── <stamp>.prom    # Métricas Prometheus
+├── calibration.json    # Auto-calibração (Fase 4)
+├── feedback.json       # Feedback do usuário (Fase 4, quando existir)
+└── ...
 
 site/
 ├── api/
-│   └── client.js       # Fetch from data/ branch
+│   └── client.js       # Fetch from data/ branch (snapshots por dia + fallback mock)
 └── monitoring/
-    ├── index.html      # Live dashboard
-    └── refresh.js      # Auto-refresh 5 min
+    ├── index.html      # Live dashboard (espelhado em docs/dashboard/ via sync-dashboard.mjs)
+    └── dashboard.js    # Render + auto-refresh
 ```
 
 ### Success Criteria
-- [ ] MCP queries work in GitHub Actions
-- [ ] Data persisted to `data/` branch
-- [ ] Dashboard shows live risk_score
-- [ ] No Salesforce credentials in repo
-- [ ] 24/7 collection validated (at least 2 cycles)
+- [x] MCP queries work in GitHub Actions
+- [x] Data persisted to `data/` branch
+- [x] Dashboard shows live risk_score
+- [x] No Salesforce credentials in repo
+- [x] 24/7 collection validated (at least 2 cycles)
+
+**Validação em 18/08/2026:** 5 ciclos verdes (3x `workflow_dispatch` + 2x `schedule`) com `SF_REFRESH_TOKEN` rotacionando automaticamente a cada run; snapshots em `data/<dia>/`; dashboard no ar em https://brunotrolo.github.io/Salesforce_PredictiveMonitoring/ lendo os dados reais (HTTP 200 + assets + snapshots verificados).
 
 **Timeline:** Thu-Fri (Thu-Fri early: MCP switch, Fri: validation, Fri PM: GitHub Pages)
 
 ---
 
 ## 🎯 PHASES 2-5: PRODUCTION FEATURES (4-5 weeks)
+
+### Phase 1 — Auth (RTR) & Kit (18/08/2026 — de hoje)
+- **RTR obrigatório descoberto na prática:** tokens de refresh obtidos por PKCE morrem sem renovação (erro no login do app: *"you must contact Support to complete the login"*) — confirmação do suporte Salesforce; não é bug do nosso código, é política de segurança da plataforma.
+- **Solução implementada:** rotação automática do `SF_REFRESH_TOKEN` em `collect.yml` (commit `863f401`) — a cada run, troca o refresh token e salva o novo como secret (PAT fine-grained `GH_PAT`). Loop validado com **5 ciclos verdes consecutivos** (timestamps de rotação: 01:25:23Z, 01:35:29Z, 02:06:40Z + schedule 02:35Z).
+- **Kit reutilizável publicado:** https://github.com/brunotrolo/Salesforce_MCPauthentication (commit `fc800d3`) — mesmo conteúdo versionado neste repo em `salesforce-mcp-auth-kit/` (README passo a passo, `scripts/get_sf_mcp_tokens.py`, `client/salesforce_mcp_client.py` self-contained, `pipeline/run_with_rotation.py`, `workflow/collect.yml`, `docs/TROUBLESHOOTING.md` com 8 armadilhas reais). Sem secrets no código (validado).
 
 ### Phase 2: Alerting & Notifications (1 week)
 - ~~Email/Slack notifications on critical alerts~~ (removido por decisão do usuário em 16/08/2026)
@@ -387,16 +394,18 @@ site/api/client.js                       ← API fetcher (MODIFIED)
 |------|--------|--------|
 | 2026-08-15 | Initial roadmap + Phase 0-1 detailed | @claude-code |
 | 2026-08-15 | Architecture validation complete | @claude-code |
-| (Next update) | Phase 0 kickoff review | @team |
+| 2026-08-16 | Phases 2-5 delivered (alerting, ML shadow, feedback loop) | @claude-code |
+| 2026-08-17 | Phase 4-5 wiring (auto-calibração, metrics, Sentry, feedback no collect.yml) | @claude-code |
+| 2026-08-18 | Phase 1 closed: auth RTR resolvido (rotação automática do secret), 5 ciclos verdes, kit publicado (`salesforce-mcp-auth-kit/` + repo `Salesforce_MCPauthentication`), GitHub Pages live validado, success criteria da Phase 1 marcados | @opencode |
 
 ---
 
-**Last reviewed:** 2026-08-15  
-**Next review:** Start of Phase 1 (2026-08-22 estimated)
+**Last reviewed:** 2026-08-18
+**Next review:** A/B testing framework (Fase 3 — open question, aguardando decisão do usuário)
 
 ---
 
-**Project Status:** ✅ VALIDATED AND READY FOR EXECUTION
+**Project Status:** ✅ PRODUCTION — 24/7 monitoring live (Pages), Phases 0-5 delivered, auth com rotação automática do secret.
 
 Start Phase 0 immediately. Follow `docs/FASE_0_IMPLEMENTATION_GUIDE.md` for step-by-step instructions.
 

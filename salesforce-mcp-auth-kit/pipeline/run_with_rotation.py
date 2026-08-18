@@ -45,9 +45,7 @@ def _write_auth_state(path: str, refresh_token: str) -> None:
 def run_pipeline(client: Any, mode: str) -> dict:
     """Replace this with your own logic (SOQL queries, MCP tools, etc.)."""
     if mode == "real":
-        result = client.soql_query(
-            "SELECT Id, Name FROM Account LIMIT 1"
-        )
+        result = client.soql_query("SELECT Id, Name FROM Account LIMIT 1")
         return {"ok": True, "sample": result}
     return {"ok": True, "mode": "mock"}
 
@@ -64,7 +62,7 @@ def main() -> None:
         "--auth-state-out",
         default=None,
         help=(
-            "Write {\"refresh_token\": ...} after the run, so the caller can "
+            'Write {"refresh_token": ...} after the run, so the caller can '
             "persist the rotated refresh token (Salesforce Refresh Token "
             "Rotation); optional"
         ),
