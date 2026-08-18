@@ -1,0 +1,194 @@
+{
+  "timestamp": "2026-08-18T02:35:20.902720+00:00",
+  "mode": "real",
+  "risk_score": 0.0,
+  "errors_count": 0,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [],
+  "alerts_aggregated": [],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 0
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.0,
+    "ml_risk": 0.21428571428571427,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": -0.09523809523809523,
+      "intercept": 3.4285714285714284,
+      "predicted": [
+        0.7619047619047619,
+        0.6666666666666665,
+        0.5714285714285716
+      ],
+      "last_value": 2.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 0,
+          "value": 5.0,
+          "z_score": null
+        },
+        {
+          "index": 2,
+          "value": 4.0,
+          "z_score": null
+        },
+        {
+          "index": 3,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 4,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 5,
+          "value": 5.0,
+          "z_score": null
+        },
+        {
+          "index": 8,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 9,
+          "value": 5.0,
+          "z_score": null
+        },
+        {
+          "index": 10,
+          "value": 8.0,
+          "z_score": null
+        },
+        {
+          "index": 11,
+          "value": 3.0,
+          "z_score": null
+        },
+        {
+          "index": 13,
+          "value": 4.0,
+          "z_score": null
+        },
+        {
+          "index": 23,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 27,
+          "value": 2.0,
+          "z_score": null
+        }
+      ],
+      "threshold": 3.5,
+      "count": 12
+    },
+    "series": [
+      5.0,
+      1.0,
+      4.0,
+      2.0,
+      2.0,
+      5.0,
+      1.0,
+      1.0,
+      2.0,
+      5.0,
+      8.0,
+      3.0,
+      1.0,
+      4.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.0,
+    "summary": "Risk changed by +0.0000 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T02:35:20.902720+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 60,
+  "pipeline": {
+    "duration_ms": 3867,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "down",
+    "forecast_hit": false,
+    "anomaly_flagged": true,
+    "anomaly_hit": true,
+    "false_positive": false,
+    "series_actual": [
+      5.0,
+      1.0,
+      4.0,
+      2.0,
+      2.0,
+      5.0,
+      1.0,
+      1.0,
+      2.0,
+      5.0,
+      8.0,
+      3.0,
+      1.0,
+      4.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0
+    ]
+  }
+}
