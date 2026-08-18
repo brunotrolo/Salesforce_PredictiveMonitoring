@@ -1,0 +1,137 @@
+{
+  "timestamp": "2026-08-18T11:21:17.497710+00:00",
+  "mode": "real",
+  "risk_score": 0.006,
+  "errors_count": 2,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4152743306481006?channel=SalesForce: status 504 - None",
+      "log_id": "a05bL00000VDmMkQAL",
+      "timestamp": "2026-08-18T11:19:07.000+0000",
+      "resource": "callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4152743306481006?channel=SalesForce"
+    },
+    {
+      "severity": "CRITICAL",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005363800133136005: status 500 - None",
+      "log_id": "a05bL00000VDsWzQAL",
+      "timestamp": "2026-08-18T11:18:55.000+0000",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005363800133136005"
+    }
+  ],
+  "alerts_aggregated": [
+    {
+      "key": "CRITICAL|ERROR|CALLOUT:SENSEDIA_CARD/MASSIFIED-PRODUCT/V1/RECOMMENDATIONS/ACCOUNTS/4152743306481006?CHANNEL=SALESFORCE",
+      "severity": "CRITICAL",
+      "resource": "callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4152743306481006?channel=SalesForce",
+      "kind": "error",
+      "message": "Error on callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4152743306481006?channel=SalesForce: status 504 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VDmMkQAL"
+      ],
+      "first_seen": "2026-08-18T11:19:07.000+0000",
+      "last_seen": "2026-08-18T11:19:07.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    },
+    {
+      "key": "CRITICAL|ERROR|HTTPS://PORTOAPICLOUD.PORTOSEGURO.COM.BR/PAYWARE-FENIX/V1/RETENTION-HISTORY?ISSUER=40&BRANCH=1&PRODUCT=2&BANKACCOUNT=0005363800133136005",
+      "severity": "CRITICAL",
+      "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005363800133136005",
+      "kind": "error",
+      "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005363800133136005: status 500 - None",
+      "count": 1,
+      "log_ids": [
+        "a05bL00000VDsWzQAL"
+      ],
+      "first_seen": "2026-08-18T11:18:55.000+0000",
+      "last_seen": "2026-08-18T11:18:55.000+0000",
+      "recurring": false,
+      "repeat_count": 0
+    }
+  ],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 2
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.006,
+    "ml_risk": 0.0,
+    "agreement": true,
+    "verdict": "AGREE",
+    "forecast": {
+      "slope": -0.5714285714285715,
+      "intercept": 18.095238095238095,
+      "predicted": [
+        14.666666666666666,
+        14.095238095238095,
+        13.523809523809522
+      ],
+      "last_value": 10.0
+    },
+    "anomalies": {
+      "outliers": [],
+      "threshold": 3.5,
+      "count": 0
+    },
+    "series": [
+      19.0,
+      10.0,
+      23.0,
+      18.0,
+      20.0,
+      10.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.006,
+    "summary": "Risk changed by +0.0060 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-18T11:21:17.497710+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 100,
+  "pipeline": {
+    "duration_ms": 4317,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "down",
+    "direction_actual": "down",
+    "forecast_hit": true,
+    "anomaly_flagged": true,
+    "anomaly_hit": true,
+    "false_positive": false,
+    "series_actual": [
+      19.0,
+      10.0,
+      23.0,
+      18.0,
+      20.0,
+      10.0
+    ]
+  }
+}
