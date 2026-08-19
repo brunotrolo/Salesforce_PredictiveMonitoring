@@ -232,36 +232,31 @@ describe("validateToken", () => {
 });
 
 describe("fetchTrace", () => {
-  test("returns the trace array from the data branch", async () => {
+  test("returns live entries from the data branch", async () => {
     const trace = [
       { timestamp: "2026-08-15T10:00:00Z", risk_score: 0.1 },
       { timestamp: "2026-08-15T10:05:00Z", risk_score: 0.2 },
     ];
     global.fetch.mockResolvedValueOnce(jsonRes(trace));
-    expect(await fetchTrace()).toEqual(trace);
+    expect(await fetchTrace()).toEqual({ entries: trace, source: "live" });
   });
 
-  test("falls back to mock trace on HTTP error", async () => {
+  test("returns empty source on HTTP error, never mock data", async () => {
     global.fetch.mockResolvedValueOnce(jsonRes(undefined, false));
     const trace = await fetchTrace();
-    expect(Array.isArray(trace)).toBe(true);
-    expect(trace.length).toBeGreaterThan(0);
-    expect(trace[0].timestamp).toBeTruthy();
+    expect(trace).toEqual({ entries: [], source: "none" });
   });
 
-  test("falls back to mock trace on network error", async () => {
+  test("returns empty source on network error, never mock data", async () => {
     global.fetch.mockRejectedValueOnce(new Error("down"));
     const trace = await fetchTrace();
-    expect(Array.isArray(trace)).toBe(true);
-    expect(trace.length).toBeGreaterThan(0);
+    expect(trace).toEqual({ entries: [], source: "none" });
   });
 
-  test("falls back to mock trace on empty or malformed body", async () => {
+test("returns empty source on empty or malformed body, never mock data", async () => {
     global.fetch.mockResolvedValueOnce(jsonRes([]));
-    expect((await fetchTrace()).length).toBeGreaterThan(0);
-    global.fetch.mockResolvedValueOnce(jsonRes({ not: "an array" }));
-    expect((await fetchTrace()).length).toBeGreaterThan(0);
-    global.fetch.mockResolvedValueOnce(jsonRes("garbage"));
-    expect((await fetchTrace()).length).toBeGreaterThan(0);
+    expect(await fetchTrace()).toEqual({ entries: [], source: "none" });
+    global.fetch.mockResolvedValueOnce(jsonRes("not-json"));
+    expect(await fetchTrace()).toEqual({ entries: [], source: "none" });
   });
 });

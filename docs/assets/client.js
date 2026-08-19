@@ -193,19 +193,23 @@ export async function fetchRecentSnapshots(limit = 12) {
 
 /**
  * Rolling 24h trace maintained by the backend: one entry per collection
- * cycle, stored at the data branch root as trace.json. Falls back to mock
- * trace data when the file is missing, unreachable or malformed — the trace
- * section must never break the page.
+ * cycle, stored at the data branch root as trace.json. Returns
+ * { entries, source } — source is "live" when the file exists and parses,
+ * "none" otherwise. Simulated data is NEVER returned as live: the trace
+ * section must show an explicit empty state instead of mock events that
+ * look like real analysis.
  */
 export async function fetchTrace() {
   const res = await fetchTimeout(`${RAW_BASE}/trace.json`);
-  if (!res || !res.ok) return mockTraceData;
+  if (!res || !res.ok) return { entries: [], source: "none" };
   try {
     const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) return mockTraceData;
-    return data;
+    if (!Array.isArray(data) || data.length === 0) {
+      return { entries: [], source: "none" };
+    }
+    return { entries: data, source: "live" };
   } catch {
-    return mockTraceData;
+    return { entries: [], source: "none" };
   }
 }
 

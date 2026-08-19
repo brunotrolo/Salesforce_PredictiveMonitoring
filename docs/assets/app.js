@@ -599,7 +599,27 @@ function fmtTraceTime(timestamp) {
   });
 }
 
-function renderTrace(trace) {
+function traceEvidenceLink(entry) {
+  if (!entry || !entry.snapshot_raw) return "";
+  return (
+    ` <a href="${escapeHtml(entry.snapshot_raw)}" target="_blank" rel="noopener" ` +
+    `title="Abrir o snapshot de origem deste ciclo">ver evidência →</a>`
+  );
+}
+
+function traceEndpointsHint(entry) {
+  const endpoints = entry?.evidence?.error_endpoints;
+  if (!endpoints || endpoints.length === 0) return "";
+  const list = endpoints
+    .slice(0, 3)
+    .map((e) => `${escapeHtml(e.resource)} (${e.count}×)`)
+    .join(", ");
+  return ` — erros: ${list}`;
+}
+
+function renderTrace(traceResult) {
+  const trace = Array.isArray(traceResult) ? traceResult : traceResult?.entries ?? [];
+  const source = traceResult?.source ?? (trace.length > 0 ? "live" : "none");
   const summary = summarizeTrace(trace);
   const chips = els.traceChips();
   const timeline = els.traceTimeline();
@@ -609,19 +629,25 @@ function renderTrace(trace) {
 
   if (note) {
     note.textContent =
-      summary.cycles > 0 ? `${summary.cycles} ciclos no período` : "sem dados de trace";
+      source === "none"
+        ? "sem dados de trace — o histórico começa na próxima coleta"
+        : `${summary.cycles} ciclos no período`;
   }
 
   if (chips) {
-    const worst = summary.maxRisk >= 0.7 ? "critical" : summary.maxRisk >= 0.4 ? "warn" : "good";
-    chips.innerHTML = [
-      `<span class="trace-chip" data-kind="${worst}"><b>${fmtNumber(summary.cycles)}</b> ciclos</span>`,
-      `<span class="trace-chip" data-kind="${worst}"><b>${(summary.maxRisk * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%</b> risco máximo</span>`,
-      `<span class="trace-chip" data-kind="${summary.downWindows.length > 0 ? "critical" : "good"}"><b>${fmtNumber(summary.downWindows.length)}</b> queda(s)</span>`,
-      `<span class="trace-chip" data-kind="${summary.anomalies.length > 0 ? "warn" : "good"}"><b>${fmtNumber(summary.anomalies.length)}</b> ciclo(s) com anomalia</span>`,
-      `<span class="trace-chip" data-kind="${summary.breakers.length > 0 ? "critical" : "good"}"><b>${fmtNumber(summary.breakers.length)}</b> circuit breaker</span>`,
-      `<span class="trace-chip" data-kind="${summary.gaps.length > 0 ? "warn" : "good"}"><b>${fmtNumber(summary.gaps.length)}</b> sem coleta</span>`,
-    ].join("");
+    if (source === "none" || summary.cycles === 0) {
+      chips.innerHTML = "";
+    } else {
+      const worst = summary.maxRisk >= 0.7 ? "critical" : summary.maxRisk >= 0.4 ? "warn" : "good";
+      chips.innerHTML = [
+        `<span class="trace-chip" data-kind="${worst}"><b>${fmtNumber(summary.cycles)}</b> ciclos</span>`,
+        `<span class="trace-chip" data-kind="${worst}"><b>${(summary.maxRisk * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%</b> risco máximo</span>`,
+        `<span class="trace-chip" data-kind="${summary.downWindows.length > 0 ? "critical" : "good"}"><b>${fmtNumber(summary.downWindows.length)}</b> queda(s)</span>`,
+        `<span class="trace-chip" data-kind="${summary.anomalies.length > 0 ? "warn" : "good"}"><b>${fmtNumber(summary.anomalies.length)}</b> ciclo(s) com anomalia</span>`,
+        `<span class="trace-chip" data-kind="${summary.breakers.length > 0 ? "critical" : "good"}"><b>${fmtNumber(summary.breakers.length)}</b> circuit breaker</span>`,
+        `<span class="trace-chip" data-kind="${summary.gaps.length > 0 ? "warn" : "good"}"><b>${fmtNumber(summary.gaps.length)}</b> sem coleta</span>`,
+      ].join("");
+    }
   }
 
   if (timeline && summary.cycles > 0) {
@@ -644,30 +670,36 @@ function renderTrace(trace) {
     const items = [];
     for (const gap of summary.gaps) {
       items.push(
-        `<li><b>Sem coleta</b> de ${fmtTraceTime(gap.from)} até ${fmtTraceTime(gap.to)} (<b>${gap.minutes} min</b>) — agendador do GitHub atrasou</li>`
+        `<li><b>Sem coleta</b> de ${fmtTraceTime(gap.from)} até ${fmtTraceTime(gap.to)} (<b>${gap.minutes} min</b>) — agendador do GitHub atrasou${traceEvidenceLink(gap.entry)}</li>`
       );
     }
     for (const down of summary.downWindows) {
       items.push(
-        `<li><b class="sev-critical">Queda</b> de ${fmtTraceTime(down.from)} até ${fmtTraceTime(down.to)} (pico ${(down.peak * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%)</li>`
+        `<li><b class="sev-critical">Queda</b> de ${fmtTraceTime(down.from)} até ${fmtTraceTime(down.to)} (pico ${(down.peak * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%)${traceEndpointsHint(down.entry)}${traceEvidenceLink(down.entry)}</li>`
       );
     }
-    for (const ts of summary.anomalies) {
+    for (const anom of summary.anomalies) {
+      const ml = anom.entry?.ml_risk != null
+        ? ` (ml_risk ${(Number(anom.entry.ml_risk) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%)`
+        : "";
       items.push(
-        `<li><b class="sev-warning">Anomalia detectada</b> pela IA de sombra em ${fmtTraceTime(ts)}</li>`
+        `<li><b class="sev-warning">Anomalia detectada</b> pela IA de sombra em ${fmtTraceTime(anom.timestamp)}${ml}${traceEvidenceLink(anom.entry)}</li>`
       );
     }
-    for (const ts of summary.breakers) {
+    for (const breaker of summary.breakers) {
+      const reason = breaker.entry?.breaker_messages?.[0]
+        ? ` — ${escapeHtml(breaker.entry.breaker_messages[0])}`
+        : "";
       items.push(
-        `<li><b class="sev-critical">Circuit breaker</b> aberto em ${fmtTraceTime(ts)} — integração recusou chamadas</li>`
+        `<li><b class="sev-critical">Circuit breaker</b> aberto em ${fmtTraceTime(breaker.timestamp)} — integração recusou chamadas${reason}${traceEvidenceLink(breaker.entry)}</li>`
       );
     }
     events.innerHTML =
       items.length > 0
         ? `<ul>${items.slice(0, 8).join("")}</ul>`
-        : summary.cycles > 0
-          ? `<ul><li>Nenhum evento fora do normal nas últimas 24 horas.</li></ul>`
-          : `<ul><li>Sem dados de trace ainda — o histórico começa a ser gravado na próxima coleta.</li></ul>`;
+        : source === "none"
+          ? `<ul><li>Nenhum ciclo de trace registrado ainda — o histórico real começa na próxima coleta (dados simulados não são exibidos).</li></ul>`
+          : `<ul><li>Nenhum evento fora do normal nas últimas 24 horas.</li></ul>`;
   }
 }
 
@@ -732,7 +764,7 @@ async function renderAll() {
     ? Math.round((Date.now() - new Date(latest.timestamp).getTime()) / 1000)
     : null;
   DIAG.snapshot = latest;
-  DIAG.traceCycles = Array.isArray(trace) ? trace.length : null;
+  DIAG.traceCycles = Array.isArray(trace?.entries) ? trace.entries.length : null;
   DIAG.logsTotal = latest && Array.isArray(latest.logs) ? latest.logs.length : null;
   DIAG.tokenConfigured = Boolean(getSavedToken());
 

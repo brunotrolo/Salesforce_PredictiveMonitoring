@@ -198,11 +198,14 @@ export const TRACE_DOWN_RISK = 0.7;
  * Returns:
  *   - cycles: total entries
  *   - maxRisk: highest risk_score across the window
- *   - gaps: [{from, to, minutes}] for every interval > TRACE_GAP_MIN
- *   - downWindows: [{from, to, peak}] for runs of >= 2 consecutive entries
- *     with risk >= TRACE_DOWN_RISK
- *   - anomalies: timestamps of entries with anomalies > 0
- *   - breakers: timestamps of entries with circuit_breaker true
+ *   - gaps: [{from, to, minutes, entry}] for every interval > TRACE_GAP_MIN
+ *   - downWindows: [{from, to, peak, entry, entries}] for runs of >= 2
+ *     consecutive entries with risk >= TRACE_DOWN_RISK (entry = the cycle
+ *     with peak risk, entries = every cycle of the run)
+ *   - anomalies: [{timestamp, entry}] for entries with anomalies > 0
+ *   - breakers: [{timestamp, entry}] for entries with circuit_breaker true
+ * Each event carries the source trace entry so the UI can link back to the
+ * snapshot that produced it (full traceability).
  * Input is sorted by timestamp; a non-array input yields an empty summary.
  */
 export function summarizeTrace(trace) {
@@ -234,30 +237,51 @@ export function summarizeTrace(trace) {
         from: list[i - 1].timestamp,
         to: list[i].timestamp,
         minutes: Math.round(minutes),
+        entry: list[i],
       });
     }
   }
 
   let runStart = null;
   let runPeak = 0;
+  let runPeakEntry = null;
+  let runEntries = [];
   for (const entry of list) {
     const risk = Number(entry?.risk_score ?? 0);
     if (risk >= TRACE_DOWN_RISK) {
       if (runStart === null) runStart = entry.timestamp;
-      runPeak = Math.max(runPeak, risk);
+      if (risk > runPeak) {
+        runPeak = risk;
+        runPeakEntry = entry;
+      }
+      runEntries.push(entry);
     } else if (runStart !== null) {
-      summary.downWindows.push({ from: runStart, to: entry.timestamp, peak: runPeak });
+      summary.downWindows.push({
+        from: runStart,
+        to: entry.timestamp,
+        peak: runPeak,
+        entry: runPeakEntry,
+        entries: runEntries,
+      });
       runStart = null;
       runPeak = 0;
+      runPeakEntry = null;
+      runEntries = [];
     }
-    if (Number(entry?.anomalies ?? 0) > 0) summary.anomalies.push(entry.timestamp);
-    if (Boolean(entry?.circuit_breaker)) summary.breakers.push(entry.timestamp);
+    if (Number(entry?.anomalies ?? 0) > 0) {
+      summary.anomalies.push({ timestamp: entry.timestamp, entry });
+    }
+    if (Boolean(entry?.circuit_breaker)) {
+      summary.breakers.push({ timestamp: entry.timestamp, entry });
+    }
   }
   if (runStart !== null) {
     summary.downWindows.push({
       from: runStart,
       to: list[list.length - 1].timestamp,
       peak: runPeak,
+      entry: runPeakEntry,
+      entries: runEntries,
     });
   }
   return summary;

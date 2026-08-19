@@ -108,6 +108,7 @@ jobs:
             --log-file "out/${{ steps.stamp.outputs.stamp }}.json" \
             --metrics-file "out/${{ steps.stamp.outputs.stamp }}.prom" \
             --trace-file "out/trace.json" \
+            --snapshot-name "${{ steps.stamp.outputs.stamp }}.json" \
             --auth-state-out "out/auth_state.json" \
             ${HISTORY} ${FEEDBACK} ${SAMPLES}
 

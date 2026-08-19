@@ -913,6 +913,68 @@ class TestUpdateTrace:
         assert entry["ml_risk"] is None
         assert entry["anomalies"] == 0
 
+    def test_trace_entry_links_snapshot_and_error_evidence(self):
+        result = self._result(
+            logs=[
+                {
+                    "status_code": 500,
+                    "duration_ms": 900,
+                    "resource": "/api/products",
+                    "message": "Timeout reading response",
+                },
+                {
+                    "status_code": 500,
+                    "duration_ms": 1200,
+                    "resource": "/api/products",
+                    "message": "Timeout reading response",
+                },
+                {"status_code": 200, "resource": "/api/ok", "message": ""},
+                {
+                    "status_code": 503,
+                    "duration_ms": 300,
+                    "resource": "/api/orders",
+                    "message": "Service unavailable",
+                },
+            ],
+            alerts=[
+                {"severity": "WARNING", "message": "Latency above threshold"},
+            ],
+        )
+        entry = orchestrate._trace_entry_from_result(
+            result, snapshot_name="2026-08-19T03-37-55Z.json"
+        )
+        assert entry["snapshot"] == "data/2026-08-19/2026-08-19T03-37-55Z.json"
+        assert entry["snapshot_raw"] == (
+            "https://raw.githubusercontent.com/brunotrolo/"
+            "Salesforce_PredictiveMonitoring/data/2026-08-19/"
+            "2026-08-19T03-37-55Z.json"
+        )
+        endpoints = entry["evidence"]["error_endpoints"]
+        assert [e["resource"] for e in endpoints] == [
+            "/api/products",
+            "/api/orders",
+        ]
+        assert endpoints[0]["count"] == 2
+        assert endpoints[0]["max_duration_ms"] == 1200
+        assert endpoints[0]["sample_message"] == "Timeout reading response"
+        assert entry["evidence"]["alerts"][0]["severity"] == "WARNING"
+        assert entry["errors_count"] == 1  # pipeline-level counter is untouched
+
+    def test_trace_entry_without_snapshot_name_links_nothing(self):
+        entry = orchestrate._trace_entry_from_result(self._result())
+        assert entry["snapshot"] is None
+        assert entry["snapshot_raw"] is None
+        assert entry["evidence"]["error_endpoints"] == []
+
+    def test_update_trace_propagates_snapshot_name(self):
+        updated = orchestrate.update_trace(
+            [],
+            self._result(),
+            now=datetime(2026, 8, 19, 1, 0, tzinfo=timezone.utc),
+            snapshot_name="2026-08-19T01-00-00Z.json",
+        )
+        assert updated[0]["snapshot"] == "data/2026-08-19/2026-08-19T01-00-00Z.json"
+
     def test_snapshot_includes_real_logs(self):
         result, raw_logs = orchestrate.run_pipeline(mode="real", client=FakeMCPClient(
             [

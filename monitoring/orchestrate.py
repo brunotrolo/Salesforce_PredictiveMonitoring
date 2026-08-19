@@ -163,12 +163,16 @@ def fetch_real_logs(client: Any) -> list[dict[str, Any]]:
     return []
 
 
-def _trace_entry_from_result(result: dict) -> dict:
+def _trace_entry_from_result(result: dict, snapshot_name: str | None = None) -> dict:
     """Build one rolling-trace entry from a completed pipeline snapshot.
 
     The entry is deliberately lean: everything the dashboard needs to answer
     "did the system fall / did the ML flag anomalies / did the log system
     detect a circuit breaker" over the last 24h, without the full snapshot.
+
+    ``snapshot_name`` (e.g. ``2026-08-19T03-37-55Z.json``) is the file the
+    caller persists to the data branch; the entry links back to it so every
+    conclusion drawn by the dashboard can be traced to its source snapshot.
     """
     shadow = result.get("shadow_mode") or {}
     shadow_enabled = shadow.get("enabled") is True
@@ -181,6 +185,29 @@ def _trace_entry_from_result(result: dict) -> dict:
         if any(pattern in lowered for pattern in CIRCUIT_BREAKER_PATTERNS):
             if str(message) not in breaker_hits:
                 breaker_hits.append(str(message))
+
+    error_endpoints: dict[str, dict[str, Any]] = {}
+    for log in result.get("logs") or []:
+        if _to_int(log.get("status_code", 0)) < 500:
+            continue
+        resource = str(log.get("resource", "unknown"))
+        agg = error_endpoints.setdefault(
+            resource, {"count": 0, "max_duration_ms": 0, "sample_message": ""}
+        )
+        agg["count"] += 1
+        agg["max_duration_ms"] = max(
+            agg["max_duration_ms"], _to_int(log.get("duration_ms", 0))
+        )
+        if not agg["sample_message"] and log.get("message"):
+            agg["sample_message"] = str(log["message"])[:160]
+
+    snapshot_path = None
+    if snapshot_name:
+        ts = result.get("timestamp")
+        date_part = str(ts)[:10] if ts else None
+        if date_part:
+            snapshot_path = f"data/{date_part}/{snapshot_name}"
+
     return {
         "timestamp": result.get("timestamp"),
         "risk_score": result.get("risk_score"),
@@ -194,11 +221,39 @@ def _trace_entry_from_result(result: dict) -> dict:
         ),
         "circuit_breaker": len(breaker_hits) > 0,
         "breaker_messages": breaker_hits[:5],
+        "snapshot": snapshot_path,
+        "snapshot_raw": (
+            f"https://raw.githubusercontent.com/brunotrolo/"
+            f"Salesforce_PredictiveMonitoring/{snapshot_path}"
+            if snapshot_path
+            else None
+        ),
+        "evidence": {
+            "error_endpoints": [
+                {
+                    "resource": resource,
+                    "count": agg["count"],
+                    "max_duration_ms": agg["max_duration_ms"],
+                    "sample_message": agg["sample_message"],
+                }
+                for resource, agg in sorted(
+                    error_endpoints.items(), key=lambda kv: -kv[1]["count"]
+                )[:5]
+            ],
+            "alerts": [
+                {
+                    "severity": alert.get("severity", "UNKNOWN"),
+                    "message": str(alert.get("message", ""))[:160],
+                }
+                for alert in (result.get("alerts") or [])[:5]
+            ],
+        },
     }
 
 
 def update_trace(
-    trace: Any, result: dict, now: datetime | None = None
+    trace: Any, result: dict, now: datetime | None = None,
+    snapshot_name: str | None = None,
 ) -> list[dict]:
     """Append the current cycle to the rolling trace and prune old entries.
 
@@ -208,7 +263,7 @@ def update_trace(
     """
     if not isinstance(trace, list):
         trace = []
-    trace.append(_trace_entry_from_result(result))
+    trace.append(_trace_entry_from_result(result, snapshot_name=snapshot_name))
     now = now or datetime.now(timezone.utc)
     cutoff = (now - timedelta(hours=TRACE_WINDOW_HOURS)).isoformat()
     kept = [
@@ -621,6 +676,15 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--snapshot-name",
+        default=None,
+        help=(
+            "Name of the snapshot file persisted to the data branch "
+            "(e.g. 2026-08-19T03-37-55Z.json); each trace entry links back "
+            "to it for full traceability. Optional."
+        ),
+    )
+    parser.add_argument(
         "--auth-state-out",
         default=None,
         help=(
@@ -675,7 +739,9 @@ def main() -> None:
                     existing = json.load(f)
             except (OSError, ValueError):
                 existing = []
-            trace = update_trace(existing, result)
+            trace = update_trace(
+                existing, result, snapshot_name=args.snapshot_name
+            )
             with open(args.trace_file, "w") as f:
                 json.dump(trace, f, indent=2)
 

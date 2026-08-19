@@ -411,8 +411,27 @@ const summary = summarizeTrace([
       { timestamp: "2026-08-15T10:15:00Z", risk_score: 0.65 },
       { timestamp: "2026-08-15T10:20:00Z", risk_score: 0.3 },
     ]);
-    expect(summary.downWindows).toHaveLength(1);
+expect(summary.downWindows).toHaveLength(1);
     expect(summary.downWindows[0].peak).toBe(0.9);
+  });
+
+  test("carries the source entry and snapshot link on every event", () => {
+    const raw =
+      "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-15/2026-08-15T10-05-00Z.json";
+    const summary = summarizeTrace([
+      { timestamp: "2026-08-15T09:00:00Z", risk_score: 0.1 },
+      { timestamp: "2026-08-15T10:05:00Z", risk_score: 0.9, snapshot_raw: raw, evidence: { error_endpoints: [{ resource: "/api/products", count: 3 }], alerts: [] }, circuit_breaker: true, breaker_messages: ["rate limit"], anomalies: 4 },
+    ]);
+    expect(summary.gaps).toHaveLength(1);
+    expect(summary.gaps[0].entry.snapshot_raw).toBe(raw);
+    expect(summary.downWindows[0].entry.snapshot_raw).toBe(raw);
+    expect(summary.downWindows[0].entries.map((e) => e.risk_score)).toEqual([0.9]);
+    expect(summary.anomalies[0]).toEqual({ timestamp: "2026-08-15T10:05:00Z", entry: expect.objectContaining({ snapshot_raw: raw }) });
+    expect(summary.breakers[0].entry.breaker_messages).toEqual(["rate limit"]);
+  });
+
+  test("empty summary keeps the exact lean shape", () => {
+    expect(summarizeTrace([])).toEqual({ cycles: 0, maxRisk: 0, gaps: [], downWindows: [], anomalies: [], breakers: [] });
   });
 });
 
