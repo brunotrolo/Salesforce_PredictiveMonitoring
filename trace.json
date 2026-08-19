@@ -992,5 +992,23 @@
         }
       ]
     }
+  },
+  {
+    "timestamp": "2026-08-19T19:57:08.835816+00:00",
+    "risk_score": 0.0,
+    "errors_count": 0,
+    "retried_count": 0,
+    "alerts_critical": 0,
+    "alerts_warning": 0,
+    "ml_risk": 0.2,
+    "anomalies": 2,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-19/2026-08-19T19-57-04Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T19-57-04Z.json",
+    "evidence": {
+      "error_endpoints": [],
+      "alerts": []
+    }
   }
 ]
