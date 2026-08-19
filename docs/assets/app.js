@@ -962,6 +962,7 @@ async function onTokenSave() {
   if (ok) {
     setSavedToken(value);
     input.value = "";
+    syncModalCta();
     if (status) {
       status.textContent = "Token validado e salvo NESTE navegador — a coleta agora dispara com 1 clique.";
       status.dataset.state = "ok";
