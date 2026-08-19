@@ -126,3 +126,41 @@ O access token expira em ~2h. Não programe renovação por tempo: o client
 renova **sob demanda** no primeiro 401 (ver `call_tool` →
 `_refresh_token`). Isso simplifica: o token vive o mínimo necessário e a
 rotação acontece apenas quando o MCP realmente recusa o atual.
+
+---
+
+## 9. Run falho com `if: always()` regrava um token MORTO no secret
+
+**Quando:** o workflow quebra no meio do pipeline, e mesmo assim o passo
+"Rotate auth secret" executa e sobrescreve o secret com um token velho.
+
+**Causa (bug real, encontrado em produção em 2026-08-19):** o `if: always()`
+no rotate é necessário — se o pipeline quebrar DEPOIS de um refresh, o token
+novo já nasceu e o antigo já morreu, e o finally ainda não rodou para gravá-lo
+em `out/auth_state.json`. Mas quando a run falha ANTES de qualquer refresh,
+`client.refresh_token` ainda é o token velho (vindo do secret). O finally grava
+ele em `auth_state.json` e o rotate escreve esse token morto por cima do
+secret — matando o token que outra run rotacionou.
+
+**Como acontece na prática:** a primeira run da manhã roda com o token novo,
+refresca e rotaciona. A segunda run (agendada logo depois) começa com o token
+já rotacionado, e uma falha sem refresh dela regrava o token VELHO no secret.
+Na terceira run, `invalid_grant` — e a cadeia de rotação morre.
+
+**Fix (já aplicado no template):** o rotate compara o token atual com o token
+inicial da run e só escreve quando houve rotação de verdade:
+
+```yaml
+OLD_TOKEN=$(python -c "import json;print(json.load(open('out/auth_state.json')).get('refresh_token_initial',''))")
+if [ -z "$OLD_TOKEN" ]; then
+  echo "No refresh_token_initial - cannot verify rotation, skipping"; exit 0
+fi
+if [ "$NEW_TOKEN" = "$OLD_TOKEN" ]; then
+  echo "Token was NOT rotated this run - skipping secret write"; exit 0
+fi
+```
+
+**Complemento obrigatório:** `concurrency: group: collect,
+cancel-in-progress: false` no workflow — duas runs sobrepostas refrescam o
+token ao mesmo tempo e a perdedora escreve um token morto sobre o do ganhador,
+mesmo com o guard de comparação.

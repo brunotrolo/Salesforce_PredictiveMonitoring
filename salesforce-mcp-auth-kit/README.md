@@ -43,11 +43,22 @@ você só precisa dos valores da sua própria External Client App.
 
 | Arquivo | Papel |
 |---|---|
-| `scripts/get_sf_mcp_tokens.py` | Bootstrap OAuth2 PKCE (gera o 1º refresh token) |
-| `client/salesforce_mcp_client.py` | Client MCP self-contained (Streamable HTTP + retry + rate limit + refresh/rotação automática) |
+| `src/sf_mcp_auth/` | Pacote instalável (`pip install ./salesforce-mcp-auth-kit`): `client.py` (client MCP), `auth_state.py` (estado de rotação), `bootstrap.py` (CLI PKCE) |
+| `scripts/get_sf_mcp_tokens.py` | Bootstrap OAuth2 PKCE legado (gera o 1º refresh token) — wrapper fino do pacote |
+| `client/salesforce_mcp_client.py` | Cópia do client self-contained (fonte copiada para `sf_mcp_auth/client.py`) |
 | `workflow/collect.yml` | Workflow real de referência (rotação do secret + persistência de snapshot) |
-| `pipeline/run_with_rotation.py` | Padrão try/finally + `--auth-state-out` para qualquer script |
+| `pipeline/run_with_rotation.py` | Padrão try/finally + `--auth-state-out` (usa o pacote) |
 | `docs/TROUBLESHOOTING.md` | Todos os erros reais encontrados e as causas |
+| `tests/` | Testes unitários do pacote (`pytest`) |
+
+Instalação do pacote:
+
+```bash
+pip install ./salesforce-mcp-auth-kit
+```
+
+A CLI do bootstrap vira o comando `sf-mcp-auth-bootstrap`; o client e o
+`auth_state` são importáveis como `from sf_mcp_auth import ...`.
 
 ---
 
@@ -123,7 +134,11 @@ Copie `workflow/collect.yml` para `.github/workflows/` e adapte:
 - Instale as dependências do seu projeto no passo *Install dependencies*
 - Remova os passos que não usar (persistência de snapshot, artefatos)
 
-O passo que faz o segredo virar autônomo é este (já no workflow):
+O passo que faz o segredo virar autônomo é este (já no workflow). O guard
+compara `refresh_token` com `refresh_token_initial` (que o pipeline grava com o
+token que a run COMEÇOU) e **só escreve o secret quando realmente rotacionou** —
+uma run que falhou antes de refrescar não pode sobrescrever um token válido com
+um token morto:
 
 ```yaml
       - name: Rotate auth secret (refresh token rotation)
@@ -142,9 +157,24 @@ O passo que faz o segredo virar autônomo é este (já no workflow):
           if [ -z "$NEW_TOKEN" ]; then
             echo "Empty refresh token in auth_state.json - skipping"; exit 0
           fi
+          OLD_TOKEN=$(python -c "import json;print(json.load(open('out/auth_state.json')).get('refresh_token_initial',''))")
+          if [ -z "$OLD_TOKEN" ]; then
+            echo "No refresh_token_initial - cannot verify rotation, skipping"; exit 0
+          fi
+          if [ "$NEW_TOKEN" = "$OLD_TOKEN" ]; then
+            echo "Token was NOT rotated this run - skipping secret write"; exit 0
+          fi
           gh secret set SF_REFRESH_TOKEN --body "$NEW_TOKEN"
           echo "SF_REFRESH_TOKEN rotated"
 ```
+
+O workflow inteiro ainda traz duas proteções contra corrida:
+
+- **`concurrency: group: collect, cancel-in-progress: false`** — só uma run
+  coletora roda por vez. Duas runs sobrepostas refrescam e rotacionam o token
+  ao mesmo tempo; a perdedora escreveria um token morto por cima do ganhador.
+- **`if: always()` no rotate** — mesmo com pipeline quebrada, o token já
+  rotacionado volta para o secret e a próxima run começa viva.
 
 ### 5. Validar
 
@@ -162,7 +192,7 @@ Se o 2º run for verde, o ciclo está provado — o cron mantém sozinho.
 
 ## Como o client rotaciona (o coração do kit)
 
-`client/salesforce_mcp_client.py` (código real, self-contained):
+`sf_mcp_auth/client.py` (código real, self-contained):
 
 ```python
 def _refresh_token(self) -> None:
@@ -181,16 +211,35 @@ def _refresh_token(self) -> None:
 ```
 
 E o chamador (padrão em `pipeline/run_with_rotation.py`) **sempre** devolve o
-token para o secret, em sucesso E em falha:
+token para o secret, em sucesso E em falha. Agora usando o pacote e gravando
+também o token inicial (para o guard de rotação do workflow):
 
 ```python
-client = _build_client()          # criado ANTES do try
+from sf_mcp_auth.auth_state import write_auth_state
+from sf_mcp_auth.client import SalesforceClient
+
+client = SalesforceClient()           # criado ANTES do try
 try:
-    run_pipeline(client=client)   # faz refresh/rotação internamente
+    run_pipeline(client=client)       # faz refresh/rotação internamente
 finally:
     if args.auth_state_out and client.refresh_token:
-        _write_auth_state(args.auth_state_out, client.refresh_token)
+        write_auth_state(
+            args.auth_state_out,
+            client.refresh_token,
+            initial=os.environ.get("SF_REFRESH_TOKEN"),
+        )
 ```
+
+O arquivo `auth_state.json` resultante:
+
+```json
+{
+  "refresh_token": "<token rotacionado nesta run>",
+  "refresh_token_initial": "<token que a run COMEÇOU>"
+}
+```
+
+O passo *Rotate auth secret* só escreve o secret quando os dois diferem.
 
 ---
 
@@ -204,6 +253,7 @@ finally:
 | `src refspec data does not match any` | `git worktree add ... origin/data` = detached HEAD | `git push origin HEAD:data` |
 | Cron `*/15` não dispara no minuto certo | GitHub atrasa/pula slots de schedule sob carga | normal; `workflow_dispatch` para validar |
 | `GITHUB_TOKEN` não seta secret | permissão insuficiente por design | PAT fine-grained Secrets read/write |
+| Run falho `if: always()` regrava token morto no secret | pipeline quebrada antes do refresh grava o token antigo por cima do rotacionado | guard `refresh_token == refresh_token_initial` no passo rotate + `concurrency` |
 
 Detalhes completos em `docs/TROUBLESHOOTING.md`.
 

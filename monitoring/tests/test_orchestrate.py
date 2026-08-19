@@ -741,8 +741,19 @@ class TestHardening:
 class TestWriteAuthState:
     def test_writes_refresh_token_json(self, tmp_path):
         out = tmp_path / "auth_state.json"
+        orchestrate._write_auth_state(str(out), "rotated-rt-1", "initial-rt")
+        assert json.loads(out.read_text()) == {
+            "refresh_token": "rotated-rt-1",
+            "refresh_token_initial": "initial-rt",
+        }
+
+    def test_writes_initial_as_refresh_when_no_initial(self, tmp_path):
+        out = tmp_path / "auth_state.json"
         orchestrate._write_auth_state(str(out), "rotated-rt-1")
-        assert json.loads(out.read_text()) == {"refresh_token": "rotated-rt-1"}
+        assert json.loads(out.read_text()) == {
+            "refresh_token": "rotated-rt-1",
+            "refresh_token_initial": "rotated-rt-1",
+        }
 
     def test_main_writes_auth_state_on_success(self, tmp_path, monkeypatch):
         class FakeClient:
@@ -784,7 +795,10 @@ class TestWriteAuthState:
             ],
         )
         orchestrate.main()
-        assert json.loads(auth_out.read_text()) == {"refresh_token": "rotated-rt-1"}
+        assert json.loads(auth_out.read_text()) == {
+            "refresh_token": "rotated-rt-1",
+            "refresh_token_initial": "rotated-rt-1",
+        }
 
     def test_main_writes_auth_state_on_failure(self, tmp_path, monkeypatch):
         class FakeClient:
@@ -823,7 +837,10 @@ class TestWriteAuthState:
             raise AssertionError("expected RuntimeError")
         except RuntimeError:
             pass
-        assert json.loads(auth_out.read_text()) == {"refresh_token": "rotated-rt-2"}
+        assert json.loads(auth_out.read_text()) == {
+            "refresh_token": "rotated-rt-2",
+            "refresh_token_initial": "rotated-rt-2",
+        }
 
 
 class TestUpdateTrace:

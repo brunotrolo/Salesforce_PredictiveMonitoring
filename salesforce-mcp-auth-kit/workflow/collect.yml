@@ -15,6 +15,15 @@
 # The key trick is the "Rotate auth secret" step: it runs with `if: always()`
 # so even a failing pipeline still hands the ROTATED refresh token back to
 # the secret - the next run always starts with a live token.
+#
+# Two production lessons baked into this template:
+#   1. The rotate step compares refresh_token vs refresh_token_initial (written
+#      by pipeline/auth_state.py). A run that never refreshed must NOT write the
+#      secret back - otherwise a failed concurrent run can clobber a valid
+#      rotated token with an already-dead one (seen in production on 2026-08-19).
+#   2. The concurrency group ensures only ONE collect runs at a time - two
+#      overlapping runs both refresh and rotate the token, and the loser writes
+#      a dead token back over the winner's fresh one.
 # =============================================================================
 
 name: Collect
@@ -27,6 +36,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
 
 jobs:
   collect:
@@ -134,6 +147,15 @@ jobs:
           NEW_TOKEN=$(python -c "import json;print(json.load(open('out/auth_state.json'))['refresh_token'])")
           if [ -z "$NEW_TOKEN" ]; then
             echo "Empty refresh token in auth_state.json - skipping"
+            exit 0
+          fi
+          OLD_TOKEN=$(python -c "import json;print(json.load(open('out/auth_state.json')).get('refresh_token_initial',''))")
+          if [ -z "$OLD_TOKEN" ]; then
+            echo "No refresh_token_initial in auth_state.json - cannot verify rotation, skipping"
+            exit 0
+          fi
+          if [ "$NEW_TOKEN" = "$OLD_TOKEN" ]; then
+            echo "Token was NOT rotated this run - skipping secret write (avoids clobbering a valid token with a dead one)"
             exit 0
           fi
           gh secret set SF_REFRESH_TOKEN --body "$NEW_TOKEN"

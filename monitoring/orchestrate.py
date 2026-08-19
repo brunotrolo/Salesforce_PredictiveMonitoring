@@ -595,15 +595,28 @@ def _build_client() -> Any:
     return SalesforceClient()
 
 
-def _write_auth_state(path: str, refresh_token: str) -> None:
+def _write_auth_state(
+    path: str, refresh_token: str, initial: str | None = None
+) -> None:
     """Persist the current (possibly rotated) refresh token for the next run.
 
     Salesforce rotates the refresh token on every refresh (Refresh Token
     Rotation is mandatory in this org), so the token that just worked must
     be handed back to the caller (the CI workflow) before the process exits.
+
+    ``refresh_token_initial`` is the token the run started with; the CI
+    workflow only updates the SF_REFRESH_TOKEN secret when the two differ,
+    so a run that failed before ever refreshing cannot clobber a valid
+    secret with an already-used token.
     """
     with open(path, "w") as f:
-        json.dump({"refresh_token": refresh_token}, f)
+        json.dump(
+            {
+                "refresh_token": refresh_token,
+                "refresh_token_initial": initial or refresh_token,
+            },
+            f,
+        )
 
 
 def init_sentry(dsn: str | None = None) -> bool:
@@ -700,6 +713,7 @@ def main() -> None:
 
     sentry_active = init_sentry()
     client = _build_client() if args.mode == "real" else None
+    initial_rt = client.refresh_token if client else None
     try:
         history: dict[str, int] | None = None
         prev_snapshot: dict | None = None
@@ -756,7 +770,7 @@ def main() -> None:
         raise
     finally:
         if args.auth_state_out and client is not None and client.refresh_token:
-            _write_auth_state(args.auth_state_out, client.refresh_token)
+            _write_auth_state(args.auth_state_out, client.refresh_token, initial_rt)
 
 
 if __name__ == "__main__":

@@ -11,6 +11,11 @@ Why this works even when the pipeline fails:
   * the finally block still writes the NEW token that the client captured;
   * the workflow rotate step runs with ``if: always()``.
 
+The auth state file also records ``refresh_token_initial`` - the token the run
+STARTED with. The rotate step compares both and only writes the secret back
+when they differ: a run that never refreshed must NOT clobber a valid rotated
+token with an already-dead one.
+
 Usage:
     python run_with_rotation.py --mode real --auth-state-out out/auth_state.json
 """
@@ -23,23 +28,13 @@ import os
 import sys
 from typing import Any
 
+from sf_mcp_auth.auth_state import write_auth_state
+from sf_mcp_auth.client import SalesforceClient
+
 
 def _build_client() -> Any:
     """Build the real MCP client from SF_* env vars (set by the workflow)."""
-    from salesforce_mcp_client import SalesforceClient
-
     return SalesforceClient()
-
-
-def _write_auth_state(path: str, refresh_token: str) -> None:
-    """Persist the current (possibly rotated) refresh token for the next run.
-
-    Salesforce rotates the refresh token on every refresh (Refresh Token
-    Rotation is mandatory in some orgs), so the token that just worked must
-    be handed back to the caller (the CI workflow) before the process exits.
-    """
-    with open(path, "w") as f:
-        json.dump({"refresh_token": refresh_token}, f)
 
 
 def run_pipeline(client: Any, mode: str) -> dict:
@@ -62,9 +57,9 @@ def main() -> None:
         "--auth-state-out",
         default=None,
         help=(
-            'Write {"refresh_token": ...} after the run, so the caller can '
-            "persist the rotated refresh token (Salesforce Refresh Token "
-            "Rotation); optional"
+            "Write the auth state after the run, so the caller can persist "
+            "the rotated refresh token (Salesforce Refresh Token Rotation); "
+            "optional"
         ),
     )
     args = parser.parse_args()
@@ -80,7 +75,11 @@ def main() -> None:
         raise
     finally:
         if args.auth_state_out and client is not None and client.refresh_token:
-            _write_auth_state(args.auth_state_out, client.refresh_token)
+            write_auth_state(
+                args.auth_state_out,
+                client.refresh_token,
+                initial=os.environ.get("SF_REFRESH_TOKEN"),
+            )
 
 
 if __name__ == "__main__":
