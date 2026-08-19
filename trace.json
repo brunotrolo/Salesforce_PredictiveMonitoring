@@ -22,5 +22,17 @@
     "anomalies": 5,
     "circuit_breaker": false,
     "breaker_messages": []
+  },
+  {
+    "timestamp": "2026-08-19T03:38:01.677250+00:00",
+    "risk_score": 0.0,
+    "errors_count": 0,
+    "retried_count": 0,
+    "alerts_critical": 0,
+    "alerts_warning": 0,
+    "ml_risk": 0.37556818181818186,
+    "anomalies": 4,
+    "circuit_breaker": false,
+    "breaker_messages": []
   }
 ]
