@@ -21,7 +21,7 @@ const DATA_BRANCH = "data";
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${DATA_BRANCH}`;
 
 /** Fetch with a short timeout so the dashboard never hangs waiting on GitHub. */
-async function fetchTimeout(url, ms = 5000) {
+export async function fetchTimeout(url, ms = 5000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   try {

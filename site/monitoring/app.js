@@ -15,7 +15,7 @@
  * page sees so support can reproduce issues without guesswork.
  */
 
-import { fetchLatestSnapshot, fetchRecentSnapshots, fetchTrace } from "./client.js";
+import { fetchLatestSnapshot, fetchRecentSnapshots, fetchTrace, fetchTimeout } from "./client.js";
 import {
   getRiskLevel,
   getRiskColor,
@@ -741,6 +741,9 @@ const MODAL_POLL_MS = 5000;
 const MODAL_EXPECTED_SEC = 60;
 const MODAL_TIMEOUT_SEC = 8 * 60;
 const MODAL_HINT_SEC = 30;
+// Tolerates a run dispatched up to 5 min before the modal opened (clock
+// skew between browser and GitHub, or user clicked Run first).
+const RUN_FRESH_MARGIN_MS = 5 * 60 * 1000;
 const DEFAULT_STEPS = ["collect", "analyze", "aggregate", "compare", "shadow", "save"];
 // Rough weight per pipeline step (from real snapshots: collect dominates).
 const PIPELINE_STEP_WEIGHTS = {
@@ -809,23 +812,38 @@ function updateModalBar(pct, state = "idle") {
 async function checkLatestDispatchRun(sinceMs) {
   try {
     const res = await fetchTimeout(GITHUB_RUNS_URL, 7000);
-    if (!res || !res.ok) return null;
+    if (!res || !res.ok) {
+      if (modalState && (res.status === 403 || res.status === 429)) {
+        modalState.rateLimited = true;
+        setModalHint("O GitHub limitou as consultas da janela (60/h) — ela passa a verificar de 30 em 30 s.");
+      }
+      return null;
+    }
     const data = await res.json();
     const run = data.workflow_runs && data.workflow_runs[0];
     if (!run) return null;
     const started = new Date(run.started_at || run.created_at).getTime();
-    if (!Number.isFinite(started) || started < sinceMs) return null;
+    if (!Number.isFinite(started) || started < sinceMs - RUN_FRESH_MARGIN_MS) return null;
     return run;
   } catch {
     return null;
   }
 }
 
+function scheduleNextPoll() {
+  if (!modalState || modalState.phase === "failed" || modalState.phase === "done") return;
+  const elapsedSec = (Date.now() - modalState.openedAt) / 1000;
+  let delay = MODAL_POLL_MS;
+  if (modalState.rateLimited) delay = 30000;
+  else if (elapsedSec > 60) delay = 15000;
+  modalTimer = setTimeout(pollModal, delay);
+}
+
 function failModal(message) {
   modalState = modalState || { phase: "failed" };
   modalState.phase = "failed";
   if (modalTimer) {
-    clearInterval(modalTimer);
+    clearTimeout(modalTimer);
     modalTimer = null;
   }
   renderModalSteps(1, true);
@@ -836,7 +854,7 @@ function failModal(message) {
 async function doneModal() {
   modalState.phase = "done";
   if (modalTimer) {
-    clearInterval(modalTimer);
+    clearTimeout(modalTimer);
     modalTimer = null;
   }
   renderModalSteps(1, false);
@@ -861,6 +879,7 @@ async function pollModal() {
     const run = await checkLatestDispatchRun(modalState.openedAt);
     if (run) {
       modalState.phase = "running";
+      modalState.rateLimited = false;
       modalState.run = run;
       modalState.runStartedAt = new Date(run.started_at || run.created_at).getTime();
       setModalHint("");
@@ -875,6 +894,7 @@ async function pollModal() {
       renderModalSteps(Math.min(1, elapsedSec / MODAL_EXPECTED_SEC), false);
       updateModalBar(2);
     }
+    scheduleNextPoll();
     return;
   }
 
@@ -907,18 +927,21 @@ async function pollModal() {
     setModalStatus(
       concluded
         ? "Execução concluída no GitHub — aguardando o snapshot aparecer…"
-        : `Coleta em andamento no GitHub… (${Math.min(92, Math.round(fraction * 92))}%)`,
+        : run && run.status === "queued"
+          ? "Execução aguardando runner disponível no GitHub…"
+          : `Coleta em andamento no GitHub… (${Math.min(92, Math.round(fraction * 92))}%)`,
       "idle"
     );
+    scheduleNextPoll();
   }
 }
 
 function openModal() {
   if (modalTimer) {
-    clearInterval(modalTimer);
+    clearTimeout(modalTimer);
     modalTimer = null;
   }
-  modalState = { openedAt: Date.now(), phase: "waiting", run: null, runStartedAt: null };
+  modalState = { openedAt: Date.now(), phase: "waiting", run: null, runStartedAt: null, rateLimited: false };
   updateModalBar(0);
   setModalStatus(
     "A coleta manual roda exatamente como a agendada: 1º abra o workflow no GitHub, 2º clique em Run workflow.",
@@ -927,13 +950,12 @@ function openModal() {
   setModalHint("");
   renderModalSteps(0, false);
   els.refreshModal()?.classList.remove("hidden");
-  modalTimer = setInterval(pollModal, MODAL_POLL_MS);
   pollModal();
 }
 
 function closeModal() {
   if (modalTimer) {
-    clearInterval(modalTimer);
+    clearTimeout(modalTimer);
     modalTimer = null;
   }
   modalState = null;
