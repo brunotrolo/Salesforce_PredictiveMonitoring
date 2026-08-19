@@ -177,10 +177,9 @@ def _trace_entry_from_result(result: dict, snapshot_name: str | None = None) -> 
     shadow = result.get("shadow_mode") or {}
     shadow_enabled = shadow.get("enabled") is True
     breaker_hits: list[str] = []
-    for message in (
-        [log.get("message", "") for log in result.get("logs") or []]
-        + [alert.get("message", "") for alert in result.get("alerts") or []]
-    ):
+    for message in [log.get("message", "") for log in result.get("logs") or []] + [
+        alert.get("message", "") for alert in result.get("alerts") or []
+    ]:
         lowered = str(message).lower()
         if any(pattern in lowered for pattern in CIRCUIT_BREAKER_PATTERNS):
             if str(message) not in breaker_hits:
@@ -252,7 +251,9 @@ def _trace_entry_from_result(result: dict, snapshot_name: str | None = None) -> 
 
 
 def update_trace(
-    trace: Any, result: dict, now: datetime | None = None,
+    trace: Any,
+    result: dict,
+    now: datetime | None = None,
     snapshot_name: str | None = None,
 ) -> list[dict]:
     """Append the current cycle to the rolling trace and prune old entries.
@@ -267,8 +268,10 @@ def update_trace(
     now = now or datetime.now(timezone.utc)
     cutoff = (now - timedelta(hours=TRACE_WINDOW_HOURS)).isoformat()
     kept = [
-        entry for entry in trace
-        if isinstance(entry, dict) and entry.get("timestamp")
+        entry
+        for entry in trace
+        if isinstance(entry, dict)
+        and entry.get("timestamp")
         and str(entry["timestamp"]) >= cutoff
     ]
     kept.sort(key=lambda entry: str(entry.get("timestamp", "")))
@@ -737,11 +740,9 @@ def main() -> None:
             try:
                 with open(args.trace_file) as f:
                     existing = json.load(f)
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 existing = []
-            trace = update_trace(
-                existing, result, snapshot_name=args.snapshot_name
-            )
+            trace = update_trace(existing, result, snapshot_name=args.snapshot_name)
             with open(args.trace_file, "w") as f:
                 json.dump(trace, f, indent=2)
 

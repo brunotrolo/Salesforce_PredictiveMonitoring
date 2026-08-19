@@ -897,9 +897,7 @@ class TestUpdateTrace:
         )
         entry = orchestrate._trace_entry_from_result(result)
         assert entry["circuit_breaker"] is True
-        assert any(
-            "Circuit breaker opened" in m for m in entry["breaker_messages"]
-        )
+        assert any("Circuit breaker opened" in m for m in entry["breaker_messages"])
 
     def test_circuit_breaker_detected_from_http_status(self):
         result = self._result(alerts=[{"severity": "CRITICAL", "message": "HTTP 503"}])
@@ -976,17 +974,20 @@ class TestUpdateTrace:
         assert updated[0]["snapshot"] == "data/2026-08-19/2026-08-19T01-00-00Z.json"
 
     def test_snapshot_includes_real_logs(self):
-        result, raw_logs = orchestrate.run_pipeline(mode="real", client=FakeMCPClient(
-            [
-                {
-                    "Id": "log-9",
-                    "CreatedDate": "2026-08-19T01:00:00Z",
-                    "Status": "500",
-                    "DurationMilliseconds": 900,
-                    "Application": "ORG-REAL",
-                }
-            ]
-        ))
+        result, raw_logs = orchestrate.run_pipeline(
+            mode="real",
+            client=FakeMCPClient(
+                [
+                    {
+                        "Id": "log-9",
+                        "CreatedDate": "2026-08-19T01:00:00Z",
+                        "Status": "500",
+                        "DurationMilliseconds": 900,
+                        "Application": "ORG-REAL",
+                    }
+                ]
+            ),
+        )
         assert len(result["logs"]) == 1
         assert result["logs"][0]["log_id"] == "log-9"
         assert result["logs"][0]["status_code"] == 500
