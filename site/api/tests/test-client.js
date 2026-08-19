@@ -4,6 +4,9 @@ import {
   fetchDay,
   fetchRecentSnapshots,
   fetchTrace,
+  fetchWorkflowRuns,
+  dispatchWorkflow,
+  validateToken,
   listDayFolders,
 } from "../client.js";
 
@@ -147,6 +150,87 @@ describe("fetchRecentSnapshots", () => {
     expect(snaps[0].risk_score).toBe(0.42);
   });
 });
+describe("dispatchWorkflow", () => {
+  test("resolves ok on 204 (run queued)", async () => {
+    global.fetch.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) });
+    const result = await dispatchWorkflow("ghp_token");
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe(204);
+    const [url, opts] = global.fetch.mock.calls[0];
+    expect(url).toContain("/actions/workflows/collect.yml/dispatches");
+    expect(opts.method).toBe("POST");
+    expect(opts.headers.Authorization).toBe("Bearer ghp_token");
+    expect(JSON.parse(opts.body)).toEqual({ ref: "main" });
+  });
+
+  test("returns not ok with GitHub message on 401", async () => {
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({ message: "Bad credentials" }),
+    });
+    const result = await dispatchWorkflow("bad_token");
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(401);
+    expect(result.error).toBe("Bad credentials");
+  });
+
+  test("returns not ok with generic error on network failure", async () => {
+    global.fetch.mockRejectedValueOnce(new Error("offline"));
+    const result = await dispatchWorkflow("tok");
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(0);
+  });
+});
+
+describe("fetchWorkflowRuns", () => {
+  test("returns the runs array with token header", async () => {
+    const runs = [
+      { id: 1, status: "in_progress", started_at: "2026-08-19T12:00:00Z" },
+    ];
+    global.fetch.mockResolvedValueOnce(jsonRes({ workflow_runs: runs }));
+    const got = await fetchWorkflowRuns("ghp_token");
+    expect(got).toEqual(runs);
+    const opts = global.fetch.mock.calls[0][1];
+    expect(opts.headers.Authorization).toBe("Bearer ghp_token");
+  });
+
+  test("returns null on HTTP error", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes(undefined, false));
+    expect(await fetchWorkflowRuns("tok")).toBeNull();
+  });
+
+  test("returns null on network error", async () => {
+    global.fetch.mockRejectedValueOnce(new Error("down"));
+    expect(await fetchWorkflowRuns("tok")).toBeNull();
+  });
+
+  test("works without a token (public read path)", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes({ workflow_runs: [{ id: 1 }] }));
+    const got = await fetchWorkflowRuns(null);
+    expect(got).toEqual([{ id: 1 }]);
+    const opts = global.fetch.mock.calls[0][1];
+    expect(opts.headers).toBeUndefined();
+  });
+});
+
+describe("validateToken", () => {
+  test("true when API accepts the token", async () => {
+    global.fetch.mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.resolve({}) });
+    expect(await validateToken("ghp_ok")).toBe(true);
+  });
+
+  test("false on 401", async () => {
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 401, json: () => Promise.resolve({}) });
+    expect(await validateToken("bad")).toBe(false);
+  });
+
+  test("false on network error", async () => {
+    global.fetch.mockRejectedValueOnce(new Error("offline"));
+    expect(await validateToken("tok")).toBe(false);
+  });
+});
+
 describe("fetchTrace", () => {
   test("returns the trace array from the data branch", async () => {
     const trace = [

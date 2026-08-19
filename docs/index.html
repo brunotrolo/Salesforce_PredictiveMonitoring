@@ -783,6 +783,31 @@
       font-size: 12px;
       color: var(--text-faint);
     }
+    .token-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .token-row .btn { width: auto; }
+    .token-row input {
+      flex: 1;
+      min-width: 200px;
+      padding: 8px 12px;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      background: var(--surface-2);
+      color: var(--text);
+      font-size: 12px;
+    }
+    .token-row input::placeholder { color: var(--text-faint); }
+    .token-status {
+      margin: 0 0 14px;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+    .token-status[data-state="ok"] { color: var(--green); }
+    .token-status[data-state="error"] { color: var(--red); }
 
     /* ---------- diagnostics ---------- */
 
@@ -1169,14 +1194,23 @@
         <div id="modal-bar" class="modal-bar"></div>
       </div>
       <div id="modal-steps" class="modal-steps"></div>
+      <div class="token-row">
+        <input id="token-input" type="password" autocomplete="off" placeholder="Token do GitHub (Actions: read/write)" aria-label="Token do GitHub" />
+        <button id="token-save" class="btn" type="button">Salvar token</button>
+        <button id="token-remove" class="btn" type="button" style="display:none">Remover</button>
+      </div>
+      <p id="token-status" class="token-status" data-state="muted">—</p>
+      <button id="modal-start" class="btn" type="button" style="display:none">Iniciar coleta agora</button>
       <a id="modal-github" class="btn" href="https://github.com/brunotrolo/Salesforce_PredictiveMonitoring/actions/workflows/collect.yml" target="_blank" rel="noopener">Abrir GitHub e iniciar a coleta</a>
       <p id="modal-hint" class="modal-hint"></p>
       <p class="modal-tip">
-        Esta página é estática e não consegue disparar a coleta sozinha.
-        Na aba do GitHub, clique no botão <b>Run workflow</b> (menu ao lado
-        do nome) e depois no botão verde <b>Run workflow</b>. Esta janela
-        acompanha o progresso sozinha — sem token, sem senha, e o pipeline
-        roda exatamente como o agendado.
+        <b>Automação (recomendada):</b> cole um token do GitHub com permissão
+        <b>Actions: read/write</b> (fine-grained, restrito a este repositório) e
+        clique em "Salvar token". Ele fica salvo <b>apenas neste navegador</b> —
+        nunca é publicado no repositório — e a coleta passa a disparar com
+        1 clique, sem abrir o GitHub. <b>Sem token:</b> a janela abre o GitHub e
+        você clica em <b>Run workflow</b> manualmente. Nos dois casos o pipeline
+        roda exatamente como o agendado, e esta janela acompanha o progresso.
       </p>
     </div>
   </div>

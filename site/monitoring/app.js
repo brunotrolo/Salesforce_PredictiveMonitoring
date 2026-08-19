@@ -15,7 +15,15 @@
  * page sees so support can reproduce issues without guesswork.
  */
 
-import { fetchLatestSnapshot, fetchRecentSnapshots, fetchTrace, fetchTimeout } from "./client.js";
+import {
+  fetchLatestSnapshot,
+  fetchRecentSnapshots,
+  fetchTrace,
+  fetchTimeout,
+  dispatchWorkflow,
+  fetchWorkflowRuns,
+  validateToken,
+} from "./client.js";
 import {
   getRiskLevel,
   getRiskColor,
@@ -85,7 +93,12 @@ const els = {
   modalBar: () => document.getElementById("modal-bar"),
   modalSteps: () => document.getElementById("modal-steps"),
   modalGithub: () => document.getElementById("modal-github"),
+  modalStart: () => document.getElementById("modal-start"),
   modalHint: () => document.getElementById("modal-hint"),
+  tokenInput: () => document.getElementById("token-input"),
+  tokenSave: () => document.getElementById("token-save"),
+  tokenRemove: () => document.getElementById("token-remove"),
+  tokenStatus: () => document.getElementById("token-status"),
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
@@ -715,6 +728,7 @@ async function renderAll() {
   DIAG.snapshot = latest;
   DIAG.traceCycles = Array.isArray(trace) ? trace.length : null;
   DIAG.logsTotal = latest && Array.isArray(latest.logs) ? latest.logs.length : null;
+  DIAG.tokenConfigured = Boolean(getSavedToken());
 
   hideSkeleton();
   renderHeader(latest);
@@ -830,6 +844,134 @@ async function checkLatestDispatchRun(sinceMs) {
   }
 }
 
+const TOKEN_STORAGE_KEY = "gh_pat_monitoring";
+
+function getSavedToken() {
+  try {
+    return localStorage.getItem(TOKEN_STORAGE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function setSavedToken(token) {
+  try {
+    if (token) localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    else localStorage.removeItem(TOKEN_STORAGE_KEY);
+  } catch {
+    /* storage unavailable (private mode) — token just won't persist */
+  }
+}
+
+function updateTokenUi() {
+  const token = getSavedToken();
+  const input = els.tokenInput();
+  if (input) input.value = token ? "••••••••••••••••" : "";
+  const status = els.tokenStatus();
+  if (status) {
+    if (token) {
+      status.textContent = "Token salvo NESTE navegador — a coleta dispara com 1 clique.";
+      status.dataset.state = "ok";
+    } else {
+      status.textContent = "Sem token: a janela abre o GitHub para você clicar em Run workflow.";
+      status.dataset.state = "muted";
+    }
+  }
+  if (els.tokenRemove()) els.tokenRemove().style.display = token ? "" : "none";
+  syncModalCta();
+}
+
+/** Swaps the modal CTA: one-click start (token) vs GitHub link (no token). */
+function syncModalCta() {
+  const token = getSavedToken();
+  const startBtn = els.modalStart();
+  if (startBtn) {
+    startBtn.disabled = false;
+    startBtn.style.display = token ? "" : "none";
+  }
+  if (els.modalGithub()) els.modalGithub().style.display = token ? "none" : "";
+}
+
+/**
+ * Newest dispatch run respecting the saved token: with a token we use the
+ * authenticated endpoint (5000 req/h), without it the public read-only one.
+ */
+async function getLatestDispatchRun(sinceMs) {
+  const token = getSavedToken();
+  if (!token) return checkLatestDispatchRun(sinceMs);
+  const runs = await fetchWorkflowRuns(token);
+  if (!runs || runs.length === 0) return null;
+  const run = runs[0];
+  const started = new Date(run.started_at || run.created_at).getTime();
+  if (!Number.isFinite(started) || started < sinceMs - RUN_FRESH_MARGIN_MS) return null;
+  return run;
+}
+
+/** POST workflow_dispatch with the saved token — the one-click path. */
+async function startManualRun() {
+  if (!modalState || modalState.phase === "starting") return;
+  const token = getSavedToken();
+  if (!token) return;
+  modalState.phase = "starting";
+  modalState.rateLimited = false;
+  const startBtn = els.modalStart();
+  if (startBtn) startBtn.disabled = true;
+  setModalStatus("Disparando a coleta no GitHub…", "idle");
+  setModalHint("");
+  updateModalBar(2);
+  renderModalSteps(0, false);
+  const result = await dispatchWorkflow(token);
+  if (!modalState || modalState.phase === "failed" || modalState.phase === "done") return;
+  if (!result.ok) {
+    modalState.phase = "waiting";
+    if (startBtn) startBtn.disabled = false;
+    updateModalBar(0);
+    if (result.status === 401 || result.status === 403) {
+      setModalStatus("O token foi recusado pelo GitHub.", "failed");
+      setModalHint("Atualize o token abaixo (permite Actions: read/write) e tente de novo.");
+    } else {
+      setModalStatus(`Não foi possível disparar a coleta (${result.error || "erro de rede"}).`, "failed");
+      setModalHint("Verifique sua conexão e tente de novo, ou abra o GitHub manualmente.");
+    }
+    return;
+  }
+  modalState.phase = "running";
+  modalState.runStartedAt = Date.now();
+  setModalStatus("Coleta disparada no GitHub — acompanhando a execução…", "idle");
+  setModalHint("");
+  scheduleNextPoll();
+}
+
+async function onTokenSave() {
+  const input = els.tokenInput();
+  if (!input) return;
+  const value = input.value.trim();
+  if (value === "" || value.startsWith("•")) return;
+  const saveBtn = els.tokenSave();
+  const status = els.tokenStatus();
+  if (saveBtn) saveBtn.disabled = true;
+  if (status) status.textContent = "Validando token…";
+  const ok = await validateToken(value);
+  if (saveBtn) saveBtn.disabled = false;
+  if (ok) {
+    setSavedToken(value);
+    input.value = "";
+    if (status) {
+      status.textContent = "Token validado e salvo NESTE navegador — a coleta agora dispara com 1 clique.";
+      status.dataset.state = "ok";
+    }
+    if (els.tokenRemove()) els.tokenRemove().style.display = "";
+  } else if (status) {
+    status.textContent = "Token inválido ou sem acesso de leitura/escrita em Actions — nada foi salvo.";
+    status.dataset.state = "error";
+  }
+}
+
+function onTokenRemove() {
+  setSavedToken("");
+  updateTokenUi();
+}
+
 function scheduleNextPoll() {
   if (!modalState || modalState.phase === "failed" || modalState.phase === "done") return;
   const elapsedSec = (Date.now() - modalState.openedAt) / 1000;
@@ -876,20 +1018,26 @@ async function pollModal() {
       failModal("Tempo esgotado: nenhuma execução detectada em 8 minutos.");
       return;
     }
-    const run = await checkLatestDispatchRun(modalState.openedAt);
+    const run = await getLatestDispatchRun(modalState.openedAt);
     if (run) {
       modalState.phase = "running";
       modalState.rateLimited = false;
       modalState.run = run;
       modalState.runStartedAt = new Date(run.started_at || run.created_at).getTime();
       setModalHint("");
+      if (els.modalStart()) els.modalStart().disabled = true;
     } else {
-      setModalStatus(
-        "Aguardando a coleta começar no GitHub…",
-        "idle"
-      );
+      if (getSavedToken()) {
+        setModalStatus("1 clique em \"Iniciar coleta\" dispara tudo — ou aguarde a coleta agendada.", "idle");
+      } else {
+        setModalStatus("Aguardando a coleta começar no GitHub…", "idle");
+      }
       if (elapsedSec > MODAL_HINT_SEC) {
-        setModalHint("Nenhuma execução detectada ainda — confira se clicou em Run workflow.");
+        setModalHint(
+          getSavedToken()
+            ? "Já existe execução em andamento? Ela será detectada sozinha."
+            : "Nenhuma execução detectada ainda — confira se clicou em Run workflow."
+        );
       }
       renderModalSteps(Math.min(1, elapsedSec / MODAL_EXPECTED_SEC), false);
       updateModalBar(2);
@@ -904,7 +1052,7 @@ async function pollModal() {
     renderModalSteps(fraction, false);
     updateModalBar(Math.min(92, Math.round(fraction * 92)));
 
-    const run = await checkLatestDispatchRun(modalState.openedAt);
+    const run = await getLatestDispatchRun(modalState.openedAt);
     const concluded = run && (run.conclusion || run.status === "completed");
     if (run && run.conclusion === "failure") {
       failModal("A coleta falhou no GitHub — confira o log do workflow.");
@@ -941,14 +1089,23 @@ function openModal() {
     clearTimeout(modalTimer);
     modalTimer = null;
   }
+  updateTokenUi();
   modalState = { openedAt: Date.now(), phase: "waiting", run: null, runStartedAt: null, rateLimited: false };
   updateModalBar(0);
-  setModalStatus(
-    "A coleta manual roda exatamente como a agendada: 1º abra o workflow no GitHub, 2º clique em Run workflow.",
-    "idle"
-  );
-  setModalHint("");
   renderModalSteps(0, false);
+  setModalHint("");
+  syncModalCta();
+  if (getSavedToken()) {
+    setModalStatus(
+      "Com o token salvo, 1 clique inicia a coleta — acompanho tudo aqui e atualizo a página sozinho.",
+      "idle"
+    );
+  } else {
+    setModalStatus(
+      "A coleta manual roda exatamente como a agendada: 1º abra o workflow no GitHub, 2º clique em Run workflow.",
+      "idle"
+    );
+  }
   els.refreshModal()?.classList.remove("hidden");
   pollModal();
 }
@@ -994,6 +1151,9 @@ async function boot() {
     ?.addEventListener("click", onRefresh);
   els.staleRefresh()?.addEventListener("click", onRefresh);
   els.modalClose()?.addEventListener("click", closeModal);
+  els.modalStart()?.addEventListener("click", startManualRun);
+  els.tokenSave()?.addEventListener("click", onTokenSave);
+  els.tokenRemove()?.addEventListener("click", onTokenRemove);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeModal();
   });

@@ -9,8 +9,12 @@
  *   - fetchDay(day): Promise<object[]>             -> all snapshots for a given day
  *   - Falls back to mock data when offline / no data branch yet.
  *
- * All credentials-free: reads the PUBLIC raw URL of the data branch
- * (the repo is public; no tokens are ever embedded in client code).
+ * All credentials-free by default: reads the PUBLIC raw URL of the data
+ * branch (the repo is public; no tokens are ever embedded in client code).
+ * The ONLY token-aware calls are the manual-refresh helpers
+ * (dispatchWorkflow / fetchWorkflowRuns / validateToken): they take the
+ * user's personal token from localStorage at call time and never persist
+ * it anywhere but that browser profile.
  */
 
 import { mockMonitoringData, mockEmptyData, mockTraceData } from "../monitoring/mock-data.js";
@@ -19,13 +23,14 @@ const REPO_OWNER = "brunotrolo";
 const REPO_NAME = "Salesforce_PredictiveMonitoring";
 const DATA_BRANCH = "data";
 const RAW_BASE = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${DATA_BRANCH}`;
+const GH_API = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`;
 
 /** Fetch with a short timeout so the dashboard never hangs waiting on GitHub. */
-export async function fetchTimeout(url, ms = 5000) {
+export async function fetchTimeout(url, ms = 5000, options = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   try {
-    const res = await fetch(url, { signal: controller.signal });
+    const res = await fetch(url, { ...options, signal: controller.signal });
     return res;
   } catch {
     return null;
@@ -34,9 +39,82 @@ export async function fetchTimeout(url, ms = 5000) {
   }
 }
 
+/**
+ * Trigger collect.yml manually via the Actions REST API (workflow_dispatch).
+ * Requires a personal token with "Actions: read/write" on this repo.
+ * Resolves { ok, status, error } — 204 means the run was queued.
+ */
+export async function dispatchWorkflow(token) {
+  try {
+    const res = await fetchTimeout(
+      `${GH_API}/actions/workflows/collect.yml/dispatches`,
+      8000,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ref: "main" }),
+      }
+    );
+    if (!res) return { ok: false, status: 0, error: "sem resposta de rede" };
+    if (res.status === 204) return { ok: true, status: 204, error: null };
+    let message = `HTTP ${res.status}`;
+    try {
+      const body = await res.json();
+      if (body && body.message) message = body.message;
+    } catch {
+      /* keep generic message */
+    }
+    return { ok: false, status: res.status, error: message };
+  } catch (err) {
+    return { ok: false, status: 0, error: String((err && err.message) || err) };
+  }
+}
+
+/**
+ * Newest workflow_dispatch run for collect.yml, or null on any error.
+ * Uses the token when available (higher rate limit), otherwise the public
+ * read-only endpoint.
+ */
+export async function fetchWorkflowRuns(token) {
+  const headers = token
+    ? { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" }
+    : undefined;
+  const res = await fetchTimeout(
+    `${GH_API}/actions/workflows/collect.yml/runs?event=workflow_dispatch&per_page=1`,
+    7000,
+    headers ? { headers } : {}
+  );
+  if (!res || !res.ok) return null;
+  try {
+    const data = await res.json();
+    return data && Array.isArray(data.workflow_runs) ? data.workflow_runs : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Cheap validation of a saved token: one read call against the Actions API.
+ * True only when the token is accepted and has read access.
+ */
+export async function validateToken(token) {
+  const res = await fetchTimeout(
+    `${GH_API}/actions/workflows/collect.yml/runs?per_page=1`,
+    8000,
+    {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+    }
+  );
+  return Boolean(res && res.ok);
+}
+
 /** List the newest day folder names by querying the GitHub Contents API. */
 export async function listDayFolders(limit = 7) {
-  const api = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/data?ref=${DATA_BRANCH}`;
+  const api = `${GH_API}/contents/data?ref=${DATA_BRANCH}`;
   try {
     const res = await fetchTimeout(api);
     if (!res || !res.ok) return [];
