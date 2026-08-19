@@ -1,0 +1,526 @@
+{
+  "timestamp": "2026-08-19T03:23:07.179039+00:00",
+  "mode": "real",
+  "risk_score": 0.0,
+  "errors_count": 0,
+  "slow_requests_count": 0,
+  "retried_count": 0,
+  "alerts": [],
+  "alerts_aggregated": [],
+  "severity_counts": {
+    "INFO": 0,
+    "WARNING": 0,
+    "CRITICAL": 0
+  },
+  "shadow_mode": {
+    "enabled": true,
+    "heuristic_risk": 0.0,
+    "ml_risk": 0.3870192307692308,
+    "agreement": false,
+    "verdict": "DISAGREE",
+    "forecast": {
+      "slope": 0.19230769230769232,
+      "intercept": 1.1538461538461535,
+      "predicted": [
+        3.6538461538461533,
+        3.846153846153846,
+        4.038461538461538
+      ],
+      "last_value": 1.0
+    },
+    "anomalies": {
+      "outliers": [
+        {
+          "index": 0,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 1,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 5,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 6,
+          "value": 2.0,
+          "z_score": null
+        },
+        {
+          "index": 8,
+          "value": 7.0,
+          "z_score": null
+        },
+        {
+          "index": 11,
+          "value": 8.0,
+          "z_score": null
+        }
+      ],
+      "threshold": 3.5,
+      "count": 6
+    },
+    "series": [
+      2.0,
+      2.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      2.0,
+      1.0,
+      7.0,
+      1.0,
+      1.0,
+      8.0,
+      1.0
+    ]
+  },
+  "comparison": {
+    "prediction": "STABLE",
+    "confidence": 0.95,
+    "risk_delta": 0.0,
+    "summary": "Risk changed by +0.0000 (STABLE)"
+  },
+  "health_check": {
+    "status": "HEALTHY",
+    "last_updated": "2026-08-19T03:23:07.179039+00:00"
+  },
+  "validation": {
+    "valid": true,
+    "errors": []
+  },
+  "logs_processed": 30,
+  "logs": [
+    {
+      "log_id": "a05bL00000VHTYPQA5",
+      "timestamp": "2026-08-19T03:23:00.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTWnQAP",
+      "timestamp": "2026-08-19T03:22:59.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTVBQA5",
+      "timestamp": "2026-08-19T03:22:58.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTTZQA5",
+      "timestamp": "2026-08-19T03:22:58.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHROYQA5",
+      "timestamp": "2026-08-19T03:22:57.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/account/v1/customers/12284694748/devices",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTRxQAP",
+      "timestamp": "2026-08-19T03:22:55.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTQLQA5",
+      "timestamp": "2026-08-19T03:22:55.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/account/v1/customers/12284694748/devices",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTOjQAP",
+      "timestamp": "2026-08-19T03:22:51.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTN7QAP",
+      "timestamp": "2026-08-19T03:22:04.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/invoices/4152751108280104/authorizations",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTLVQA5",
+      "timestamp": "2026-08-19T03:20:39.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/loyalty-service/v1/participants/81166667/miles-discharges",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHRzeQAH",
+      "timestamp": "2026-08-19T03:19:45.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/loyalty-service/v1/participants/81166667/miles-discharges",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTGfQAP",
+      "timestamp": "2026-08-19T03:16:11.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHPoAQAX",
+      "timestamp": "2026-08-19T03:16:08.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTF3QAP",
+      "timestamp": "2026-08-19T03:16:07.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTDRQA5",
+      "timestamp": "2026-08-19T03:16:06.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTBpQAP",
+      "timestamp": "2026-08-19T03:16:05.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHTADQA5",
+      "timestamp": "2026-08-19T03:16:05.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/account/v1/customers/12284694748/devices",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHT8bQAH",
+      "timestamp": "2026-08-19T03:16:02.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/account/v1/customers/12284694748/devices",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHT6zQAH",
+      "timestamp": "2026-08-19T03:15:51.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHT3lQAH",
+      "timestamp": "2026-08-19T03:11:16.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHOgoQAH",
+      "timestamp": "2026-08-19T03:11:14.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSsTQAX",
+      "timestamp": "2026-08-19T02:51:15.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSqrQAH",
+      "timestamp": "2026-08-19T02:51:13.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSndQAH",
+      "timestamp": "2026-08-19T02:46:43.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/reissue",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSkPQAX",
+      "timestamp": "2026-08-19T02:42:23.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSinQAH",
+      "timestamp": "2026-08-19T02:41:56.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 422,
+      "duration_ms": 0,
+      "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSajQAH",
+      "timestamp": "2026-08-19T02:32:52.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSZ7QAP",
+      "timestamp": "2026-08-19T02:32:50.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSUHQA5",
+      "timestamp": "2026-08-19T02:26:19.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    },
+    {
+      "log_id": "a05bL00000VHSSfQAP",
+      "timestamp": "2026-08-19T02:26:16.000+0000",
+      "org_id": "ORG-REAL",
+      "status_code": 404,
+      "duration_ms": 0,
+      "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+      "severity": "INFO",
+      "message": "None",
+      "retried": false,
+      "object_name": "None",
+      "object_id": "None"
+    }
+  ],
+  "pipeline": {
+    "duration_ms": 4145,
+    "steps": [
+      "collect",
+      "analyze",
+      "aggregate",
+      "compare",
+      "shadow",
+      "accuracy"
+    ],
+    "step_errors": []
+  },
+  "accuracy": {
+    "status": "evaluated",
+    "direction_expected": "up",
+    "direction_actual": "down",
+    "forecast_hit": false,
+    "anomaly_flagged": true,
+    "anomaly_hit": true,
+    "false_positive": false,
+    "series_actual": [
+      2.0,
+      2.0,
+      1.0,
+      1.0,
+      1.0,
+      2.0,
+      2.0,
+      1.0,
+      7.0,
+      1.0,
+      1.0,
+      8.0,
+      1.0
+    ]
+  }
+}
