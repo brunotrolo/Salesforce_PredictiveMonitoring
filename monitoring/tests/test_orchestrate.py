@@ -824,3 +824,108 @@ class TestWriteAuthState:
         except RuntimeError:
             pass
         assert json.loads(auth_out.read_text()) == {"refresh_token": "rotated-rt-2"}
+
+
+class TestUpdateTrace:
+    """Rolling 24h trace: append, prune, sort and circuit-breaker detection."""
+
+    def _result(self, **overrides):
+        base = {
+            "timestamp": "2026-08-19T01:00:00Z",
+            "risk_score": 0.3,
+            "errors_count": 1,
+            "retried_count": 0,
+            "severity_counts": {"INFO": 2, "WARNING": 1, "CRITICAL": 0},
+            "alerts": [{"severity": "WARNING", "message": "slow 1500ms"}],
+            "logs": [],
+            "shadow_mode": {"enabled": True, "ml_risk": 0.5, "anomalies": {"count": 1}},
+        }
+        base.update(overrides)
+        return base
+
+    def test_appends_entry_and_keeps_it_sorted(self):
+        trace = [
+            {"timestamp": "2026-08-18T10:00:00Z", "risk_score": 0.1},
+        ]
+        updated = orchestrate.update_trace(
+            trace,
+            self._result(timestamp="2026-08-19T01:00:00Z", risk_score=0.3),
+            now=datetime(2026, 8, 19, 1, 0, tzinfo=timezone.utc),
+        )
+        assert len(updated) == 2
+        assert [e["timestamp"] for e in updated] == [
+            "2026-08-18T10:00:00Z",
+            "2026-08-19T01:00:00Z",
+        ]
+
+    def test_prunes_entries_older_than_24h(self):
+        trace = [
+            {"timestamp": "2026-08-18T00:30:00Z", "risk_score": 0.9},
+            {"timestamp": "2026-08-18T01:10:00Z", "risk_score": 0.2},
+        ]
+        updated = orchestrate.update_trace(
+            trace,
+            self._result(),
+            now=datetime(2026, 8, 19, 1, 0, tzinfo=timezone.utc),
+        )
+        stamps = [e["timestamp"] for e in updated]
+        assert "2026-08-18T00:30:00Z" not in stamps
+        assert "2026-08-18T01:10:00Z" in stamps
+        assert "2026-08-19T01:00:00Z" in stamps
+
+    def test_corrupt_trace_degrades_to_fresh(self):
+        updated = orchestrate.update_trace(
+            "not-a-list",
+            self._result(),
+            now=datetime(2026, 8, 19, 1, 0, tzinfo=timezone.utc),
+        )
+        assert len(updated) == 1
+
+    def test_trace_entry_captures_counts_and_shadow(self):
+        result = self._result()
+        entry = orchestrate._trace_entry_from_result(result)
+        assert entry["errors_count"] == 1
+        assert entry["alerts_warning"] == 1
+        assert entry["alerts_critical"] == 0
+        assert entry["ml_risk"] == 0.5
+        assert entry["anomalies"] == 1
+        assert entry["circuit_breaker"] is False
+
+    def test_circuit_breaker_detected_from_log_message(self):
+        result = self._result(
+            logs=[{"message": "Circuit breaker opened after 12 retries"}]
+        )
+        entry = orchestrate._trace_entry_from_result(result)
+        assert entry["circuit_breaker"] is True
+        assert any(
+            "Circuit breaker opened" in m for m in entry["breaker_messages"]
+        )
+
+    def test_circuit_breaker_detected_from_http_status(self):
+        result = self._result(alerts=[{"severity": "CRITICAL", "message": "HTTP 503"}])
+        entry = orchestrate._trace_entry_from_result(result)
+        assert entry["circuit_breaker"] is True
+
+    def test_shadow_disabled_leaves_ml_fields_null(self):
+        entry = orchestrate._trace_entry_from_result(
+            self._result(shadow_mode={"enabled": False})
+        )
+        assert entry["ml_risk"] is None
+        assert entry["anomalies"] == 0
+
+    def test_snapshot_includes_real_logs(self):
+        result, raw_logs = orchestrate.run_pipeline(mode="real", client=FakeMCPClient(
+            [
+                {
+                    "Id": "log-9",
+                    "CreatedDate": "2026-08-19T01:00:00Z",
+                    "Status": "500",
+                    "DurationMilliseconds": 900,
+                    "Application": "ORG-REAL",
+                }
+            ]
+        ))
+        assert len(result["logs"]) == 1
+        assert result["logs"][0]["log_id"] == "log-9"
+        assert result["logs"][0]["status_code"] == 500
+        assert len(raw_logs) == 1

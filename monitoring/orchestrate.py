@@ -28,6 +28,23 @@ SOQL_LOG_QUERY = (
 )
 WINDOW_HOURS = 1
 
+# Rolling 24h trace: entries older than this window are pruned on each cycle.
+TRACE_WINDOW_HOURS = 24
+
+# Messages that signal a circuit breaker (Salesforce integration patterns):
+# explicit breaker events, HTTP 429/503, rate limiting and timeouts. Matched
+# case-insensitively against Log__c Message__c and alert messages.
+CIRCUIT_BREAKER_PATTERNS = (
+    "circuit breaker",
+    "circuitbreaker",
+    "breaker open",
+    "429",
+    "503",
+    "rate limit",
+    "too many requests",
+    "timeout",
+)
+
 
 def build_soql_query(window_start: str) -> str:
     """Build the SOQL query with an absolute window start (ISO UTC, ``Z``)."""
@@ -144,6 +161,63 @@ def fetch_real_logs(client: Any) -> list[dict[str, Any]]:
     if isinstance(raw, list):
         return map_soql_records(raw)
     return []
+
+
+def _trace_entry_from_result(result: dict) -> dict:
+    """Build one rolling-trace entry from a completed pipeline snapshot.
+
+    The entry is deliberately lean: everything the dashboard needs to answer
+    "did the system fall / did the ML flag anomalies / did the log system
+    detect a circuit breaker" over the last 24h, without the full snapshot.
+    """
+    shadow = result.get("shadow_mode") or {}
+    shadow_enabled = shadow.get("enabled") is True
+    breaker_hits: list[str] = []
+    for message in (
+        [log.get("message", "") for log in result.get("logs") or []]
+        + [alert.get("message", "") for alert in result.get("alerts") or []]
+    ):
+        lowered = str(message).lower()
+        if any(pattern in lowered for pattern in CIRCUIT_BREAKER_PATTERNS):
+            if str(message) not in breaker_hits:
+                breaker_hits.append(str(message))
+    return {
+        "timestamp": result.get("timestamp"),
+        "risk_score": result.get("risk_score"),
+        "errors_count": result.get("errors_count", 0),
+        "retried_count": result.get("retried_count", 0),
+        "alerts_critical": (result.get("severity_counts") or {}).get("CRITICAL", 0),
+        "alerts_warning": (result.get("severity_counts") or {}).get("WARNING", 0),
+        "ml_risk": shadow.get("ml_risk") if shadow_enabled else None,
+        "anomalies": (
+            (shadow.get("anomalies") or {}).get("count", 0) if shadow_enabled else 0
+        ),
+        "circuit_breaker": len(breaker_hits) > 0,
+        "breaker_messages": breaker_hits[:5],
+    }
+
+
+def update_trace(
+    trace: Any, result: dict, now: datetime | None = None
+) -> list[dict]:
+    """Append the current cycle to the rolling trace and prune old entries.
+
+    Keeps entries newer than ``TRACE_WINDOW_HOURS`` (24h), sorted by
+    timestamp. A corrupt or missing input trace degrades to an empty list —
+    the trace must never break a collection cycle.
+    """
+    if not isinstance(trace, list):
+        trace = []
+    trace.append(_trace_entry_from_result(result))
+    now = now or datetime.now(timezone.utc)
+    cutoff = (now - timedelta(hours=TRACE_WINDOW_HOURS)).isoformat()
+    kept = [
+        entry for entry in trace
+        if isinstance(entry, dict) and entry.get("timestamp")
+        and str(entry["timestamp"]) >= cutoff
+    ]
+    kept.sort(key=lambda entry: str(entry.get("timestamp", "")))
+    return kept
 
 
 def _execute(
@@ -440,6 +514,7 @@ def run_pipeline(
         },
         "validation": validation,
         "logs_processed": len(logs),
+        "logs": [log.model_dump() for log in logs],
         "pipeline": {
             "duration_ms": duration_ms,
             "steps": steps,
@@ -537,6 +612,15 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--trace-file",
+        default=None,
+        help=(
+            "Rolling 24h trace JSON: the current cycle is appended and "
+            "entries older than 24h are pruned. A missing or corrupt input "
+            "file starts fresh; optional"
+        ),
+    )
+    parser.add_argument(
         "--auth-state-out",
         default=None,
         help=(
@@ -583,6 +667,17 @@ def main() -> None:
 
             with open(args.metrics_file, "w") as f:
                 f.write(build_prometheus_metrics(result))
+
+        if args.trace_file:
+            existing: Any = []
+            try:
+                with open(args.trace_file) as f:
+                    existing = json.load(f)
+            except (OSError, ValueError):
+                existing = []
+            trace = update_trace(existing, result)
+            with open(args.trace_file, "w") as f:
+                json.dump(trace, f, indent=2)
 
         print(f"Pipeline complete: {args.log_file}")
         print(json.dumps(result, indent=2))

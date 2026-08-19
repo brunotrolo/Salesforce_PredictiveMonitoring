@@ -3,6 +3,7 @@ import {
   fetchLatestSnapshot,
   fetchDay,
   fetchRecentSnapshots,
+  fetchTrace,
   listDayFolders,
 } from "../client.js";
 
@@ -144,5 +145,39 @@ describe("fetchRecentSnapshots", () => {
     const snaps = await fetchRecentSnapshots();
     expect(snaps).toHaveLength(1);
     expect(snaps[0].risk_score).toBe(0.42);
+  });
+});
+describe("fetchTrace", () => {
+  test("returns the trace array from the data branch", async () => {
+    const trace = [
+      { timestamp: "2026-08-15T10:00:00Z", risk_score: 0.1 },
+      { timestamp: "2026-08-15T10:05:00Z", risk_score: 0.2 },
+    ];
+    global.fetch.mockResolvedValueOnce(jsonRes(trace));
+    expect(await fetchTrace()).toEqual(trace);
+  });
+
+  test("falls back to mock trace on HTTP error", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes(undefined, false));
+    const trace = await fetchTrace();
+    expect(Array.isArray(trace)).toBe(true);
+    expect(trace.length).toBeGreaterThan(0);
+    expect(trace[0].timestamp).toBeTruthy();
+  });
+
+  test("falls back to mock trace on network error", async () => {
+    global.fetch.mockRejectedValueOnce(new Error("down"));
+    const trace = await fetchTrace();
+    expect(Array.isArray(trace)).toBe(true);
+    expect(trace.length).toBeGreaterThan(0);
+  });
+
+  test("falls back to mock trace on empty or malformed body", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes([]));
+    expect((await fetchTrace()).length).toBeGreaterThan(0);
+    global.fetch.mockResolvedValueOnce(jsonRes({ not: "an array" }));
+    expect((await fetchTrace()).length).toBeGreaterThan(0);
+    global.fetch.mockResolvedValueOnce(jsonRes("garbage"));
+    expect((await fetchTrace()).length).toBeGreaterThan(0);
   });
 });

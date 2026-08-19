@@ -1,5 +1,5 @@
-import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow, directionLabel, getAccuracyVerdict, summarizeAccuracy, summarizePipeline } from "../dashboard.js";
-import { mockMonitoringData, mockEmptyData, mockCriticalData } from "../mock-data.js";
+import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow, directionLabel, getAccuracyVerdict, summarizeAccuracy, summarizePipeline, summarizeLogs, summarizeTrace, isStale, isCircuitBreakerMessage } from "../dashboard.js";
+import { mockMonitoringData, mockEmptyData, mockCriticalData, mockTraceData } from "../mock-data.js";
 
 describe("Dashboard", () => {
   describe("mock data", () => {
@@ -321,5 +321,116 @@ describe("Dashboard", () => {
       const summary = summarizePipeline({ duration_ms: "fast" });
       expect(summary.durationMs).toBe(null);
     });
+  });
+});
+
+describe("summarizeLogs", () => {
+  test("counts errors, retries and circuit breaker hits", () => {
+    const summary = summarizeLogs(mockMonitoringData.logs);
+    expect(summary.total).toBe(3);
+    expect(summary.errors).toBe(1);
+    expect(summary.retried).toBe(1);
+    expect(summary.circuitBreaker).toBe(1);
+  });
+
+  test("returns zeroes for missing or non-array logs", () => {
+    expect(summarizeLogs(undefined)).toEqual({ total: 0, errors: 0, retried: 0, circuitBreaker: 0 });
+    expect(summarizeLogs("nope")).toEqual({ total: 0, errors: 0, retried: 0, circuitBreaker: 0 });
+    expect(summarizeLogs([])).toEqual({ total: 0, errors: 0, retried: 0, circuitBreaker: 0 });
+  });
+
+  test("flags only real 5xx as errors", () => {
+    const summary = summarizeLogs([
+      { status_code: 500, retried: false, message: "boom" },
+      { status_code: 200, retried: true, message: "ok" },
+      { status_code: 404, retried: false, message: "not found" },
+    ]);
+    expect(summary.errors).toBe(1);
+    expect(summary.retried).toBe(1);
+  });
+});
+
+describe("isCircuitBreakerMessage", () => {
+  test("detects breaker, 429/503, rate limit and timeout", () => {
+    expect(isCircuitBreakerMessage("Circuit breaker opened")).toBe(true);
+    expect(isCircuitBreakerMessage("HTTP 503 from OrgApi")).toBe(true);
+    expect(isCircuitBreakerMessage("rate limit exceeded")).toBe(true);
+    expect(isCircuitBreakerMessage("timeout on query")).toBe(true);
+    expect(isCircuitBreakerMessage("All good here")).toBe(false);
+    expect(isCircuitBreakerMessage(undefined)).toBe(false);
+    expect(isCircuitBreakerMessage("429")).toBe(true);
+  });
+});
+
+describe("summarizeTrace", () => {
+  test("summarizes the mock trace", () => {
+    const summary = summarizeTrace(mockTraceData);
+    expect(summary.cycles).toBe(9);
+    expect(summary.gaps.length).toBeGreaterThan(0);
+    expect(summary.downWindows.length).toBe(1);
+    expect(summary.breakers.length).toBe(2);
+    expect(summary.anomalies.length).toBeGreaterThan(0);
+    expect(summary.maxRisk).toBeGreaterThanOrEqual(0.9);
+  });
+
+  test("detects the 2h gap in the mock trace", () => {
+    const summary = summarizeTrace(mockTraceData);
+    const biggest = summary.gaps.reduce((a, b) => (b.minutes > a.minutes ? b : a), summary.gaps[0]);
+    expect(biggest.minutes).toBeGreaterThanOrEqual(120);
+  });
+
+  test("returns empty summary for missing/empty/non-array", () => {
+    expect(summarizeTrace(undefined)).toEqual({ cycles: 0, maxRisk: 0, gaps: [], downWindows: [], anomalies: [], breakers: [] });
+    expect(summarizeTrace([])).toEqual({ cycles: 0, maxRisk: 0, gaps: [], downWindows: [], anomalies: [], breakers: [] });
+    expect(summarizeTrace("nope")).toEqual({ cycles: 0, maxRisk: 0, gaps: [], downWindows: [], anomalies: [], breakers: [] });
+  });
+
+  test("sorts input by timestamp", () => {
+    const summary = summarizeTrace([
+      { timestamp: "2026-08-15T10:05:00Z", risk_score: 0.2 },
+      { timestamp: "2026-08-15T10:00:00Z", risk_score: 0.1 },
+    ]);
+    expect(summary.cycles).toBe(2);
+    expect(summary.gaps).toEqual([]);
+    expect(summary.maxRisk).toBe(0.2);
+  });
+
+  test("does not flag intervals at the gap threshold", () => {
+    const entries = [];
+    for (let i = 0; i < 4; i += 1) {
+      entries.push({ timestamp: `2026-08-15T10:0${i}:00Z`, risk_score: 0.1 });
+    }
+    expect(summarizeTrace(entries).gaps).toEqual([]);
+  });
+
+  test("only flags consecutive critical runs as down windows", () => {
+const summary = summarizeTrace([
+      { timestamp: "2026-08-15T10:00:00Z", risk_score: 0.8 },
+      { timestamp: "2026-08-15T10:05:00Z", risk_score: 0.9 },
+      { timestamp: "2026-08-15T10:10:00Z", risk_score: 0.2 },
+      { timestamp: "2026-08-15T10:15:00Z", risk_score: 0.65 },
+      { timestamp: "2026-08-15T10:20:00Z", risk_score: 0.3 },
+    ]);
+    expect(summary.downWindows).toHaveLength(1);
+    expect(summary.downWindows[0].peak).toBe(0.9);
+  });
+});
+
+describe("isStale", () => {
+  const fresh = { timestamp: new Date().toISOString(), mode: "real" };
+  const old = { timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(), mode: "real" };
+
+  test("flags snapshots older than the threshold", () => {
+    expect(isStale(old)).toBe(true);
+    expect(isStale(fresh)).toBe(false);
+  });
+
+  test("never flags mock mode", () => {
+    expect(isStale({ ...old, mode: "mock" })).toBe(false);
+  });
+
+  test("safe fallback for missing data", () => {
+    expect(isStale(null)).toBe(false);
+    expect(isStale({})).toBe(false);
   });
 });

@@ -65,8 +65,8 @@ const TARGETS = [
     header: JS_HEADER,
     rewrite: [
       [
-        'import { mockMonitoringData, mockEmptyData } from "../monitoring/mock-data.js";',
-        'import { mockMonitoringData, mockEmptyData } from "./mock-data.js";',
+        'import { mockMonitoringData, mockEmptyData, mockTraceData } from "../monitoring/mock-data.js";',
+        'import { mockMonitoringData, mockEmptyData, mockTraceData } from "./mock-data.js";',
       ],
     ],
   },

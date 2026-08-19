@@ -19,7 +19,7 @@
  * (the repo is public; no tokens are ever embedded in client code).
  */
 
-import { mockMonitoringData, mockEmptyData } from "./mock-data.js";
+import { mockMonitoringData, mockEmptyData, mockTraceData } from "./mock-data.js";
 
 const REPO_OWNER = "brunotrolo";
 const REPO_NAME = "Salesforce_PredictiveMonitoring";
@@ -111,6 +111,24 @@ export async function fetchRecentSnapshots(limit = 12) {
   return collected.slice(0, limit).length
     ? collected.slice(0, limit)
     : [mockMonitoringData];
+}
+
+/**
+ * Rolling 24h trace maintained by the backend: one entry per collection
+ * cycle, stored at the data branch root as trace.json. Falls back to mock
+ * trace data when the file is missing, unreachable or malformed — the trace
+ * section must never break the page.
+ */
+export async function fetchTrace() {
+  const res = await fetchTimeout(`${RAW_BASE}/trace.json`);
+  if (!res || !res.ok) return mockTraceData;
+  try {
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return mockTraceData;
+    return data;
+  } catch {
+    return mockTraceData;
+  }
 }
 
 export { mockEmptyData };

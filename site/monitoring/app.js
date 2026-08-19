@@ -15,7 +15,7 @@
  * page sees so support can reproduce issues without guesswork.
  */
 
-import { fetchLatestSnapshot, fetchRecentSnapshots } from "./client.js";
+import { fetchLatestSnapshot, fetchRecentSnapshots, fetchTrace } from "./client.js";
 import {
   getRiskLevel,
   getRiskColor,
@@ -24,6 +24,9 @@ import {
   summarizeShadow,
   summarizeAccuracy,
   summarizePipeline,
+  summarizeLogs,
+  summarizeTrace,
+  isStale,
   directionLabel,
 } from "./dashboard.js";
 
@@ -66,6 +69,23 @@ const els = {
   pipelineDuration: () => document.getElementById("pipeline-duration"),
   pipelineSteps: () => document.getElementById("pipeline-steps"),
   pipelineErrors: () => document.getElementById("pipeline-errors"),
+  staleWarning: () => document.getElementById("stale-warning"),
+  staleAge: () => document.getElementById("stale-age"),
+  staleRefresh: () => document.getElementById("stale-refresh"),
+  traceNote: () => document.getElementById("trace-note"),
+  traceChips: () => document.getElementById("trace-chips"),
+  traceTimeline: () => document.getElementById("trace-timeline"),
+  traceEvents: () => document.getElementById("trace-events"),
+  logsNote: () => document.getElementById("logs-note"),
+  logsBody: () => document.getElementById("logs-body"),
+  logsEmpty: () => document.getElementById("logs-empty"),
+  refreshModal: () => document.getElementById("refresh-modal"),
+  modalClose: () => document.getElementById("modal-close"),
+  modalStatus: () => document.getElementById("modal-status"),
+  modalBar: () => document.getElementById("modal-bar"),
+  modalSteps: () => document.getElementById("modal-steps"),
+  modalGithub: () => document.getElementById("modal-github"),
+  modalHint: () => document.getElementById("modal-hint"),
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
@@ -286,7 +306,9 @@ function buildChart(snapshots) {
     .map((s, i) => {
       if (chronological.length > 12 && i % 3 !== 0 && i !== chronological.length - 1) return "";
       const d = s.timestamp ? new Date(s.timestamp) : null;
-      const label = d ? formatTimestamp(d.toISOString()).slice(11, 16) : "";
+      const label = d
+        ? d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })
+        : "";
       return `<text x="${xs[i]}" y="${height - 8}" text-anchor="middle" class="chart-label">${label}</text>`;
     })
     .join("");
@@ -524,12 +546,165 @@ function renderPipeline(snapshot) {
   }
 }
 
+/* ------------------------------------------------------- stale warning */
+
+function renderStale(snapshot) {
+  const banner = els.staleWarning();
+  if (!banner) return;
+  if (!isStale(snapshot)) {
+    banner.classList.add("hidden");
+    return;
+  }
+  const ageMin = Math.round(
+    (Date.now() - new Date(snapshot.timestamp).getTime()) / 60000
+  );
+  setText(els.staleAge(), String(ageMin));
+  banner.classList.remove("hidden");
+}
+
+/* --------------------------------------------------- 24h trace section */
+
+function traceSegLevel(entry) {
+  return getRiskLevel(Number(entry.risk_score ?? 0));
+}
+
+function fmtTraceTime(timestamp) {
+  const d = new Date(timestamp);
+  if (Number.isNaN(d.getTime())) return timestamp;
+  return d.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
+}
+
+function renderTrace(trace) {
+  const summary = summarizeTrace(trace);
+  const chips = els.traceChips();
+  const timeline = els.traceTimeline();
+  const events = els.traceEvents();
+  const note = els.traceNote();
+  if (!chips && !timeline && !events) return;
+
+  if (note) {
+    note.textContent =
+      summary.cycles > 0 ? `${summary.cycles} ciclos no período` : "sem dados de trace";
+  }
+
+  if (chips) {
+    const worst = summary.maxRisk >= 0.7 ? "critical" : summary.maxRisk >= 0.4 ? "warn" : "good";
+    chips.innerHTML = [
+      `<span class="trace-chip" data-kind="${worst}"><b>${fmtNumber(summary.cycles)}</b> ciclos</span>`,
+      `<span class="trace-chip" data-kind="${worst}"><b>${(summary.maxRisk * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%</b> risco máximo</span>`,
+      `<span class="trace-chip" data-kind="${summary.downWindows.length > 0 ? "critical" : "good"}"><b>${fmtNumber(summary.downWindows.length)}</b> queda(s)</span>`,
+      `<span class="trace-chip" data-kind="${summary.anomalies.length > 0 ? "warn" : "good"}"><b>${fmtNumber(summary.anomalies.length)}</b> ciclo(s) com anomalia</span>`,
+      `<span class="trace-chip" data-kind="${summary.breakers.length > 0 ? "critical" : "good"}"><b>${fmtNumber(summary.breakers.length)}</b> circuit breaker</span>`,
+      `<span class="trace-chip" data-kind="${summary.gaps.length > 0 ? "warn" : "good"}"><b>${fmtNumber(summary.gaps.length)}</b> sem coleta</span>`,
+    ].join("");
+  }
+
+  if (timeline && summary.cycles > 0) {
+    const list = trace.slice().sort((a, b) =>
+      String(a.timestamp ?? "").localeCompare(String(b.timestamp ?? ""))
+    );
+    timeline.innerHTML = list
+      .map((entry, i) => {
+        const gap = i > 0 && entry.timestamp
+          ? (new Date(entry.timestamp) - new Date(list[i - 1].timestamp)) / 60000
+          : 0;
+        const isGap = Number.isFinite(gap) && gap > 15;
+        const title = `${fmtTraceTime(entry.timestamp)} — risco ${(Number(entry.risk_score ?? 0) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%${isGap ? " · após intervalo de " + Math.round(gap) + " min" : ""}`;
+        return `<span class="tl-seg" data-level="${isGap ? "GAP" : traceSegLevel(entry)}" data-gap="${isGap ? "true" : "false"}" title="${escapeHtml(title)}"></span>`;
+      })
+      .join("");
+  }
+
+  if (events) {
+    const items = [];
+    for (const gap of summary.gaps) {
+      items.push(
+        `<li><b>Sem coleta</b> de ${fmtTraceTime(gap.from)} até ${fmtTraceTime(gap.to)} (<b>${gap.minutes} min</b>) — agendador do GitHub atrasou</li>`
+      );
+    }
+    for (const down of summary.downWindows) {
+      items.push(
+        `<li><b class="sev-critical">Queda</b> de ${fmtTraceTime(down.from)} até ${fmtTraceTime(down.to)} (pico ${(down.peak * 100).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%)</li>`
+      );
+    }
+    for (const ts of summary.anomalies) {
+      items.push(
+        `<li><b class="sev-warning">Anomalia detectada</b> pela IA de sombra em ${fmtTraceTime(ts)}</li>`
+      );
+    }
+    for (const ts of summary.breakers) {
+      items.push(
+        `<li><b class="sev-critical">Circuit breaker</b> aberto em ${fmtTraceTime(ts)} — integração recusou chamadas</li>`
+      );
+    }
+    events.innerHTML =
+      items.length > 0
+        ? `<ul>${items.slice(0, 8).join("")}</ul>`
+        : summary.cycles > 0
+          ? `<ul><li>Nenhum evento fora do normal nas últimas 24 horas.</li></ul>`
+          : `<ul><li>Sem dados de trace ainda — o histórico começa a ser gravado na próxima coleta.</li></ul>`;
+  }
+}
+
+/* ---------------------------------------------------- real logs section */
+
+function renderLogs(logs) {
+  const body = els.logsBody();
+  const note = els.logsNote();
+  const empty = els.logsEmpty();
+  if (!body) return;
+
+  const summary = summarizeLogs(logs);
+  if (note) {
+    const parts = [`${fmtNumber(summary.total)} logs`];
+    if (summary.errors > 0) parts.push(`${fmtNumber(summary.errors)} com erro`);
+    if (summary.retried > 0) parts.push(`${fmtNumber(summary.retried)} retried`);
+    if (summary.circuitBreaker > 0) parts.push(`${fmtNumber(summary.circuitBreaker)} circuit breaker`);
+    note.textContent = parts.join(" · ");
+  }
+
+  const list = Array.isArray(logs) ? logs : [];
+  if (empty) empty.classList.toggle("hidden", list.length > 0);
+
+  const rows = list
+    .slice()
+    .sort((a, b) =>
+      String(b.timestamp ?? "").localeCompare(String(a.timestamp ?? ""))
+    )
+    .slice(0, 100)
+    .map((log) => {
+      const status = Number(log.status_code ?? 0);
+      const sev = log.severity ? String(log.severity).toUpperCase() : status >= 500 ? "ERROR" : "INFO";
+      const sevLabel = sev === "ERROR" || sev === "CRITICAL" ? "CRITICAL" : sev === "WARNING" ? "WARNING" : "INFO";
+      const isError = status >= 500;
+      const msg = String(log.message ?? "");
+      return `<tr data-error="${isError ? "true" : "false"}">
+        <td>${escapeHtml(log.timestamp ? fmtTraceTime(log.timestamp) : "—")}</td>
+        <td>${isError ? escapeHtml(`HTTP ${status}`) : escapeHtml(String(status || "—"))}</td>
+        <td><span class="sev-badge" data-sev="${sevLabel}">${sevLabel}</span></td>
+        <td>${escapeHtml(String(log.resource ?? "—"))}</td>
+        <td>${log.retried ? "sim" : "não"}</td>
+        <td class="logs-msg" title="${escapeHtml(msg)}">${escapeHtml(msg || "—")}</td>
+      </tr>`;
+    })
+    .join("");
+
+  body.innerHTML = rows || '<tr><td colspan="6">—</td></tr>';
+}
+
 /* ---------------------------------------------------------------- render */
 
 async function renderAll() {
-  const [latest, recent] = await Promise.all([
+  const [latest, recent, trace] = await Promise.all([
     fetchLatestSnapshot(),
     fetchRecentSnapshots(12),
+    fetchTrace(),
   ]);
 
   DIAG.mode = latest && latest.mode ? latest.mode : null;
@@ -538,6 +713,8 @@ async function renderAll() {
     ? Math.round((Date.now() - new Date(latest.timestamp).getTime()) / 1000)
     : null;
   DIAG.snapshot = latest;
+  DIAG.traceCycles = Array.isArray(trace) ? trace.length : null;
+  DIAG.logsTotal = latest && Array.isArray(latest.logs) ? latest.logs.length : null;
 
   hideSkeleton();
   renderHeader(latest);
@@ -549,21 +726,224 @@ async function renderAll() {
   renderShadow(latest);
   renderAccuracy(latest);
   renderPipeline(latest);
+  renderStale(latest);
+  renderTrace(trace);
+  renderLogs(latest && latest.logs ? latest.logs : []);
+}
+
+/* ------------------------------------------------ manual refresh modal */
+
+// Public Actions REST API: read-only, no auth needed for public repos.
+// Polls the latest workflow_dispatch run to follow a manual collection.
+const GITHUB_RUNS_URL =
+  "https://api.github.com/repos/brunotrolo/Salesforce_PredictiveMonitoring/actions/workflows/collect.yml/runs?event=workflow_dispatch&per_page=1";
+const MODAL_POLL_MS = 5000;
+const MODAL_EXPECTED_SEC = 60;
+const MODAL_TIMEOUT_SEC = 8 * 60;
+const MODAL_HINT_SEC = 30;
+const DEFAULT_STEPS = ["collect", "analyze", "aggregate", "compare", "shadow", "save"];
+// Rough weight per pipeline step (from real snapshots: collect dominates).
+const PIPELINE_STEP_WEIGHTS = {
+  collect: 0.45,
+  analyze: 0.2,
+  aggregate: 0.1,
+  compare: 0.05,
+  shadow: 0.15,
+  accuracy: 0.05,
+  save: 0.05,
+};
+
+let modalTimer = null;
+let modalState = null;
+
+function getModalSteps() {
+  const fromSnapshot = DIAG.snapshot && DIAG.snapshot.pipeline && DIAG.snapshot.pipeline.steps;
+  return Array.isArray(fromSnapshot) && fromSnapshot.length > 0 ? fromSnapshot : DEFAULT_STEPS;
+}
+
+function renderModalSteps(fraction, failed) {
+  const steps = getModalSteps();
+  const weights = steps.map((s) => PIPELINE_STEP_WEIGHTS[s] ?? 0.15);
+  const total = weights.reduce((a, b) => a + b, 0) || 1;
+  let acc = 0;
+  const states = steps.map((s, i) => {
+    if (failed) return "fail";
+    const doneAt = (acc + weights[i]) / total;
+    const startedAt = acc / total;
+    acc += weights[i];
+    if (fraction >= doneAt) return "ok";
+    if (fraction >= startedAt) return "active";
+    return "pending";
+  });
+  const wrap = els.modalSteps();
+  if (wrap) {
+    wrap.innerHTML = steps
+      .map(
+        (s, i) =>
+          `<span class="modal-step" data-state="${states[i]}">${escapeHtml(s)}</span>`
+      )
+      .join("");
+  }
+}
+
+function setModalStatus(text, state) {
+  const status = els.modalStatus();
+  if (status) {
+    status.textContent = text;
+    status.dataset.state = state;
+  }
+}
+
+function setModalHint(text) {
+  setText(els.modalHint(), text);
+}
+
+function updateModalBar(pct, state = "idle") {
+  const bar = els.modalBar();
+  if (bar) {
+    bar.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    bar.dataset.state = state;
+  }
+}
+
+async function checkLatestDispatchRun(sinceMs) {
+  try {
+    const res = await fetchTimeout(GITHUB_RUNS_URL, 7000);
+    if (!res || !res.ok) return null;
+    const data = await res.json();
+    const run = data.workflow_runs && data.workflow_runs[0];
+    if (!run) return null;
+    const started = new Date(run.started_at || run.created_at).getTime();
+    if (!Number.isFinite(started) || started < sinceMs) return null;
+    return run;
+  } catch {
+    return null;
+  }
+}
+
+function failModal(message) {
+  modalState = modalState || { phase: "failed" };
+  modalState.phase = "failed";
+  if (modalTimer) {
+    clearInterval(modalTimer);
+    modalTimer = null;
+  }
+  renderModalSteps(1, true);
+  setModalStatus(message, "failed");
+  setModalHint("Feche e tente novamente, ou veja o log da execução no GitHub.");
+}
+
+async function doneModal() {
+  modalState.phase = "done";
+  if (modalTimer) {
+    clearInterval(modalTimer);
+    modalTimer = null;
+  }
+  renderModalSteps(1, false);
+  updateModalBar(100, "done");
+  setModalStatus("Coleta concluída — atualizando a página…", "done");
+  setTimeout(() => {
+    closeModal();
+    renderAll();
+  }, 1400);
+}
+
+async function pollModal() {
+  if (!modalState || modalState.phase === "failed" || modalState.phase === "done") return;
+  const now = Date.now();
+  const elapsedSec = (now - modalState.openedAt) / 1000;
+
+  if (modalState.phase === "waiting") {
+    if (elapsedSec > MODAL_TIMEOUT_SEC) {
+      failModal("Tempo esgotado: nenhuma execução detectada em 8 minutos.");
+      return;
+    }
+    const run = await checkLatestDispatchRun(modalState.openedAt);
+    if (run) {
+      modalState.phase = "running";
+      modalState.run = run;
+      modalState.runStartedAt = new Date(run.started_at || run.created_at).getTime();
+      setModalHint("");
+    } else {
+      setModalStatus(
+        "Aguardando a coleta começar no GitHub…",
+        "idle"
+      );
+      if (elapsedSec > MODAL_HINT_SEC) {
+        setModalHint("Nenhuma execução detectada ainda — confira se clicou em Run workflow.");
+      }
+      renderModalSteps(Math.min(1, elapsedSec / MODAL_EXPECTED_SEC), false);
+      updateModalBar(2);
+    }
+    return;
+  }
+
+  if (modalState.phase === "running") {
+    const runElapsedSec = (now - modalState.runStartedAt) / 1000;
+    const fraction = Math.min(1, runElapsedSec / MODAL_EXPECTED_SEC);
+    renderModalSteps(fraction, false);
+    updateModalBar(Math.min(92, Math.round(fraction * 92)));
+
+    const run = await checkLatestDispatchRun(modalState.openedAt);
+    const concluded = run && (run.conclusion || run.status === "completed");
+    if (run && run.conclusion === "failure") {
+      failModal("A coleta falhou no GitHub — confira o log do workflow.");
+      return;
+    }
+    if (runElapsedSec > MODAL_TIMEOUT_SEC) {
+      failModal("Tempo esgotado: a coleta demorou mais de 8 minutos.");
+      return;
+    }
+    // A fresh snapshot (committed after this modal opened) is the ground
+    // truth for completion — the GitHub run list can lag by seconds.
+    if (concluded || runElapsedSec > MODAL_EXPECTED_SEC) {
+      const latest = await fetchLatestSnapshot();
+      const snapshotTime = latest && latest.timestamp ? new Date(latest.timestamp).getTime() : 0;
+      if (Number.isFinite(snapshotTime) && snapshotTime > modalState.openedAt - 60000) {
+        await doneModal();
+        return;
+      }
+    }
+    setModalStatus(
+      concluded
+        ? "Execução concluída no GitHub — aguardando o snapshot aparecer…"
+        : `Coleta em andamento no GitHub… (${Math.min(92, Math.round(fraction * 92))}%)`,
+      "idle"
+    );
+  }
+}
+
+function openModal() {
+  if (modalTimer) {
+    clearInterval(modalTimer);
+    modalTimer = null;
+  }
+  modalState = { openedAt: Date.now(), phase: "waiting", run: null, runStartedAt: null };
+  updateModalBar(0);
+  setModalStatus(
+    "A coleta manual roda exatamente como a agendada: 1º abra o workflow no GitHub, 2º clique em Run workflow.",
+    "idle"
+  );
+  setModalHint("");
+  renderModalSteps(0, false);
+  els.refreshModal()?.classList.remove("hidden");
+  modalTimer = setInterval(pollModal, MODAL_POLL_MS);
+  pollModal();
+}
+
+function closeModal() {
+  if (modalTimer) {
+    clearInterval(modalTimer);
+    modalTimer = null;
+  }
+  modalState = null;
+  els.refreshModal()?.classList.add("hidden");
 }
 
 /* ---------------------------------------------------------------- wiring */
 
-async function onRefresh() {
-  const btn = els.refreshBtn();
-  if (!btn || btn.disabled) return;
-  btn.disabled = true;
-  btn.textContent = "Atualizando…";
-  try {
-    await renderAll();
-  } finally {
-    btn.disabled = false;
-    btn.textContent = "Atualizar";
-  }
+function onRefresh() {
+  openModal();
 }
 
 function onResize() {
@@ -590,6 +970,11 @@ async function boot() {
   document
     .getElementById("refresh-btn")
     ?.addEventListener("click", onRefresh);
+  els.staleRefresh()?.addEventListener("click", onRefresh);
+  els.modalClose()?.addEventListener("click", closeModal);
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeModal();
+  });
   window.addEventListener("resize", debounce(onResize, 250));
 
   await renderAll();

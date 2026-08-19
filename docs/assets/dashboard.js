@@ -158,3 +158,125 @@ export function summarizePipeline(pipeline) {
     hasErrors: stepErrors.length > 0,
   };
 }
+
+/**
+ * Detect whether a raw log/alert message signals a circuit breaker
+ * (Salesforce integration patterns): explicit breaker events, HTTP 429/503,
+ * rate limiting and timeouts. Case-insensitive.
+ */
+export function isCircuitBreakerMessage(message) {
+  const m = String(message || "").toLowerCase();
+  return /circuit[\s_-]?breaker|breaker open|429|503|rate limit|too many requests|timeout/.test(m);
+}
+
+/**
+ * Summarize the raw logs embedded in the latest snapshot.
+ * Returns { total, errors, retried, circuitBreaker } — counts only; the
+ * table itself is rendered directly from the raw rows in app.js.
+ */
+export function summarizeLogs(logs) {
+  const list = Array.isArray(logs) ? logs : [];
+  let errors = 0;
+  let retried = 0;
+  let circuitBreaker = 0;
+  for (const log of list) {
+    if (Number(log?.status_code ?? 0) >= 500) errors += 1;
+    if (Boolean(log?.retried)) retried += 1;
+    if (isCircuitBreakerMessage(log?.message)) circuitBreaker += 1;
+  }
+  return { total: list.length, errors, retried, circuitBreaker };
+}
+
+/**
+ * Gap (in minutes) between two consecutive trace entries beyond which the
+ * scheduler is considered to have skipped a cycle ("sem coleta").
+ */
+export const TRACE_GAP_MIN = 15;
+
+/**
+ * Risk level threshold for a "queda" (down window): two or more consecutive
+ * cycles at or above this risk.
+ */
+export const TRACE_DOWN_RISK = 0.7;
+
+/**
+ * Summarize the rolling 24h trace for the health section.
+ * Returns:
+ *   - cycles: total entries
+ *   - maxRisk: highest risk_score across the window
+ *   - gaps: [{from, to, minutes}] for every interval > TRACE_GAP_MIN
+ *   - downWindows: [{from, to, peak}] for runs of >= 2 consecutive entries
+ *     with risk >= TRACE_DOWN_RISK
+ *   - anomalies: timestamps of entries with anomalies > 0
+ *   - breakers: timestamps of entries with circuit_breaker true
+ * Input is sorted by timestamp; a non-array input yields an empty summary.
+ */
+export function summarizeTrace(trace) {
+  const list = Array.isArray(trace)
+    ? trace.slice().sort((a, b) => String(a?.timestamp ?? "").localeCompare(String(b?.timestamp ?? "")))
+    : [];
+  const summary = {
+    cycles: 0,
+    maxRisk: 0,
+    gaps: [],
+    downWindows: [],
+    anomalies: [],
+    breakers: [],
+  };
+  if (list.length === 0) return summary;
+
+  summary.cycles = list.length;
+  summary.maxRisk = Math.max(
+    0,
+    ...list.map((entry) => Number(entry?.risk_score ?? 0))
+  );
+
+  for (let i = 1; i < list.length; i += 1) {
+    const from = new Date(list[i - 1].timestamp);
+    const to = new Date(list[i].timestamp);
+    const minutes = (to.getTime() - from.getTime()) / 60000;
+    if (Number.isFinite(minutes) && minutes > TRACE_GAP_MIN) {
+      summary.gaps.push({
+        from: list[i - 1].timestamp,
+        to: list[i].timestamp,
+        minutes: Math.round(minutes),
+      });
+    }
+  }
+
+  let runStart = null;
+  let runPeak = 0;
+  for (const entry of list) {
+    const risk = Number(entry?.risk_score ?? 0);
+    if (risk >= TRACE_DOWN_RISK) {
+      if (runStart === null) runStart = entry.timestamp;
+      runPeak = Math.max(runPeak, risk);
+    } else if (runStart !== null) {
+      summary.downWindows.push({ from: runStart, to: entry.timestamp, peak: runPeak });
+      runStart = null;
+      runPeak = 0;
+    }
+    if (Number(entry?.anomalies ?? 0) > 0) summary.anomalies.push(entry.timestamp);
+    if (Boolean(entry?.circuit_breaker)) summary.breakers.push(entry.timestamp);
+  }
+  if (runStart !== null) {
+    summary.downWindows.push({
+      from: runStart,
+      to: list[list.length - 1].timestamp,
+      peak: runPeak,
+    });
+  }
+  return summary;
+}
+
+/**
+ * True when the latest snapshot is older than the given age in minutes —
+ * drives the red "dados atrasados" banner. Never stale in mock mode.
+ */
+export function isStale(snapshot, maxAgeMinutes = 15) {
+  if (!snapshot || !snapshot.timestamp) return false;
+  if (snapshot.mode === "mock") return false;
+  const ageMs = Date.now() - new Date(snapshot.timestamp).getTime();
+  if (!Number.isFinite(ageMs) || ageMs < 0) return false;
+  return ageMs / 60000 > maxAgeMinutes;
+}

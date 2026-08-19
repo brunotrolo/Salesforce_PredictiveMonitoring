@@ -521,6 +521,269 @@
       color: var(--red);
     }
 
+    /* ---------- stale warning (scheduler delay) ---------- */
+
+    .stale-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+      margin: 0 0 16px;
+      padding: 10px 14px;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+      border-radius: var(--radius);
+      background: rgba(239, 68, 68, 0.08);
+      font-size: 14px;
+      color: var(--text);
+    }
+    .stale-banner strong { color: var(--red); }
+    .stale-banner .btn {
+      margin-left: auto;
+      padding: 5px 12px;
+      font-size: 12px;
+    }
+
+    /* ---------- 24h trace ---------- */
+
+    .trace-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .trace-chip {
+      padding: 5px 10px;
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      background: var(--surface-2);
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: nowrap;
+    }
+    .trace-chip b { color: var(--text); font-weight: 700; }
+    .trace-chip[data-kind="critical"] { border-color: rgba(239, 68, 68, 0.5); color: #fca5a5; }
+    .trace-chip[data-kind="critical"] b { color: var(--red); }
+    .trace-chip[data-kind="warn"] { border-color: rgba(245, 158, 11, 0.5); color: #fcd34d; }
+    .trace-chip[data-kind="warn"] b { color: var(--amber); }
+    .trace-chip[data-kind="good"] b { color: var(--green); }
+
+    .trace-timeline {
+      display: flex;
+      gap: 2px;
+      height: 16px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .tl-seg {
+      flex: 1 1 0;
+      min-width: 0;
+      height: 100%;
+      cursor: default;
+    }
+    .tl-seg[data-level="CRITICAL"] { background: var(--red); }
+    .tl-seg[data-level="WARNING"] { background: var(--amber); }
+    .tl-seg[data-level="HEALTHY"] { background: rgba(34, 197, 94, 0.55); }
+    .tl-seg[data-gap="true"] {
+      background: repeating-linear-gradient(
+        45deg,
+        var(--surface-2),
+        var(--surface-2) 3px,
+        var(--hairline) 3px,
+        var(--hairline) 6px
+      );
+    }
+    .tl-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+    .tl-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .tl-legend i {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--hairline);
+    }
+    .tl-legend i[data-level="CRITICAL"] { background: var(--red); }
+    .tl-legend i[data-level="WARNING"] { background: var(--amber); }
+    .tl-legend i[data-level="HEALTHY"] { background: rgba(34, 197, 94, 0.55); }
+
+    .trace-events { margin-bottom: 12px; }
+    .trace-events ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .trace-events li {
+      padding: 6px 0;
+      border-bottom: 1px solid var(--hairline);
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .trace-events li:last-child { border-bottom: none; }
+    .trace-events b { color: var(--text); }
+    .trace-events .sev-critical { color: var(--red); }
+    .trace-events .sev-warning { color: var(--amber); }
+
+    /* ---------- real logs table ---------- */
+
+    .logs-wrap {
+      max-height: 340px;
+      overflow: auto;
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+    }
+    .logs {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+    .logs th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 8px 10px;
+      background: var(--surface-2);
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--hairline);
+    }
+    .logs td {
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--hairline);
+      color: var(--text-dim);
+      vertical-align: top;
+    }
+    .logs tr:last-child td { border-bottom: none; }
+    .logs tr[data-error="true"] td { color: #fca5a5; }
+    .logs tr[data-error="true"] td:first-child { color: var(--red); }
+    .logs .logs-msg {
+      color: var(--text);
+      overflow-wrap: anywhere;
+      max-width: 420px;
+    }
+    .logs .sev-badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .logs .sev-badge[data-sev="CRITICAL"] { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+    .logs .sev-badge[data-sev="WARNING"] { background: rgba(245, 158, 11, 0.16); color: #fcd34d; }
+    .logs .sev-badge[data-sev="INFO"] { background: rgba(56, 189, 248, 0.14); color: #7dd3fc; }
+
+    /* ---------- manual refresh modal ---------- */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(3, 5, 8, 0.72);
+      backdrop-filter: blur(3px);
+    }
+    .modal {
+      width: 100%;
+      max-width: 560px;
+      max-height: 85vh;
+      overflow: auto;
+      padding: 20px 22px;
+      background: var(--surface);
+      border: 1px solid var(--hairline);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+    }
+    .modal-head h2 { margin: 0; font-size: 17px; }
+    .modal-status {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--text-dim);
+      min-height: 20px;
+    }
+    .modal-status[data-state="failed"] { color: var(--red); }
+    .modal-status[data-state="done"] { color: var(--green); }
+    .modal-bar-track {
+      height: 10px;
+      margin-bottom: 16px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      border: 1px solid var(--hairline);
+      overflow: hidden;
+    }
+    .modal-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), #0ea5e9);
+      transition: width 0.6s ease;
+    }
+    .modal-bar[data-state="failed"] { background: var(--red); }
+    .modal-bar[data-state="done"] { background: var(--green); }
+    .modal-steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+    .modal-step {
+      padding: 4px 10px;
+      border: 1px solid var(--hairline);
+      border-radius: 999px;
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+    .modal-step[data-state="ok"] {
+      border-color: rgba(34, 197, 94, 0.5);
+      color: var(--green);
+    }
+    .modal-step[data-state="active"] {
+      border-color: rgba(56, 189, 248, 0.6);
+      color: var(--accent);
+      animation: modal-pulse 1.2s ease-in-out infinite;
+    }
+    .modal-step[data-state="fail"] {
+      border-color: rgba(239, 68, 68, 0.5);
+      color: var(--red);
+    }
+    @keyframes modal-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.45; }
+    }
+    .modal .btn { width: 100%; }
+    .modal-hint {
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: var(--amber);
+      min-height: 16px;
+    }
+    .modal-tip {
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: var(--text-faint);
+    }
+
     /* ---------- diagnostics ---------- */
 
     .diag summary {
@@ -624,6 +887,10 @@
 
   <main id="content" class="hidden">
     <p id="page-status" class="status-line hidden"></p>
+    <div id="stale-warning" class="stale-banner hidden" role="status">
+      <span><strong>Dados atrasados:</strong> última coleta há <b id="stale-age">—</b> min. O agendador do GitHub pode atrasar a coleta (não é falha da integração).</span>
+      <button id="stale-refresh" class="btn" type="button">Rodar coleta agora</button>
+    </div>
 
     <section id="hero" class="card hero" data-level="HEALTHY" aria-labelledby="hero-title">
       <div class="card-head">
@@ -702,6 +969,29 @@
         crescendo (a integração está ficando mais instável). Linha descendo =
         voltando ao normal. As faixas coloridas são as zonas saudável / atenção /
         crítico.
+      </p>
+    </section>
+
+    <section class="card" aria-labelledby="trace-title">
+      <div class="card-head">
+        <h2 id="trace-title">Últimas 24 horas — saúde da integração</h2>
+        <span id="trace-note" class="card-note">—</span>
+      </div>
+      <div id="trace-chips" class="trace-chips"></div>
+      <div id="trace-timeline" class="trace-timeline" role="img" aria-label="Linha do tempo do risco nas últimas 24 horas"></div>
+      <div class="tl-legend">
+        <span><i data-level="HEALTHY"></i> risco baixo</span>
+        <span><i data-level="WARNING"></i> atenção</span>
+        <span><i data-level="CRITICAL"></i> crítico</span>
+        <span><i></i> sem coleta (agendador)</span>
+      </div>
+      <div id="trace-events" class="trace-events"></div>
+      <p class="explain">
+        Um ponto por coleta. <b>Sem coleta</b> = intervalo entre coletas maior
+        que 15 minutos, causado pelo agendador do GitHub (os ciclos rodam
+        certinho, mas com atraso). <b>Queda</b> = risco alto por pelo menos
+        dois ciclos seguidos. <b>Anomalias</b> e <b>circuit breaker</b> vêm
+        da IA de sombra e da detecção nos logs reais da última hora.
       </p>
     </section>
 
@@ -826,6 +1116,36 @@
       </p>
     </section>
 
+    <section class="card" aria-labelledby="logs-title">
+      <div class="card-head">
+        <h2 id="logs-title">Logs reais da última hora</h2>
+        <span id="logs-note" class="card-note">—</span>
+      </div>
+      <div id="logs-wrap" class="logs-wrap">
+        <table class="logs" aria-label="Logs brutos lidos na última coleta">
+          <thead>
+            <tr>
+              <th>Hora</th>
+              <th>Status</th>
+              <th>Severidade</th>
+              <th>Recurso</th>
+              <th>Retried</th>
+              <th>Mensagem</th>
+            </tr>
+          </thead>
+          <tbody id="logs-body"></tbody>
+        </table>
+      </div>
+      <div id="logs-empty" class="empty-note">Sem logs na última coleta.</div>
+      <p class="explain">
+        Os <b>100 registros brutos de <code>Log__c</code></b> lidos na última
+        coleta, mais recentes primeiro — a matéria-prima do risco que você vê
+        no topo da página. <b>5xx</b> = erro de integração, <b>retried</b> =
+        a chamada foi repetida. Serve para auditoria humana: se a página
+        disser que está tudo bem, é aqui que você confere na mão.
+      </p>
+    </section>
+
     <details class="card diag">
       <summary>Diagnóstico (para suporte técnico)</summary>
       <p class="explain">
@@ -838,8 +1158,31 @@
     </details>
   </main>
 
+  <div id="refresh-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <div class="modal-head">
+        <h2 id="modal-title">Coleta manual</h2>
+        <button id="modal-close" class="btn" type="button" aria-label="Fechar">✕</button>
+      </div>
+      <p id="modal-status" class="modal-status" data-state="idle">—</p>
+      <div class="modal-bar-track">
+        <div id="modal-bar" class="modal-bar"></div>
+      </div>
+      <div id="modal-steps" class="modal-steps"></div>
+      <a id="modal-github" class="btn" href="https://github.com/brunotrolo/Salesforce_PredictiveMonitoring/actions/workflows/collect.yml" target="_blank" rel="noopener">Abrir GitHub e iniciar a coleta</a>
+      <p id="modal-hint" class="modal-hint"></p>
+      <p class="modal-tip">
+        Esta página é estática e não consegue disparar a coleta sozinha.
+        Na aba do GitHub, clique no botão <b>Run workflow</b> (menu ao lado
+        do nome) e depois no botão verde <b>Run workflow</b>. Esta janela
+        acompanha o progresso sozinha — sem token, sem senha, e o pipeline
+        roda exatamente como o agendado.
+      </p>
+    </div>
+  </div>
+
   <footer>
-    <p>Coleta a cada 5 minutos (GitHub Actions) · dados brutos na
+    <p>O sistema tenta coletar a cada 5 minutos (o agendador do GitHub pode atrasar) · dados brutos na
       <a href="https://github.com/brunotrolo/Salesforce_PredictiveMonitoring/tree/data" rel="noopener">branch data/</a> ·
       <a href="https://github.com/brunotrolo/Salesforce_PredictiveMonitoring" rel="noopener">código no GitHub</a></p>
     <p>Página espelhada de <code>site/monitoring/</code> — não editar <code>docs/</code> à mão</p>

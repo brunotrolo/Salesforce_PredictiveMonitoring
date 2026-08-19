@@ -4,8 +4,15 @@ on:
   schedule:
     # Every 5 minutes (24/7 data collection per ADR-008).
     # GitHub schedules are not guaranteed to fire exactly on time and can
-    # skip runs under load; 5 min is the shortest reliable cadence.
+    # skip runs under load; 5 min is the shortest reliable cadence. The
+    # second entry (offset by 2 min) is a workaround for GitHub's cron
+    # coalescing: when the scheduler merges a window, an offset entry
+    # roughly doubles the chance that one of the two fires. Observed
+    # reality (2026-08-18/19): effective intervals of 25-40 min with a
+    # worst-case 89 min gap, all runs succeeding — the delay is the
+    # scheduler, not the pipeline.
     - cron: "*/5 * * * *"
+    - cron: "2-59/5 * * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -66,6 +73,13 @@ jobs:
           else
             echo "No calibration file found on branch data (auto-calibration starts empty)"
           fi
+          if [ -f "data-branch/trace.json" ]; then
+            mkdir -p out
+            cp "data-branch/trace.json" out/trace.json
+            echo "Using rolling 24h trace: trace.json (branch data)"
+          else
+            echo "No trace file found on branch data (trace starts empty)"
+          fi
           git worktree remove data-branch --force 2>/dev/null || true
 
       - name: Run pipeline (real MCP mode)
@@ -93,6 +107,7 @@ jobs:
           python monitoring/orchestrate.py --mode real \
             --log-file "out/${{ steps.stamp.outputs.stamp }}.json" \
             --metrics-file "out/${{ steps.stamp.outputs.stamp }}.prom" \
+            --trace-file "out/trace.json" \
             --auth-state-out "out/auth_state.json" \
             ${HISTORY} ${FEEDBACK} ${SAMPLES}
 
@@ -147,9 +162,17 @@ jobs:
           if [ -f "../out/calibration.json" ]; then
             cp "../out/calibration.json" calibration.json
           fi
+          # The pipeline always writes out/trace.json (created fresh on the
+          # first run); keep the rolling 24h trace on the data branch root.
+          if [ -f "../out/trace.json" ]; then
+            cp "../out/trace.json" trace.json
+          fi
           git add "data/${DATE}/"
           if [ -f "calibration.json" ]; then
             git add calibration.json
+          fi
+          if [ -f "trace.json" ]; then
+            git add trace.json
           fi
           git commit -m "data: ${STAMP}" || { echo "No changes"; exit 0; }
           git push origin HEAD:data
