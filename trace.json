@@ -96,5 +96,55 @@
         }
       ]
     }
+  },
+  {
+    "timestamp": "2026-08-19T04:22:05.043959+00:00",
+    "risk_score": 0.0391,
+    "errors_count": 3,
+    "retried_count": 0,
+    "alerts_critical": 3,
+    "alerts_warning": 0,
+    "ml_risk": 0.06666666666666667,
+    "anomalies": 2,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-19/2026-08-19T04-21-58Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T04-21-58Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://api-gw.portobank-crossdomain.prd.portoseguro.com.br/consorcio/newcon/v1/acl-newcon-api/cliente/salesforce/atendimento/21816527831?limit=1&offset=1",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/0004466900035098136",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://api-portoseg.sensedia.com/invoice/v1/queries",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-gw.portobank-crossdomain.prd.portoseguro.com.br/consorcio/newcon/v1/acl-newcon-api/cliente/salesforce/atendimento/21816527831?limit=1&offse"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/0004466900035098136: status 500 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/invoice/v1/queries: status 504 - None"
+        }
+      ]
+    }
   }
 ]
