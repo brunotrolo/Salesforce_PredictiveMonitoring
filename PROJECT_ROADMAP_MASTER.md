@@ -124,7 +124,7 @@ site/
 ### Phase 1 — Auth (RTR) & Kit (18/08/2026 — de hoje)
 - **RTR obrigatório descoberto na prática:** tokens de refresh obtidos por PKCE morrem sem renovação (erro no login do app: *"you must contact Support to complete the login"*) — confirmação do suporte Salesforce; não é bug do nosso código, é política de segurança da plataforma.
 - **Solução implementada:** rotação automática do `SF_REFRESH_TOKEN` em `collect.yml` (commit `863f401`) — a cada run, troca o refresh token e salva o novo como secret (PAT fine-grained `GH_PAT`). Loop validado com **5 ciclos verdes consecutivos** (timestamps de rotação: 01:25:23Z, 01:35:29Z, 02:06:40Z + schedule 02:35Z).
-- **Kit reutilizável publicado:** https://github.com/brunotrolo/Salesforce_MCPauthentication (commit `fc800d3`) — mesmo conteúdo versionado neste repo em `salesforce-mcp-auth-kit/` (README passo a passo, `scripts/get_sf_mcp_tokens.py`, `client/salesforce_mcp_client.py` self-contained, `pipeline/run_with_rotation.py`, `workflow/collect.yml`, `docs/TROUBLESHOOTING.md` com 8 armadilhas reais). Sem secrets no código (validado).
+- **Kit reutilizável publicado:** https://github.com/brunotrolo/Salesforce_MCPauthentication (commit `5aee386`, v1.0.0) — repositório canônico e única fonte do kit (`src/sf_mcp_auth/` instalável, `scripts/get_sf_mcp_tokens.py`, `pipeline/run_with_rotation.py`, `workflow/collect.yml`, `docs/TROUBLESHOOTING.md` + `docs/VALIDACAO.md`). Homologado em produção: 35 tests passando, 2 runs verdes consecutivas com rotação viva do secret (19/08/2026). Réplica verificada em venv limpa (`pip install .` + pytest = 35 passed). Sem secrets no código (validado).
 
 ### Phase 2: Alerting & Notifications (1 week)
 - ~~Email/Slack notifications on critical alerts~~ (removido por decisão do usuário em 16/08/2026)
@@ -396,7 +396,7 @@ site/api/client.js                       ← API fetcher (MODIFIED)
 | 2026-08-15 | Architecture validation complete | @claude-code |
 | 2026-08-16 | Phases 2-5 delivered (alerting, ML shadow, feedback loop) | @claude-code |
 | 2026-08-17 | Phase 4-5 wiring (auto-calibração, metrics, Sentry, feedback no collect.yml) | @claude-code |
-| 2026-08-18 | Phase 1 closed: auth RTR resolvido (rotação automática do secret), 5 ciclos verdes, kit publicado (`salesforce-mcp-auth-kit/` + repo `Salesforce_MCPauthentication`), GitHub Pages live validado, success criteria da Phase 1 marcados | @opencode |
+| 2026-08-18 | Phase 1 closed: auth RTR resolvido (rotação automática do secret), 5 ciclos verdes, kit publicado (repo canônico `Salesforce_MCPauthentication`, v1.0.0 — cópia legada `salesforce-mcp-auth-kit/` removida deste repo em 19/08/2026), GitHub Pages live validado, success criteria da Phase 1 marcados | @opencode |
 | 2026-08-18 | Dashboard v2 na raiz do Pages: página única e explicada em `https://brunotrolo.github.io/Salesforce_PredictiveMonitoring/` (fonte da verdade em `site/monitoring/`, espelho gerado para `docs/`), painel de diagnóstico com "Copiar diagnóstico", coleta de 15 → 5 min (`collect.yml`), A/B testing fora de escopo (decisão do usuário) | @opencode |
 
 ---
