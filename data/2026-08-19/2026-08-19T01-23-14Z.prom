@@ -1,0 +1,35 @@
+# HELP monitoring_pipeline_info Pipeline cycle metadata
+# TYPE monitoring_pipeline_info gauge
+monitoring_pipeline_info{mode="real",health="HEALTHY"} 1
+# HELP monitoring_risk_score Heuristic risk score (0..1)
+# TYPE monitoring_risk_score gauge
+monitoring_risk_score 0
+# HELP monitoring_errors_count Errors observed in the window
+# TYPE monitoring_errors_count gauge
+monitoring_errors_count 0
+# HELP monitoring_slow_requests_count Slow requests in the window
+# TYPE monitoring_slow_requests_count gauge
+monitoring_slow_requests_count 0
+# HELP monitoring_retried_count Requests that were retried in the window
+# TYPE monitoring_retried_count gauge
+monitoring_retried_count 0
+# HELP monitoring_logs_processed Logs processed in the window
+# TYPE monitoring_logs_processed gauge
+monitoring_logs_processed 100
+# HELP monitoring_pipeline_duration_ms Pipeline cycle duration in milliseconds
+# TYPE monitoring_pipeline_duration_ms gauge
+monitoring_pipeline_duration_ms 4298
+# HELP monitoring_pipeline_step_errors_count Pipeline steps that failed in the cycle
+# TYPE monitoring_pipeline_step_errors_count gauge
+monitoring_pipeline_step_errors_count 0
+# HELP monitoring_cycle_timestamp_seconds Cycle timestamp (Unix seconds)
+# TYPE monitoring_cycle_timestamp_seconds gauge
+monitoring_cycle_timestamp_seconds 1.7871e+09
+# HELP monitoring_alerts_total Active alerts by severity
+# TYPE monitoring_alerts_total gauge
+monitoring_alerts_total{severity="CRITICAL"} 0
+monitoring_alerts_total{severity="INFO"} 0
+monitoring_alerts_total{severity="WARNING"} 0
+# HELP monitoring_shadow_ml_risk ML shadow-mode risk score
+# TYPE monitoring_shadow_ml_risk gauge
+monitoring_shadow_ml_risk 0.0322581
