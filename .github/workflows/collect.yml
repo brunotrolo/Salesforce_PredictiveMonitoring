@@ -49,6 +49,20 @@ jobs:
           echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
           echo "stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)" >> "$GITHUB_OUTPUT"
 
+      # PAT-free rotation: mint a 1-hour installation token from the GitHub App.
+      # Skipped while the App triplet is not configured (falls back to GH_PAT
+      # below) - keeps the migration window smooth with zero downtime.
+      - name: Mint GitHub App token (PAT-free rotation)
+        id: app_token
+        if: ${{ secrets.GITHUB_APP_ID != '' && secrets.GITHUB_APP_PRIVATE_KEY != '' && secrets.GITHUB_INSTALLATION_ID != '' }}
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.GITHUB_APP_ID }}
+          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
+          installation-id: ${{ secrets.GITHUB_INSTALLATION_ID }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
       - name: Fetch previous snapshot (recurrence history)
         id: history
         run: |
@@ -123,15 +137,19 @@ jobs:
         # Salesforce rotates the refresh token on every refresh (mandatory in
         # this org). The pipeline persists the latest token to out/auth_state.json;
         # this step writes it back to the SF_REFRESH_TOKEN secret so the next run
-        # always starts with the current token. Needs a fine-grained PAT with
-        # Actions -> Secrets read/write (GITHUB_TOKEN cannot update secrets).
+        # always starts with the current token.
+        #
+        # Auth to the Secrets API prefers the GitHub App installation token
+        # (minted above, 1h, PAT-free). Falls back to GH_PAT while you migrate -
+        # zero downtime, remove GH_PAT once the App is validated.
         if: always() && steps.stamp.outputs.stamp != ''
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          # Prefer PAT-free token; fall back to legacy GH_PAT for backward compat.
+          GH_TOKEN: ${{ steps.app_token.outputs.token || secrets.GH_PAT }}
         run: |
           set -e
           if [ -z "$GH_TOKEN" ]; then
-            echo "GH_PAT not configured - skipping secret rotation"
+            echo "No GitHub App token and no GH_PAT - skipping secret rotation"
             exit 0
           fi
           if [ ! -f "out/auth_state.json" ]; then
