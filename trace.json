@@ -1,63 +1,5 @@
 [
   {
-    "timestamp": "2026-08-19T17:21:59.364075+00:00",
-    "risk_score": 0.0,
-    "errors_count": 0,
-    "retried_count": 0,
-    "alerts_critical": 0,
-    "alerts_warning": 0,
-    "ml_risk": 0.16666666666666666,
-    "anomalies": 1,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T17-21-53Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T17-21-53Z.json",
-    "evidence": {
-      "error_endpoints": [],
-      "alerts": []
-    }
-  },
-  {
-    "timestamp": "2026-08-19T17:36:16.076807+00:00",
-    "risk_score": 0.006,
-    "errors_count": 2,
-    "retried_count": 0,
-    "alerts_critical": 2,
-    "alerts_warning": 0,
-    "ml_risk": 0.0,
-    "anomalies": 0,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T17-36-10Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T17-36-10Z.json",
-    "evidence": {
-      "error_endpoints": [
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121771899747002",
-          "count": 1,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        },
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371206964002",
-          "count": 1,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        }
-      ],
-      "alerts": [
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121771899747002: status 500 - "
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371206964002: status 500 - "
-        }
-      ]
-    }
-  },
-  {
     "timestamp": "2026-08-19T17:49:40.779380+00:00",
     "risk_score": 0.009,
     "errors_count": 3,
@@ -2759,6 +2701,56 @@
         {
           "severity": "CRITICAL",
           "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-08-20T17:39:19.298911+00:00",
+    "risk_score": 0.009,
+    "errors_count": 3,
+    "retried_count": 0,
+    "alerts_critical": 3,
+    "alerts_warning": 0,
+    "ml_risk": 0.20487804878048782,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T17-39-11Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T17-39-11Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329301230701000",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772669684003",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152751115912004",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329301230701000: status 500 - "
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004121772669684003: status 500 - "
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152751115912004: status 500 - "
         }
       ]
     }
