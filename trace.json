@@ -1,53 +1,5 @@
 [
   {
-    "timestamp": "2026-08-19T16:59:06.806313+00:00",
-    "risk_score": 0.012,
-    "errors_count": 4,
-    "retried_count": 0,
-    "alerts_critical": 2,
-    "alerts_warning": 0,
-    "ml_risk": 0.0,
-    "anomalies": 0,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T16-58-59Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T16-58-59Z.json",
-    "evidence": {
-      "error_endpoints": [
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
-          "count": 2,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        },
-        {
-          "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption",
-          "count": 2,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        }
-      ],
-      "alerts": [
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 504 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 504 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
-        }
-      ]
-    }
-  },
-  {
     "timestamp": "2026-08-19T17:21:59.364075+00:00",
     "risk_score": 0.0,
     "errors_count": 0,
@@ -2727,6 +2679,36 @@
         {
           "severity": "CRITICAL",
           "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152751532858004: status 500 - "
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-08-20T17:01:55.361854+00:00",
+    "risk_score": 0.003,
+    "errors_count": 1,
+    "retried_count": 0,
+    "alerts_critical": 1,
+    "alerts_warning": 0,
+    "ml_risk": 0.5,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T17-01-50Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T17-01-50Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None"
         }
       ]
     }
