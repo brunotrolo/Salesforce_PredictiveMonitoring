@@ -55,8 +55,7 @@ jobs:
           echo "stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)" >> "$GITHUB_OUTPUT"
 
       # PAT-free rotation: mint a 1-hour installation token from the GitHub App.
-      # Skipped while the App triplet is not configured (falls back to GH_PAT
-      # below) - keeps the migration window smooth with zero downtime.
+      # Skipped while the App triplet is not configured.
       - name: Mint GitHub App token (PAT-free rotation)
         id: app_token
         if: ${{ env.GH_APP_ID != '' && env.GH_APP_PRIVATE_KEY != '' }}
@@ -143,17 +142,15 @@ jobs:
         # this step writes it back to the SF_REFRESH_TOKEN secret so the next run
         # always starts with the current token.
         #
-        # Auth to the Secrets API prefers the GitHub App installation token
-        # (minted above, 1h, PAT-free). Falls back to GH_PAT while you migrate -
-        # zero downtime, remove GH_PAT once the App is validated.
+        # Auth to the Secrets API uses the GitHub App installation token
+        # (minted above, 1h, PAT-free).
         if: always() && steps.stamp.outputs.stamp != ''
         env:
-          # Prefer PAT-free token; fall back to legacy GH_PAT for backward compat.
-          GH_TOKEN: ${{ steps.app_token.outputs.token || secrets.GH_PAT }}
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
           set -e
           if [ -z "$GH_TOKEN" ]; then
-            echo "No GitHub App token and no GH_PAT - skipping secret rotation"
+            echo "No GitHub App token - skipping secret rotation"
             exit 0
           fi
           if [ ! -f "out/auth_state.json" ]; then

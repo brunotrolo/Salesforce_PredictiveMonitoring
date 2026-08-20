@@ -1020,7 +1020,7 @@ function scheduleNextPoll() {
   modalTimer = setTimeout(pollModal, delay);
 }
 
-function failModal(message) {
+function failModal(message, hint) {
   modalState = modalState || { phase: "failed" };
   modalState.phase = "failed";
   if (modalTimer) {
@@ -1029,7 +1029,7 @@ function failModal(message) {
   }
   renderModalSteps(1, true);
   setModalStatus(message, "failed");
-  setModalHint("Feche e tente novamente, ou veja o log da execução no GitHub.");
+  setModalHint(hint || "Feche e tente novamente, ou veja o log da execução no GitHub.");
 }
 
 async function doneModal() {
@@ -1094,7 +1094,10 @@ async function pollModal() {
     const run = await getLatestDispatchRun(modalState.openedAt);
     const concluded = run && (run.conclusion || run.status === "completed");
     if (run && run.conclusion === "failure") {
-      failModal("A coleta falhou no GitHub — confira o log do workflow.");
+      failModal(
+        "A coleta falhou no GitHub — confira o log do workflow.",
+        "Se o log mostrar \"invalid_grant: expired access/refresh token\", o token SF_REFRESH_TOKEN do pipeline (secret) expirou — regenere com o bootstrap e atualize o secret. O token salvo nesta página não é o problema."
+      );
       return;
     }
     if (runElapsedSec > MODAL_TIMEOUT_SEC) {
