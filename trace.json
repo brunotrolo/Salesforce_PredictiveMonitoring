@@ -1,45 +1,5 @@
 [
   {
-    "timestamp": "2026-08-19T18:17:01.298370+00:00",
-    "risk_score": 0.006,
-    "errors_count": 2,
-    "retried_count": 0,
-    "alerts_critical": 2,
-    "alerts_warning": 0,
-    "ml_risk": 0.0,
-    "anomalies": 0,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T18-16-55Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T18-16-55Z.json",
-    "evidence": {
-      "error_endpoints": [
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152748379900006",
-          "count": 1,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        },
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152752941252003",
-          "count": 1,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        }
-      ],
-      "alerts": [
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152748379900006: status 500 - "
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152752941252003: status 500 - "
-        }
-      ]
-    }
-  },
-  {
     "timestamp": "2026-08-19T18:49:18.429619+00:00",
     "risk_score": 0.003,
     "errors_count": 1,
@@ -2773,6 +2733,52 @@
         {
           "severity": "CRITICAL",
           "message": "Error on callout:Sensedia_Card/massified-product/v1/recommendations/accounts/4152750109777001?channel=SalesForce: status 504 - None"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-08-20T18:17:41.584126+00:00",
+    "risk_score": 0.021,
+    "errors_count": 7,
+    "retried_count": 0,
+    "alerts_critical": 1,
+    "alerts_warning": 0,
+    "ml_risk": 0.6027777777777777,
+    "anomalies": 1,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T18-17-32Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T18-17-32Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption",
+          "count": 7,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
         }
       ]
     }
