@@ -1,53 +1,5 @@
 [
   {
-    "timestamp": "2026-08-19T21:02:47.632993+00:00",
-    "risk_score": 0.0,
-    "errors_count": 0,
-    "retried_count": 0,
-    "alerts_critical": 0,
-    "alerts_warning": 0,
-    "ml_risk": 0.5583333333333333,
-    "anomalies": 1,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T21-02-39Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T21-02-39Z.json",
-    "evidence": {
-      "error_endpoints": [],
-      "alerts": []
-    }
-  },
-  {
-    "timestamp": "2026-08-19T21:13:58.516113+00:00",
-    "risk_score": 0.003,
-    "errors_count": 1,
-    "retried_count": 0,
-    "alerts_critical": 1,
-    "alerts_warning": 0,
-    "ml_risk": 0.13157894736842105,
-    "anomalies": 0,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T21-13-52Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T21-13-52Z.json",
-    "evidence": {
-      "error_endpoints": [
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
-          "count": 1,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        }
-      ],
-      "alerts": [
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None"
-        }
-      ]
-    }
-  },
-  {
     "timestamp": "2026-08-19T21:36:46.395939+00:00",
     "risk_score": 0.009,
     "errors_count": 3,
@@ -2841,6 +2793,64 @@
         {
           "severity": "CRITICAL",
           "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-08-20T21:21:34.454482+00:00",
+    "risk_score": 0.03,
+    "errors_count": 10,
+    "retried_count": 0,
+    "alerts_critical": 3,
+    "alerts_warning": 0,
+    "ml_risk": 0.08333333333333333,
+    "anomalies": 1,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T21-21-27Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T21-21-27Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption",
+          "count": 8,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371433424002",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/credit-card/v1/cards/annuity-exemption: status 504 - None"
         }
       ]
     }
