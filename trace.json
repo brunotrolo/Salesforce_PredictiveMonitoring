@@ -1,59 +1,5 @@
 [
   {
-    "timestamp": "2026-08-19T13:56:29.450866+00:00",
-    "risk_score": 0.09,
-    "errors_count": 30,
-    "retried_count": 0,
-    "alerts_critical": 2,
-    "alerts_warning": 0,
-    "ml_risk": 0.0,
-    "anomalies": 0,
-    "circuit_breaker": true,
-    "breaker_messages": [
-      "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152742952842008: status 500 - None"
-    ],
-    "snapshot": "data/2026-08-19/2026-08-19T13-56-23Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T13-56-23Z.json",
-    "evidence": {
-      "error_endpoints": [
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
-          "count": 29,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        },
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152742952842008",
-          "count": 1,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        }
-      ],
-      "alerts": [
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        }
-      ]
-    }
-  },
-  {
     "timestamp": "2026-08-19T15:58:13.079750+00:00",
     "risk_score": 0.006,
     "errors_count": 2,
@@ -2553,6 +2499,36 @@
         {
           "severity": "CRITICAL",
           "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-08-20T13:57:03.681165+00:00",
+    "risk_score": 0.003,
+    "errors_count": 1,
+    "retried_count": 0,
+    "alerts_critical": 1,
+    "alerts_warning": 0,
+    "ml_risk": 0.0,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T13-56-54Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T13-56-54Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371926923007",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005365371926923007: status 500 - "
         }
       ]
     }
