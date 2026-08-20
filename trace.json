@@ -2782,5 +2782,45 @@
         }
       ]
     }
+  },
+  {
+    "timestamp": "2026-08-20T16:27:25.359456+00:00",
+    "risk_score": 0.006,
+    "errors_count": 2,
+    "retried_count": 0,
+    "alerts_critical": 2,
+    "alerts_warning": 0,
+    "ml_risk": 0.17142857142857143,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T16-27-16Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T16-27-16Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300226997002",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=2&bankAccount=0005329300226997002: status 500 - "
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None"
+        }
+      ]
+    }
   }
 ]
