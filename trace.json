@@ -2304,5 +2304,59 @@
         }
       ]
     }
+  },
+  {
+    "timestamp": "2026-08-20T11:51:49.642893+00:00",
+    "risk_score": 0.012,
+    "errors_count": 4,
+    "retried_count": 0,
+    "alerts_critical": 3,
+    "alerts_warning": 0,
+    "ml_risk": 0.5,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T11-51-42Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T11-51-42Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
+          "count": 2,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749012910006",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152749012910006: status 500 - "
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/riscos-financeiros/pis-workflow/v1/proposta: status 502 - None"
+        }
+      ]
+    }
   }
 ]
