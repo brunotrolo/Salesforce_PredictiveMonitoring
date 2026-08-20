@@ -1,43 +1,5 @@
 [
   {
-    "timestamp": "2026-08-19T19:46:35.871901+00:00",
-    "risk_score": 0.009,
-    "errors_count": 3,
-    "retried_count": 0,
-    "alerts_critical": 1,
-    "alerts_warning": 0,
-    "ml_risk": 0.061538461538461535,
-    "anomalies": 0,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T19-46-30Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T19-46-30Z.json",
-    "evidence": {
-      "error_endpoints": [
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta",
-          "count": 3,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        }
-      ],
-      "alerts": [
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        },
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/portobank/pis-workflow/oferta/v1/oferta: status 502 - None"
-        }
-      ]
-    }
-  },
-  {
     "timestamp": "2026-08-19T19:57:08.835816+00:00",
     "risk_score": 0.0,
     "errors_count": 0,
@@ -2755,6 +2717,46 @@
         {
           "severity": "CRITICAL",
           "message": "Error on https://api-portoseg.sensedia.com/account/v1/accounts/0004121773985071008/cards: status 504 - None"
+        }
+      ]
+    }
+  },
+  {
+    "timestamp": "2026-08-20T19:55:26.409651+00:00",
+    "risk_score": 0.006,
+    "errors_count": 2,
+    "retried_count": 0,
+    "alerts_critical": 2,
+    "alerts_warning": 0,
+    "ml_risk": 0.08870967741935484,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T19-55-18Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T19-55-18Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://api-portoseg.sensedia.com/account/v1/customers/18043427852/devices",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        },
+        {
+          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152741814675002",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/account/v1/customers/18043427852/devices: status 504 - None"
+        },
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152741814675002: status 500 - "
         }
       ]
     }
