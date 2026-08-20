@@ -33,7 +33,6 @@ jobs:
     env:
       GH_APP_ID: ${{ secrets.APP_ID }}
       GH_APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
-      GH_INSTALLATION_ID: ${{ secrets.INSTALLATION_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -60,12 +59,11 @@ jobs:
       # below) - keeps the migration window smooth with zero downtime.
       - name: Mint GitHub App token (PAT-free rotation)
         id: app_token
-        if: ${{ env.GH_APP_ID != '' && env.GH_APP_PRIVATE_KEY != '' && env.GH_INSTALLATION_ID != '' }}
+        if: ${{ env.GH_APP_ID != '' && env.GH_APP_PRIVATE_KEY != '' }}
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          installation-id: ${{ secrets.INSTALLATION_ID }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 
