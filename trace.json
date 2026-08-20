@@ -2422,5 +2422,35 @@
         }
       ]
     }
+  },
+  {
+    "timestamp": "2026-08-20T12:18:54.995950+00:00",
+    "risk_score": 0.003,
+    "errors_count": 1,
+    "retried_count": 0,
+    "alerts_critical": 1,
+    "alerts_warning": 0,
+    "ml_risk": 0.4105263157894737,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T12-18-50Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T12-18-50Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://api-portoseg.sensedia.com/portotag/v1/deactivations",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/portotag/v1/deactivations: status 504 - None"
+        }
+      ]
+    }
   }
 ]
