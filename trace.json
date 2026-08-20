@@ -1678,5 +1678,23 @@
       "error_endpoints": [],
       "alerts": []
     }
+  },
+  {
+    "timestamp": "2026-08-20T04:47:50.847987+00:00",
+    "risk_score": 0.0,
+    "errors_count": 0,
+    "retried_count": 0,
+    "alerts_critical": 0,
+    "alerts_warning": 0,
+    "ml_risk": 0.17105263157894737,
+    "anomalies": 13,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T04-47-43Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T04-47-43Z.json",
+    "evidence": {
+      "error_endpoints": [],
+      "alerts": []
+    }
   }
 ]
