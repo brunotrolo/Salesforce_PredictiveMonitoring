@@ -54,12 +54,12 @@ jobs:
       # below) - keeps the migration window smooth with zero downtime.
       - name: Mint GitHub App token (PAT-free rotation)
         id: app_token
-        if: ${{ secrets.GITHUB_APP_ID != '' && secrets.GITHUB_APP_PRIVATE_KEY != '' && secrets.GITHUB_INSTALLATION_ID != '' }}
+        if: ${{ secrets.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' && secrets.INSTALLATION_ID != '' }}
         uses: actions/create-github-app-token@v1
         with:
-          app-id: ${{ secrets.GITHUB_APP_ID }}
-          private-key: ${{ secrets.GITHUB_APP_PRIVATE_KEY }}
-          installation-id: ${{ secrets.GITHUB_INSTALLATION_ID }}
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          installation-id: ${{ secrets.INSTALLATION_ID }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 
