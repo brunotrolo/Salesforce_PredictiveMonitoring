@@ -28,6 +28,12 @@ permissions:
 jobs:
   collect:
     runs-on: ubuntu-latest
+    # secrets context is not allowed in step `if:` - expose via job env
+    # (the standard workaround) so the mint step can check presence.
+    env:
+      GH_APP_ID: ${{ secrets.APP_ID }}
+      GH_APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      GH_INSTALLATION_ID: ${{ secrets.INSTALLATION_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,7 +60,7 @@ jobs:
       # below) - keeps the migration window smooth with zero downtime.
       - name: Mint GitHub App token (PAT-free rotation)
         id: app_token
-        if: ${{ secrets.APP_ID != '' && secrets.APP_PRIVATE_KEY != '' && secrets.INSTALLATION_ID != '' }}
+        if: ${{ env.GH_APP_ID != '' && env.GH_APP_PRIVATE_KEY != '' && env.GH_INSTALLATION_ID != '' }}
         uses: actions/create-github-app-token@v1
         with:
           app-id: ${{ secrets.APP_ID }}
