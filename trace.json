@@ -1,35 +1,5 @@
 [
   {
-    "timestamp": "2026-08-19T19:34:08.444381+00:00",
-    "risk_score": 0.003,
-    "errors_count": 1,
-    "retried_count": 0,
-    "alerts_critical": 1,
-    "alerts_warning": 0,
-    "ml_risk": 0.125,
-    "anomalies": 1,
-    "circuit_breaker": false,
-    "breaker_messages": [],
-    "snapshot": "data/2026-08-19/2026-08-19T19-34-04Z.json",
-    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-19/2026-08-19T19-34-04Z.json",
-    "evidence": {
-      "error_endpoints": [
-        {
-          "resource": "https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152744556440007",
-          "count": 1,
-          "max_duration_ms": 0,
-          "sample_message": "None"
-        }
-      ],
-      "alerts": [
-        {
-          "severity": "CRITICAL",
-          "message": "Error on https://portoapicloud.portoseguro.com.br/payware-fenix/v1/retention-history?issuer=40&branch=1&product=1&bankAccount=0004152744556440007: status 500 - "
-        }
-      ]
-    }
-  },
-  {
     "timestamp": "2026-08-19T19:46:35.871901+00:00",
     "risk_score": 0.009,
     "errors_count": 3,
@@ -2757,6 +2727,36 @@
     "evidence": {
       "error_endpoints": [],
       "alerts": []
+    }
+  },
+  {
+    "timestamp": "2026-08-20T19:39:52.375360+00:00",
+    "risk_score": 0.003,
+    "errors_count": 1,
+    "retried_count": 0,
+    "alerts_critical": 1,
+    "alerts_warning": 0,
+    "ml_risk": 0.2857142857142857,
+    "anomalies": 0,
+    "circuit_breaker": false,
+    "breaker_messages": [],
+    "snapshot": "data/2026-08-20/2026-08-20T19-39-46Z.json",
+    "snapshot_raw": "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-20/2026-08-20T19-39-46Z.json",
+    "evidence": {
+      "error_endpoints": [
+        {
+          "resource": "https://api-portoseg.sensedia.com/account/v1/accounts/0004121773985071008/cards",
+          "count": 1,
+          "max_duration_ms": 0,
+          "sample_message": "None"
+        }
+      ],
+      "alerts": [
+        {
+          "severity": "CRITICAL",
+          "message": "Error on https://api-portoseg.sensedia.com/account/v1/accounts/0004121773985071008/cards: status 504 - None"
+        }
+      ]
     }
   }
 ]
