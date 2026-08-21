@@ -106,6 +106,14 @@ jobs:
           fi
           git worktree remove data-branch --force 2>/dev/null || true
 
+      - name: Start Prometheus server (background)
+        run: |
+          PROM_PORT=9090 PROM_DIR=out python monitoring/prometheus_server.py &
+          echo "PROM_PID=$!" >> "$GITHUB_ENV"
+          # Brief wait so /health is reachable before the pipeline starts
+          sleep 2
+          curl -sf http://localhost:9090/health || echo "Prometheus server not yet ready (no .prom files)"
+
       - name: Run pipeline (real MCP mode)
         id: pipeline
         env:
@@ -135,6 +143,18 @@ jobs:
             --snapshot-name "${{ steps.stamp.outputs.stamp }}.json" \
             --auth-state-out "out/auth_state.json" \
             ${HISTORY} ${FEEDBACK} ${SAMPLES}
+
+      - name: Verify Prometheus metrics endpoint
+        if: always() && env.PROM_PID != ''
+        run: |
+          set +e
+          # Give server a moment to pick up the .prom file
+          sleep 1
+          echo "=== /health ==="
+          curl -sf http://localhost:9090/health | python -m json.tool || echo "health check failed"
+          echo ""
+          echo "=== /metrics (first 20 lines) ==="
+          curl -sf http://localhost:9090/metrics | head -20 || echo "metrics not available"
 
       - name: Rotate auth secret (refresh token rotation)
         # Salesforce rotates the refresh token on every refresh (mandatory in
@@ -233,3 +253,9 @@ jobs:
             out/${{ steps.stamp.outputs.stamp }}.prom
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Stop Prometheus server
+        if: always() && env.PROM_PID != ''
+        run: |
+          kill "$PROM_PID" 2>/dev/null || true
+          echo "Prometheus server stopped"
