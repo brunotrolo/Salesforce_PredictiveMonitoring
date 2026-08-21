@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "monitoring-notification"
+version = "0.1.0"
+description = "Salesforce monitoring email notification service (SMTP Gmail)"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.setuptools]
+packages = ["notification"]
