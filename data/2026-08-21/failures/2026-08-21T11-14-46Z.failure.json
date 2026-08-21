@@ -1,0 +1,6 @@
+{
+  "error_type": "auth_token_expired",
+  "message": "Token refresh failed: HTTP 400: {\"error\":\"invalid_grant\",\"error_description\":\"expired access/refresh token\"}",
+  "mode": "real",
+  "timestamp": "2026-08-21T11:14:56.368843+00:00"
+}
