@@ -1,0 +1,6 @@
+{
+  "error_type": "unknown",
+  "message": "MCP tool 'soqlQuery' failed: [{'type': 'text', 'text': '[{\"message\":\"\\\\nSELECT Id, CreatedDate, Status__c, Endpoint__c, Method__c, WebserviceName__c\\\\n                                   ^\\\\nERROR at Row:1:Column:36\\\\nNo such column \\'Endpoint__c\\' on entity \\'Log__c\\'. If you are attempting to use a custom field, be sure to append the \\'__c\\' after the custom field name. Please reference your WSDL or the describe call for the appropriate names.\",\"errorCode\":\"INVALID_FIELD\"}]'}]",
+  "mode": "real",
+  "timestamp": "2026-08-21T01:49:45.804508+00:00"
+}
