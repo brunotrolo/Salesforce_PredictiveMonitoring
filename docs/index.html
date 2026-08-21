@@ -1102,6 +1102,30 @@
       <p class="explain" id="accuracy-caption"></p>
     </section>
 
+    <section class="card" aria-labelledby="feedback-title">
+      <div class="card-head">
+        <h2 id="feedback-title">Feedback dos usuários</h2>
+        <span id="feedback-note" class="card-note" data-state="off">—</span>
+      </div>
+      <dl class="shadow-grid">
+        <div>
+          <dt>Total carregado</dt>
+          <dd id="feedback-loaded">—</dd>
+        </div>
+        <div>
+          <dt>Válido</dt>
+          <dd id="feedback-valid">—</dd>
+        </div>
+        <div>
+          <dt>Inválido</dt>
+          <dd id="feedback-invalid">—</dd>
+        </div>
+      </dl>
+      <div id="feedback-by-action" class="tag-list"></div>
+      <div id="feedback-by-target" class="tag-list"></div>
+      <p class="explain" id="feedback-caption"></p>
+    </section>
+
     <section class="card" aria-labelledby="comparison-title">
       <div class="card-head">
         <h2 id="comparison-title">Comparação: previsão vs. real</h2>
@@ -1204,6 +1228,36 @@
         a chamada foi repetida. Serve para auditoria humana: se a página
         disser que está tudo bem, é aqui que você confere na mão.
       </p>
+    </section>
+
+    <section class="card" aria-labelledby="prometheus-title">
+      <div class="card-head">
+        <h2 id="prometheus-title">Métricas Prometheus</h2>
+        <span id="prometheus-note" class="card-note" data-state="off">—</span>
+      </div>
+      <dl class="shadow-grid">
+        <div>
+          <dt>Pipeline info</dt>
+          <dd id="prometheus-info">—</dd>
+        </div>
+        <div>
+          <dt>Risco</dt>
+          <dd id="prometheus-risk">—</dd>
+        </div>
+        <div>
+          <dt>Erros</dt>
+          <dd id="prometheus-errors">—</dd>
+        </div>
+        <div>
+          <dt>Alertas</dt>
+          <dd id="prometheus-alerts">—</dd>
+        </div>
+        <div>
+          <dt>Shadow ML</dt>
+          <dd id="prometheus-shadow">—</dd>
+        </div>
+      </dl>
+      <p class="explain" id="prometheus-caption"></p>
     </section>
 
     <details class="card diag">

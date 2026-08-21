@@ -36,6 +36,27 @@ export const mockMonitoringData = {
     false_positive: false,
     series_actual: [2, 4, 6],
   },
+  comparison: {
+    prediction: "DOWN",
+    confidence: 0.78,
+    risk_delta: -0.12,
+    summary: "Previsão de queda moderada de risco baseada na tendência atual.",
+  },
+  calibration_summary: {
+    status: "recommended",
+    samples: 42,
+    avg_fp_rate: 0.03,
+    current_threshold: 0.45,
+    recommended_threshold: 0.42,
+    threshold_used: 0.42,
+  },
+  feedback_summary: {
+    loaded: 120,
+    valid: 115,
+    invalid: 5,
+    by_action: { approve: 98, dismiss: 17 },
+    by_target: { alert_A1: 40, alert_A2: 35, shadow: 45 },
+  },
   pipeline: {
     duration_ms: 137,
     steps: ["collect", "analyze", "aggregate", "compare", "shadow"],
@@ -96,6 +117,15 @@ export const mockEmptyData = {
   },
   errors_count: 0,
   slow_requests_count: 0,
+  comparison: null,
+  calibration_summary: null,
+  feedback_summary: {
+    loaded: 0,
+    valid: 0,
+    invalid: 0,
+    by_action: {},
+    by_target: {},
+  },
   logs: [],
 };
 
@@ -131,6 +161,27 @@ export const mockCriticalData = {
     anomaly_hit: false,
     false_positive: true,
     series_actual: [3, 3, 3],
+  },
+  comparison: {
+    prediction: "UP",
+    confidence: 0.91,
+    risk_delta: 0.22,
+    summary: "Previsão de alta — padrão de falhas crescentes detectado.",
+  },
+  calibration_summary: {
+    status: "recommended",
+    samples: 60,
+    avg_fp_rate: 0.08,
+    current_threshold: 0.50,
+    recommended_threshold: 0.45,
+    threshold_used: 0.45,
+  },
+  feedback_summary: {
+    loaded: 200,
+    valid: 190,
+    invalid: 10,
+    by_action: { approve: 150, dismiss: 40, escalate: 10 },
+    by_target: { alert_A1: 80, alert_A2: 50, alert_A3: 40, shadow: 30 },
   },
   pipeline: {
     duration_ms: 251,

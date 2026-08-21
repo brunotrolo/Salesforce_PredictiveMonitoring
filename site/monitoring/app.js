@@ -29,6 +29,10 @@ import {
   summarizeAggregated,
   summarizeShadow,
   summarizeAccuracy,
+  summarizeComparison,
+  summarizeHealthCheck,
+  summarizeCalibration,
+  summarizeFeedback,
   summarizePipeline,
   summarizeLogs,
   summarizeTrace,
@@ -84,6 +88,20 @@ const els = {
   calibrationCurrent: () => document.getElementById("calibration-current"),
   calibrationRecommended: () => document.getElementById("calibration-recommended"),
   healthBadge: () => document.getElementById("health-badge"),
+  feedbackNote: () => document.getElementById("feedback-note"),
+  feedbackLoaded: () => document.getElementById("feedback-loaded"),
+  feedbackValid: () => document.getElementById("feedback-valid"),
+  feedbackInvalid: () => document.getElementById("feedback-invalid"),
+  feedbackByAction: () => document.getElementById("feedback-by-action"),
+  feedbackByTarget: () => document.getElementById("feedback-by-target"),
+  feedbackCaption: () => document.getElementById("feedback-caption"),
+  prometheusNote: () => document.getElementById("prometheus-note"),
+  prometheusInfo: () => document.getElementById("prometheus-info"),
+  prometheusRisk: () => document.getElementById("prometheus-risk"),
+  prometheusErrors: () => document.getElementById("prometheus-errors"),
+  prometheusAlerts: () => document.getElementById("prometheus-alerts"),
+  prometheusShadow: () => document.getElementById("prometheus-shadow"),
+  prometheusCaption: () => document.getElementById("prometheus-caption"),
   pipelineDuration: () => document.getElementById("pipeline-duration"),
   pipelineSteps: () => document.getElementById("pipeline-steps"),
   pipelineErrors: () => document.getElementById("pipeline-errors"),
@@ -600,6 +618,74 @@ function renderCalibration(snapshot) {
   setText(els.calibrationRecommended(), cal.recommended_threshold != null ? cal.recommended_threshold.toFixed(2) : "—");
 }
 
+/* ---------------------------------------------------------------- feedback */
+
+function renderFeedback(snapshot) {
+  const fb = summarizeFeedback(snapshot.feedback_summary);
+  const note = els.feedbackNote();
+  if (note) {
+    note.textContent = fb.available ? `${fmtNumber(fb.loaded)} registros` : "sem dados";
+    note.dataset.state = fb.available ? "on" : "off";
+  }
+  setText(els.feedbackLoaded(), fb.loaded ? fmtNumber(fb.loaded) : "—");
+  setText(els.feedbackValid(), fb.valid ? fmtNumber(fb.valid) : "—");
+  setText(els.feedbackInvalid(), fb.invalid ? fmtNumber(fb.invalid) : "—");
+
+  const actionEl = els.feedbackByAction();
+  if (actionEl) {
+    const entries = Object.entries(fb.byAction);
+    actionEl.innerHTML = entries.length === 0
+      ? ""
+      : entries.map(([k, v]) => `<span class="tag">${k}: ${fmtNumber(v)}</span>`).join(" ");
+  }
+
+  const targetEl = els.feedbackByTarget();
+  if (targetEl) {
+    const entries = Object.entries(fb.byTarget);
+    targetEl.innerHTML = entries.length === 0
+      ? ""
+      : entries.map(([k, v]) => `<span class="tag">${k}: ${fmtNumber(v)}</span>`).join(" ");
+  }
+
+  const caption = els.feedbackCaption();
+  if (caption) {
+    caption.textContent = fb.available
+      ? `Resumo do feedback: ${fmtNumber(fb.loaded)} registros, ${fmtNumber(fb.valid)} válidos, ${fmtNumber(fb.invalid)} inválidos.`
+      : "";
+  }
+}
+
+/* ------------------------------------------------------------ prometheus */
+
+function renderPrometheus(snapshot) {
+  const note = els.prometheusNote();
+  if (note) {
+    note.textContent = "endpoint ativo";
+    note.dataset.state = "on";
+  }
+
+  const mode = snapshot.mode ?? "—";
+  const healthRaw = snapshot.health_check?.status ?? "UNKNOWN";
+  setText(els.prometheusInfo(), `${mode} / ${healthRaw}`);
+  setText(els.prometheusRisk(), snapshot.risk_score != null ? `${fmtPct(snapshot.risk_score)}%` : "—");
+  setText(els.prometheusErrors(), snapshot.errors_count != null ? fmtNumber(snapshot.errors_count) : "—");
+
+  const severityCounts = snapshot.severity_counts ?? {};
+  const alertTotal = Object.values(severityCounts).reduce((a, b) => a + Number(b ?? 0), 0);
+  setText(els.prometheusAlerts(), alertTotal ? fmtNumber(alertTotal) : "—");
+
+  const shadowRaw = snapshot.shadow_mode;
+  const shadowText = shadowRaw?.enabled
+    ? `ML ${fmtPct(shadowRaw.ml_risk)}%`
+    : "desligado";
+  setText(els.prometheusShadow(), shadowText);
+
+  const caption = els.prometheusCaption();
+  if (caption) {
+    caption.textContent = "Métricas exportadas em Prometheus text format (port 9090). Atualizadas a cada ciclo de coleta.";
+  }
+}
+
 function renderPipeline(snapshot) {
   const summary = summarizePipeline(snapshot.pipeline);
   const duration = els.pipelineDuration();
@@ -883,6 +969,8 @@ async function renderAll() {
   renderAccuracy(latest);
   renderComparison(latest);
   renderCalibration(latest);
+  renderFeedback(latest);
+  renderPrometheus(latest);
   renderPipeline(latest);
   renderStale(latest);
   renderTrace(trace, failureMarkers);

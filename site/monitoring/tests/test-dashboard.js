@@ -1,4 +1,4 @@
-import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow, directionLabel, getAccuracyVerdict, summarizeAccuracy, summarizePipeline, summarizeLogs, summarizeTrace, isStale, isCircuitBreakerMessage } from "../dashboard.js";
+import { getRiskLevel, getRiskColor, formatTimestamp, filterAlertsBySeverity, getAlertCounts, getRecurringCount, summarizeAggregated, getShadowVerdict, summarizeShadow, directionLabel, getAccuracyVerdict, summarizeAccuracy, summarizePipeline, summarizeLogs, summarizeTrace, isStale, isCircuitBreakerMessage, summarizeComparison, summarizeHealthCheck, summarizeCalibration, summarizeFeedback } from "../dashboard.js";
 import { mockMonitoringData, mockEmptyData, mockCriticalData, mockTraceData } from "../mock-data.js";
 
 describe("Dashboard", () => {
@@ -320,6 +320,192 @@ describe("Dashboard", () => {
     test("treats non-numeric duration as null", () => {
       const summary = summarizePipeline({ duration_ms: "fast" });
       expect(summary.durationMs).toBe(null);
+    });
+  });
+
+  describe("summarizeComparison", () => {
+    test("summarizes an available comparison block", () => {
+      const summary = summarizeComparison({
+        prediction: "UP",
+        confidence: 0.85,
+        risk_delta: 0.12,
+        summary: "Forecast up",
+      });
+      expect(summary.available).toBe(true);
+      expect(summary.prediction).toBe("UP");
+      expect(summary.predictionLabel).toBe("↑ Subir");
+      expect(summary.confidence).toBe(85);
+      expect(summary.riskDelta).toBe(0.12);
+      expect(summary.summary).toBe("Forecast up");
+    });
+
+    test("maps DOWN and STABLE predictions", () => {
+      expect(summarizeComparison({ prediction: "DOWN" }).predictionLabel).toBe("↓ Cair");
+      expect(summarizeComparison({ prediction: "STABLE" }).predictionLabel).toBe("— Estável");
+    });
+
+    test("falls back for null/missing fields", () => {
+      const summary = summarizeComparison({ prediction: null });
+      expect(summary.available).toBe(true);
+      expect(summary.predictionLabel).toBe("—");
+      expect(summary.confidence).toBe(null);
+      expect(summary.riskDelta).toBe(null);
+    });
+
+    test("returns safe fallback when undefined", () => {
+      const summary = summarizeComparison(undefined);
+      expect(summary.available).toBe(false);
+      expect(summary.prediction).toBe(null);
+      expect(summary.predictionLabel).toBe("—");
+      expect(summary.confidence).toBe(null);
+      expect(summary.riskDelta).toBe(null);
+      expect(summary.summary).toBe("");
+    });
+
+    test("returns safe fallback for non-object input", () => {
+      expect(summarizeComparison("nope").available).toBe(false);
+      expect(summarizeComparison(42).available).toBe(false);
+    });
+
+    test("rounds non-number confidence to null", () => {
+      expect(summarizeComparison({ confidence: "high" }).confidence).toBe(null);
+    });
+  });
+
+  describe("summarizeHealthCheck", () => {
+    test("summarizes a HEALTHY check", () => {
+      const summary = summarizeHealthCheck({ status: "HEALTHY", last_updated: "2026-08-21" });
+      expect(summary.available).toBe(true);
+      expect(summary.status).toBe("HEALTHY");
+      expect(summary.statusLabel).toBe("SAUDÁVEL");
+      expect(summary.lastUpdated).toBe("2026-08-21");
+    });
+
+    test("summarizes a WARNING check", () => {
+      expect(summarizeHealthCheck({ status: "WARNING" }).statusLabel).toBe("ATENÇÃO");
+    });
+
+    test("handles unknown status", () => {
+      const summary = summarizeHealthCheck({ status: "DEGRADED" });
+      expect(summary.status).toBe("DEGRADED");
+      expect(summary.statusLabel).toBe("DEGRADED");
+    });
+
+    test("lowercases then uppercases input status", () => {
+      const summary = summarizeHealthCheck({ status: "healthy" });
+      expect(summary.status).toBe("HEALTHY");
+    });
+
+    test("returns safe fallback when undefined", () => {
+      const summary = summarizeHealthCheck(undefined);
+      expect(summary.available).toBe(false);
+      expect(summary.status).toBe("UNKNOWN");
+      expect(summary.statusLabel).toBe("—");
+    });
+
+    test("returns safe fallback for non-object input", () => {
+      expect(summarizeHealthCheck(null).available).toBe(false);
+      expect(summarizeHealthCheck("str").available).toBe(false);
+    });
+  });
+
+  describe("summarizeCalibration", () => {
+    test("summarizes an ACTIVE calibration", () => {
+      const summary = summarizeCalibration({
+        status: "ACTIVE",
+        samples: 150,
+        avg_fp_rate: 0.05,
+        current_threshold: 0.7,
+        recommended_threshold: 0.65,
+      });
+      expect(summary.available).toBe(true);
+      expect(summary.status).toBe("ACTIVE");
+      expect(summary.statusLabel).toBe("ATIVA");
+      expect(summary.samples).toBe(150);
+      expect(summary.avgFpRate).toBe(5);
+      expect(summary.currentThreshold).toBe(0.7);
+      expect(summary.recommendedThreshold).toBe(0.65);
+    });
+
+    test("summarizes WARMING_UP calibration", () => {
+      expect(summarizeCalibration({ status: "warming_up" }).statusLabel).toBe("AQUECENDO");
+    });
+
+    test("summarizes INACTIVE calibration", () => {
+      expect(summarizeCalibration({ status: "inactive" }).statusLabel).toBe("INATIVA");
+    });
+
+    test("handles unknown status", () => {
+      expect(summarizeCalibration({ status: "UNKNOWN" }).statusLabel).toBe("UNKNOWN");
+    });
+
+    test("coerces non-number fields to null", () => {
+      const summary = summarizeCalibration({
+        status: "ACTIVE",
+        samples: "many",
+        avg_fp_rate: "low",
+        current_threshold: "x",
+        recommended_threshold: null,
+      });
+      expect(summary.samples).toBe(null);
+      expect(summary.avgFpRate).toBe(null);
+      expect(summary.currentThreshold).toBe(null);
+      expect(summary.recommendedThreshold).toBe(null);
+    });
+
+    test("returns safe fallback when undefined", () => {
+      const summary = summarizeCalibration(undefined);
+      expect(summary.available).toBe(false);
+      expect(summary.status).toBe(null);
+      expect(summary.statusLabel).toBe("—");
+      expect(summary.samples).toBe(null);
+      expect(summary.avgFpRate).toBe(null);
+      expect(summary.currentThreshold).toBe(null);
+      expect(summary.recommendedThreshold).toBe(null);
+    });
+  });
+
+  describe("summarizeFeedback", () => {
+    test("summarizes an available feedback block", () => {
+      const summary = summarizeFeedback({
+        loaded: 10,
+        valid: 8,
+        invalid: 2,
+        by_action: { "set_price": 5, "update_stock": 3 },
+        by_target: { "ML": 7, "SHOPEE": 1 },
+      });
+      expect(summary.available).toBe(true);
+      expect(summary.loaded).toBe(10);
+      expect(summary.valid).toBe(8);
+      expect(summary.invalid).toBe(2);
+      expect(summary.byAction).toEqual({ "set_price": 5, "update_stock": 3 });
+      expect(summary.byTarget).toEqual({ "ML": 7, "SHOPEE": 1 });
+    });
+
+    test("defaults missing fields to zero/empty", () => {
+      const summary = summarizeFeedback({});
+      expect(summary.available).toBe(true);
+      expect(summary.loaded).toBe(0);
+      expect(summary.valid).toBe(0);
+      expect(summary.invalid).toBe(0);
+      expect(summary.byAction).toEqual({});
+      expect(summary.byTarget).toEqual({});
+    });
+
+    test("returns safe fallback when undefined", () => {
+      const summary = summarizeFeedback(undefined);
+      expect(summary.available).toBe(false);
+      expect(summary.loaded).toBe(0);
+      expect(summary.valid).toBe(0);
+      expect(summary.invalid).toBe(0);
+      expect(summary.byAction).toEqual({});
+      expect(summary.byTarget).toEqual({});
+    });
+
+    test("returns safe fallback for non-object input", () => {
+      expect(summarizeFeedback(null).available).toBe(false);
+      expect(summarizeFeedback("str").available).toBe(false);
+      expect(summarizeFeedback(42).available).toBe(false);
     });
   });
 });

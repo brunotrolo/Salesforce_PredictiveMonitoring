@@ -293,6 +293,99 @@ export function summarizeTrace(trace) {
   return summary;
 }
 
+export function summarizeComparison(comparison) {
+  if (!comparison || typeof comparison !== "object") {
+    return {
+      available: false,
+      prediction: null,
+      predictionLabel: "—",
+      confidence: null,
+      riskDelta: null,
+      summary: "",
+    };
+  }
+  const pred = comparison.prediction ?? null;
+  const labels = { UP: "↑ Subir", DOWN: "↓ Cair", STABLE: "— Estável" };
+  return {
+    available: true,
+    prediction: pred,
+    predictionLabel: labels[pred] ?? pred ?? "—",
+    confidence: typeof comparison.confidence === "number"
+      ? Math.round(comparison.confidence * 100)
+      : null,
+    riskDelta: typeof comparison.risk_delta === "number"
+      ? comparison.risk_delta
+      : null,
+    summary: comparison.summary ?? "",
+  };
+}
+
+export function summarizeHealthCheck(healthCheck) {
+  if (!healthCheck || typeof healthCheck !== "object") {
+    return { available: false, status: "UNKNOWN", statusLabel: "—" };
+  }
+  const raw = String(healthCheck.status ?? "UNKNOWN").toUpperCase();
+  const map = { HEALTHY: "SAUDÁVEL", WARNING: "ATENÇÃO" };
+  return {
+    available: true,
+    status: raw,
+    statusLabel: map[raw] ?? raw,
+    lastUpdated: healthCheck.last_updated ?? null,
+  };
+}
+
+export function summarizeCalibration(calibration) {
+  if (!calibration || typeof calibration !== "object") {
+    return {
+      available: false,
+      status: null,
+      statusLabel: "—",
+      samples: null,
+      avgFpRate: null,
+      currentThreshold: null,
+      recommendedThreshold: null,
+    };
+  }
+  const raw = String(calibration.status ?? "unknown").toUpperCase();
+  const map = { ACTIVE: "ATIVA", WARMING_UP: "AQUECENDO", INACTIVE: "INATIVA" };
+  return {
+    available: true,
+    status: raw,
+    statusLabel: map[raw] ?? raw,
+    samples: typeof calibration.samples === "number" ? calibration.samples : null,
+    avgFpRate: typeof calibration.avg_fp_rate === "number"
+      ? Math.round(calibration.avg_fp_rate * 100)
+      : null,
+    currentThreshold: typeof calibration.current_threshold === "number"
+      ? calibration.current_threshold
+      : null,
+    recommendedThreshold: typeof calibration.recommended_threshold === "number"
+      ? calibration.recommended_threshold
+      : null,
+  };
+}
+
+export function summarizeFeedback(feedback) {
+  if (!feedback || typeof feedback !== "object") {
+    return {
+      available: false,
+      loaded: 0,
+      valid: 0,
+      invalid: 0,
+      byAction: {},
+      byTarget: {},
+    };
+  }
+  return {
+    available: true,
+    loaded: Number(feedback.loaded ?? 0),
+    valid: Number(feedback.valid ?? 0),
+    invalid: Number(feedback.invalid ?? 0),
+    byAction: feedback.by_action ?? {},
+    byTarget: feedback.by_target ?? {},
+  };
+}
+
 /**
  * True when the latest snapshot is older than the given age in minutes —
  * drives the red "dados atrasados" banner. Never stale in mock mode.
