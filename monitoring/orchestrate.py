@@ -12,15 +12,18 @@ from typing import Any
 
 # SOQL query used in real (Phase 1) mode: integration logs from the last hour.
 # Field-API names follow the actual Log__c schema in the org (verified via
-# getObjectSchema on 2026-08-16): Status__c (double), Endpoint__c,
+# getObjectSchema on 2026-08-16, updated 2026-08-21): Status__c (double),
 # Method__c, WebserviceName__c, Message__c, Retried__c, Object__c,
-# ObjectId__c. There is no duration field on Log__c (no Nebula Logger yet),
-# so duration_ms stays 0 and slow-request detection is inactive until the
-# Nebula schema lands. The window is a computed absolute timestamp, NOT
-# LAST_N_HOURS:1 (the MCP soqlQuery parser rejects that function - observed
-# 2026-08-16, MALFORMED_QUERY "unexpected token: 'LAST_N_HOURS'").
+# ObjectId__c. Endpoint__c was removed (not present on Log__c);
+# map_soql_records() falls back to WebserviceName__c → Method__c →
+# SystemModstamp for the resource field. There is no duration field on
+# Log__c (no Nebula Logger yet), so duration_ms stays 0 and slow-request
+# detection is inactive until the Nebula schema lands. The window is a
+# computed absolute timestamp, NOT LAST_N_HOURS:1 (the MCP soqlQuery parser
+# rejects that function - observed 2026-08-16, MALFORMED_QUERY "unexpected
+# token: 'LAST_N_HOURS'").
 SOQL_LOG_QUERY = (
-    "SELECT Id, CreatedDate, Status__c, Endpoint__c, Method__c, "
+    "SELECT Id, CreatedDate, Status__c, Method__c, "
     "WebserviceName__c, Message__c, Retried__c, Object__c, ObjectId__c, "
     "SystemModstamp "
     "FROM Log__c "
