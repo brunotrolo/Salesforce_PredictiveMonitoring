@@ -72,6 +72,18 @@ const els = {
   accuracyActual: () => document.getElementById("accuracy-actual"),
   accuracyAnomaly: () => document.getElementById("accuracy-anomaly"),
   accuracyCaption: () => document.getElementById("accuracy-caption"),
+  comparisonPrediction: () => document.getElementById("comparison-prediction"),
+  comparisonConfidence: () => document.getElementById("comparison-confidence"),
+  comparisonRiskDelta: () => document.getElementById("comparison-risk-delta"),
+  comparisonDelta: () => document.getElementById("comparison-delta"),
+  comparisonSummary: () => document.getElementById("comparison-summary"),
+  calibrationCard: () => document.getElementById("calibration-card"),
+  calibrationStatus: () => document.getElementById("calibration-status"),
+  calibrationSamples: () => document.getElementById("calibration-samples"),
+  calibrationFpRate: () => document.getElementById("calibration-fp-rate"),
+  calibrationCurrent: () => document.getElementById("calibration-current"),
+  calibrationRecommended: () => document.getElementById("calibration-recommended"),
+  healthBadge: () => document.getElementById("health-badge"),
   pipelineDuration: () => document.getElementById("pipeline-duration"),
   pipelineSteps: () => document.getElementById("pipeline-steps"),
   pipelineErrors: () => document.getElementById("pipeline-errors"),
@@ -450,6 +462,14 @@ function renderHeader(snapshot) {
       : "Falha ao alcançar a branch data — exibindo dados de exemplo.";
     status.classList.toggle("hidden", real);
   }
+
+  /* health_check badge */
+  const hb = els.healthBadge();
+  if (hb && snapshot.health_check) {
+    const hc = snapshot.health_check;
+    hb.textContent = hc.status === "HEALTHY" ? "SAUDÁVEL" : hc.status === "WARNING" ? "ATENÇÃO" : hc.status || "—";
+    hb.dataset.state = hc.status || "UNKNOWN";
+  }
 }
 
 /* ---------------------------------------------------------- shadow mode */
@@ -516,6 +536,68 @@ function renderAccuracy(snapshot) {
       ? "Avaliação do ciclo anterior: sem efeito no risco heurístico."
       : "Sem avaliação anterior: o pipeline registra a acurácia automaticamente."
   );
+}
+
+/* ----------------------------------------------------------- comparison */
+
+const PREDICTION_LABELS = {
+  UP: "Risco vai subir ↓",
+  DOWN: "Risco vai cair ↓",
+  STABLE: "Risco estável ─",
+};
+
+function renderComparison(snapshot) {
+  const c = snapshot.comparison;
+  if (!c) return;
+
+  setText(els.comparisonPrediction(), PREDICTION_LABELS[c.prediction] || "—");
+
+  const confTag = els.comparisonConfidence();
+  if (confTag) confTag.textContent = `${fmtPct(c.confidence)}%`;
+
+  const deltaTag = els.comparisonRiskDelta();
+  if (deltaTag) {
+    const d = Number(c.risk_delta ?? 0);
+    deltaTag.textContent = d === 0 ? "0 pp" : `${d > 0 ? "+" : ""}${fmtPct(d)} pp`;
+  }
+
+  const deltaBadge = els.comparisonDelta();
+  if (deltaBadge) {
+    const d = Number(c.risk_delta ?? 0);
+    deltaBadge.textContent =
+      c.prediction === "UP" ? "↑ subindo" :
+      c.prediction === "DOWN" ? "↓ caindo" :
+      "─ estável";
+    deltaBadge.dataset.state =
+      c.prediction === "UP" ? "up" :
+      c.prediction === "DOWN" ? "down" :
+      "stable";
+  }
+
+  setText(els.comparisonSummary(), c.summary ? `Resumo: ${c.summary}` : "");
+}
+
+/* ------------------------------------------------------------ calibration */
+
+function renderCalibration(snapshot) {
+  const card = els.calibrationCard();
+  const cal = snapshot.calibration_summary;
+  if (!card || !cal) {
+    if (card) card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+
+  const statusTag = els.calibrationStatus();
+  if (statusTag) {
+    statusTag.textContent = cal.status === "recommended" ? "aplicada" : cal.status === "insufficient" ? "dados insuficientes" : cal.status || "—";
+    statusTag.dataset.state = cal.status === "recommended" ? "active" : "off";
+  }
+
+  setText(els.calibrationSamples(), cal.samples ?? "—");
+  setText(els.calibrationFpRate(), cal.avg_fp_rate != null ? fmtPct(cal.avg_fp_rate) : "—");
+  setText(els.calibrationCurrent(), cal.current_threshold != null ? cal.current_threshold.toFixed(2) : "—");
+  setText(els.calibrationRecommended(), cal.recommended_threshold != null ? cal.recommended_threshold.toFixed(2) : "—");
 }
 
 function renderPipeline(snapshot) {
@@ -799,6 +881,8 @@ async function renderAll() {
   renderAlerts(latest);
   renderShadow(latest);
   renderAccuracy(latest);
+  renderComparison(latest);
+  renderCalibration(latest);
   renderPipeline(latest);
   renderStale(latest);
   renderTrace(trace, failureMarkers);

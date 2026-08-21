@@ -870,6 +870,7 @@
       <span class="brand-desc">Salesforce MCP — risco de falhas em tempo real</span>
     </div>
     <span id="mode-badge" class="badge" data-mode="mock">aguardando</span>
+    <span id="health-badge" class="badge" data-state="UNKNOWN">—</span>
     <span id="last-update" class="last-update">—</span>
     <button id="refresh-btn" class="btn" type="button">Atualizar</button>
   </header>
@@ -1095,6 +1096,34 @@
       <p class="explain" id="accuracy-caption"></p>
     </section>
 
+    <section class="card" aria-labelledby="comparison-title">
+      <div class="card-head">
+        <h2 id="comparison-title">Comparação: previsão vs. real</h2>
+        <span id="comparison-delta" class="card-note" data-state="off">—</span>
+      </div>
+      <dl class="shadow-grid">
+        <div>
+          <dt>Previsão anterior</dt>
+          <dd id="comparison-prediction">—</dd>
+        </div>
+        <div>
+          <dt>Confiança</dt>
+          <dd id="comparison-confidence">—</dd>
+        </div>
+        <div>
+          <dt>Variação do risco</dt>
+          <dd id="comparison-risk-delta">—</dd>
+        </div>
+      </dl>
+      <p class="explain" id="comparison-summary"></p>
+      <p class="explain">
+        <b>O que é:</b> a fase de comparação antecipa se o risco vai subir,
+        cair ou ficar estável no próximo ciclo. "UP" = tendência de piora,
+        "DOWN" = tendência de melhoria, "STABLE" = sem mudança significativa.
+        <b>Confiança</b> indica quão seguro o modelo está da previsão.
+      </p>
+    </section>
+
     <section class="card" aria-labelledby="pipeline-title">
       <div class="card-head">
         <h2 id="pipeline-title">Como a coleta funcionou</h2>
@@ -1107,6 +1136,37 @@
         comparar com a coleta anterior, rodar a IA e guardar o resultado.
         Se um passo de observação falhar, a coleta continua — falha de
         observação não derruba a página.
+      </p>
+    </section>
+
+    <section class="card" id="calibration-card" aria-labelledby="calibration-title">
+      <div class="card-head">
+        <h2 id="calibration-title">Calibração automática do limiar</h2>
+        <span id="calibration-status" class="card-note" data-state="off">—</span>
+      </div>
+      <dl class="shadow-grid">
+        <div>
+          <dt>Amostras</dt>
+          <dd id="calibration-samples">—</dd>
+        </div>
+        <div>
+          <dt>Taxa de falso-positivo</dt>
+          <dd id="calibration-fp-rate">—</dd>
+        </div>
+        <div>
+          <dt>Limiar atual</dt>
+          <dd id="calibration-current">—</dd>
+        </div>
+        <div>
+          <dt>Limiar recomendado</dt>
+          <dd id="calibration-recommended">—</dd>
+        </div>
+      </dl>
+      <p class="explain">
+        <b>O que é:</b> o sistema observa automaticamente quantos alertas
+        foram falsos-positivos e ajusta o limiar da IA de sombra para reduzi-los.
+        Com poucos dados a calibração fica "insuficiente" e usa o limiar padrão.
+        <b>Nunca afeta o risco visível</b> — é apenas uma anotação de observação.
       </p>
     </section>
 

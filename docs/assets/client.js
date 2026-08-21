@@ -17,10 +17,9 @@
  *
  * All credentials-free by default: reads the PUBLIC raw URL of the data
  * branch (the repo is public; no tokens are ever embedded in client code).
- * The ONLY token-aware calls are the manual-refresh helpers
- * (dispatchWorkflow / fetchWorkflowRuns / validateToken): they take the
- * user's personal token from localStorage at call time and never persist
- * it anywhere but that browser profile.
+ * The ONLY token-aware call is fetchWorkflowRuns(): it takes the user's
+ * personal token from localStorage at call time and never persists it
+ * anywhere but that browser profile.
  */
 
 import { mockMonitoringData, mockEmptyData, mockTraceData } from "./mock-data.js";
@@ -46,41 +45,6 @@ export async function fetchTimeout(url, ms = 5000, options = {}) {
 }
 
 /**
- * Trigger collect.yml manually via the Actions REST API (workflow_dispatch).
- * Requires a personal token with "Actions: read/write" on this repo.
- * Resolves { ok, status, error } — 204 means the run was queued.
- */
-export async function dispatchWorkflow(token) {
-  try {
-    const res = await fetchTimeout(
-      `${GH_API}/actions/workflows/collect.yml/dispatches`,
-      8000,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github+json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ref: "main" }),
-      }
-    );
-    if (!res) return { ok: false, status: 0, error: "sem resposta de rede" };
-    if (res.status === 204) return { ok: true, status: 204, error: null };
-    let message = `HTTP ${res.status}`;
-    try {
-      const body = await res.json();
-      if (body && body.message) message = body.message;
-    } catch {
-      /* keep generic message */
-    }
-    return { ok: false, status: res.status, error: message };
-  } catch (err) {
-    return { ok: false, status: 0, error: String((err && err.message) || err) };
-  }
-}
-
-/**
  * Newest workflow_dispatch run for collect.yml, or null on any error.
  * Uses the token when available (higher rate limit), otherwise the public
  * read-only endpoint.
@@ -101,21 +65,6 @@ export async function fetchWorkflowRuns(token) {
   } catch {
     return null;
   }
-}
-
-/**
- * Cheap validation of a saved token: one read call against the Actions API.
- * True only when the token is accepted and has read access.
- */
-export async function validateToken(token) {
-  const res = await fetchTimeout(
-    `${GH_API}/actions/workflows/collect.yml/runs?per_page=1`,
-    8000,
-    {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-    }
-  );
-  return Boolean(res && res.ok);
 }
 
 /** List the newest day folder names by querying the GitHub Contents API. */
