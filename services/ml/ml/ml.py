@@ -1,10 +1,10 @@
-"""ML shadow mode engines (Phase 3).
+"""ML shadow mode engines.
 
-Deterministic, stdlib-only implementations so the pipeline can compare
-heuristic vs ML risk without adding heavy ML dependencies. The engines
-expose small interfaces so a real Prophet / sklearn IsolationForest can
-replace the internals later without touching the pipeline (see
-docs/ML_SHADOW_MODE_SPEC.md).
+Scikit-learn IsolationForest for anomaly detection and Facebook Prophet for
+forecasting, replacing the original stdlib-only implementations.  The public
+interfaces are unchanged so the pipeline needs no modifications.
+
+see docs/ML_SHADOW_MODE_SPEC.md
 """
 
 from __future__ import annotations
@@ -12,7 +12,11 @@ from __future__ import annotations
 import math
 from datetime import datetime
 
+import numpy as np
+import pandas as pd
+from prophet import Prophet
 from pydantic import BaseModel
+from sklearn.ensemble import IsolationForest
 
 
 class ForecastResult(BaseModel):
@@ -36,7 +40,7 @@ class ShadowComparison(BaseModel):
 
 
 class ForecastEngine:
-    """Least-squares linear fit projecting the next ``horizon`` points."""
+    """Prophet-based forecasting projecting the next ``horizon`` points."""
 
     def __init__(self, horizon: int = 3, min_points: int = 3) -> None:
         if horizon < 1:
@@ -49,10 +53,25 @@ class ForecastEngine:
             raise ValueError(f"series must have at least {self.min_points} points")
         if not all(math.isfinite(float(v)) for v in series):
             raise ValueError("series must contain only finite values")
-        xs = list(range(len(series)))
-        slope, intercept = _least_squares(xs, [float(v) for v in series])
-        next_x = len(series)
-        predicted = [intercept + slope * (next_x + i) for i in range(self.horizon)]
+
+        dates = pd.date_range("2026-01-01", periods=len(series), freq="min")
+        df = pd.DataFrame({"ds": dates, "y": [float(v) for v in series]})
+
+        m = Prophet(
+            yearly_seasonality=False,
+            weekly_seasonality=False,
+            daily_seasonality=False,
+            interval_width=0.95,
+        )
+        m.fit(df)
+
+        future = m.make_future_dataframe(periods=self.horizon, freq="min")
+        pred = m.predict(future)
+        predicted = pred["yhat"].tail(self.horizon).tolist()
+
+        slope = (predicted[-1] - float(series[-1])) / self.horizon
+        intercept = float(series[-1])
+
         return ForecastResult(
             slope=slope,
             intercept=intercept,
@@ -62,12 +81,11 @@ class ForecastEngine:
 
 
 class AnomalyEngine:
-    """Robust anomaly detection via modified z-score (median + MAD).
+    """IsolationForest-based anomaly detection.
 
-    When MAD is ~0 (degenerate series: no spread around the median, e.g.
-    error counts where most minutes are 0) any point deviating from the
-    median is flagged — a lone spike in a sea of zeros is exactly the
-    anomaly monitoring cares about.
+    Uses sklearn's IsolationForest with a contamination factor derived from
+    the threshold parameter.  A higher threshold means fewer outliers are
+    expected (lower contamination).
     """
 
     def __init__(self, threshold: float = 3.5, min_points: int = 3) -> None:
@@ -81,20 +99,22 @@ class AnomalyEngine:
         if not all(math.isfinite(v) for v in values):
             raise ValueError("series must contain only finite values")
 
-        median = _median(values)
-        deviations = [abs(v - median) for v in values]
-        mad = _median(deviations)
+        arr = np.array(values).reshape(-1, 1)
+
+        contamination = min(0.5, 1.0 / (self.threshold + 1))
+        clf = IsolationForest(
+            contamination=contamination,
+            random_state=42,
+            n_estimators=100,
+        )
+        labels = clf.fit_predict(arr)
 
         outliers: list[dict] = []
-        scale = 0.6745 / mad if mad > 1e-12 else None
         for i, v in enumerate(values):
-            if scale is None:
-                flagged = v != median
-            else:
-                flagged = abs(scale * (v - median)) > self.threshold
-            if flagged:
-                z = scale * (v - median) if scale is not None else None
-                outliers.append({"index": i, "value": v, "z_score": z})
+            if labels[i] == -1:
+                score = float(clf.decision_function(arr[i : i + 1])[0])
+                outliers.append({"index": i, "value": v, "anomaly_score": -score})
+
         return AnomalyResult(
             outliers=outliers, threshold=self.threshold, count=len(outliers)
         )
@@ -157,23 +177,3 @@ def risk_from_series(
     if forecast.slope > 0 and span > 1e-9:
         trend_ratio = min(1.0, forecast.slope * len(series) / span)
     return min(1.0, max(0.0, 0.5 * outlier_ratio + 0.5 * trend_ratio))
-
-
-def _least_squares(xs: list[int], ys: list[float]) -> tuple[float, float]:
-    n = len(xs)
-    mean_x = sum(xs) / n
-    mean_y = sum(ys) / n
-    num = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
-    den = sum((x - mean_x) ** 2 for x in xs)
-    slope = num / den if den else 0.0
-    intercept = mean_y - slope * mean_x
-    return slope, intercept
-
-
-def _median(values: list[float]) -> float:
-    ordered = sorted(values)
-    n = len(ordered)
-    mid = n // 2
-    if n % 2 == 1:
-        return ordered[mid]
-    return (ordered[mid - 1] + ordered[mid]) / 2.0

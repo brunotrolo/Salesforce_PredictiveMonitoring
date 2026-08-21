@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import urllib.error
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -436,6 +437,19 @@ def run_pipeline(
     )
     severity_counts = aggregator.severity_counts(aggregated)
 
+    # Step 3b: Notify on CRITICAL alerts (observational - never breaks cycle)
+    try:
+        from notification.notification import EmailNotifier
+        notifier = EmailNotifier()
+        now_ts = datetime.now(timezone.utc).isoformat()
+        notifier.send_critical_alerts(
+            [a.model_dump() for a in aggregated],
+            severity_counts,
+            now_ts,
+        )
+    except Exception:
+        pass  # observational only
+
     # Step 4: Compare (observational - never breaks the cycle)
     comparison_result = _execute(
         step_errors, "compare", lambda: ComparisonService().compare(analysis)
@@ -712,6 +726,21 @@ def main() -> None:
     args = parser.parse_args()
 
     sentry_active = init_sentry()
+
+    def _classify_error(exc: Exception) -> str:
+        msg = str(exc).lower()
+        if "invalid_grant" in msg:
+            return "auth_token_expired"
+        if isinstance(exc, urllib.error.HTTPError) and exc.code == 401:
+            return "mcp_unauthorized"
+        if isinstance(exc, urllib.error.HTTPError) and exc.code in (429, 500, 502, 503, 504):
+            return "mcp_transient"
+        if isinstance(exc, (urllib.error.URLError, ConnectionError, OSError)):
+            return "transport"
+        if isinstance(exc, ValueError):
+            return "validation"
+        return "unknown"
+
     client = _build_client() if args.mode == "real" else None
     initial_rt = client.refresh_token if client else None
     try:
@@ -762,11 +791,26 @@ def main() -> None:
 
         print(f"Pipeline complete: {args.log_file}")
         print(json.dumps(result, indent=2))
-    except Exception:
+    except Exception as exc:
         if sentry_active:
             import sentry_sdk
 
             sentry_sdk.capture_exception()
+        failure_path = args.log_file + ".failure.json"
+        try:
+            with open(failure_path, "w") as f:
+                json.dump(
+                    {
+                        "error_type": _classify_error(exc),
+                        "message": str(exc)[:1000],
+                        "mode": args.mode,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                    f,
+                    indent=2,
+                )
+        except OSError:
+            pass
         raise
     finally:
         if args.auth_state_out and client is not None and client.refresh_token:

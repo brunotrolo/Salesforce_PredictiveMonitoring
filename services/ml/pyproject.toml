@@ -4,11 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "monitoring-ml"
-version = "0.1.0"
-description = "Salesforce monitoring ML shadow mode engines (deterministic, stdlib-only)"
+version = "0.2.0"
+description = "Salesforce monitoring ML shadow mode engines (Isolation Forest + Prophet)"
 requires-python = ">=3.11"
 dependencies = [
     "pydantic>=2.13",
+    "scikit-learn>=1.5",
+    "prophet>=1.1",
+    "numpy>=1.26",
+    "pandas>=2.0",
 ]
 
 [tool.setuptools]

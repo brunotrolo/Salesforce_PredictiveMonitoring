@@ -19,6 +19,7 @@ import {
   fetchLatestSnapshot,
   fetchRecentSnapshots,
   fetchTrace,
+  fetchFailureMarkers,
   fetchTimeout,
   dispatchWorkflow,
   fetchWorkflowRuns,
@@ -611,10 +612,35 @@ function traceEndpointsHint(entry) {
   return ` — erros: ${list}`;
 }
 
-function renderTrace(traceResult) {
+/**
+ * Match failure markers to trace gaps.  Each gap gets an optional
+ * `failure` property with { error_type, message } when a marker falls
+ * inside the gap window.  Multiple failures in one gap are collapsed
+ * into the first match (gaps are typically caused by a single repeated
+ * error type).
+ */
+function enrichGapsWithFailures(summary, markers) {
+  if (!markers || !(markers instanceof Map) || markers.size === 0) return;
+  for (const gap of summary.gaps) {
+    if (gap.failure) continue;
+    const fromMs = new Date(gap.from).getTime();
+    const toMs = new Date(gap.to).getTime();
+    for (const [name, marker] of markers) {
+      const ts = name.replace(".failure", "");
+      const markerMs = new Date(ts.replace(/-/g, (m, i) => (i >= 10 ? ":" : m))).getTime();
+      if (Number.isFinite(markerMs) && markerMs >= fromMs && markerMs <= toMs) {
+        gap.failure = { error_type: marker.error_type || "unknown", message: marker.message || "" };
+        break;
+      }
+    }
+  }
+}
+
+function renderTrace(traceResult, failureMarkers) {
   const trace = Array.isArray(traceResult) ? traceResult : traceResult?.entries ?? [];
   const source = traceResult?.source ?? (trace.length > 0 ? "live" : "none");
   const summary = summarizeTrace(trace);
+  if (failureMarkers) enrichGapsWithFailures(summary, failureMarkers);
   const chips = els.traceChips();
   const timeline = els.traceTimeline();
   const events = els.traceEvents();
@@ -663,9 +689,10 @@ function renderTrace(traceResult) {
   if (events) {
     const items = [];
     for (const gap of summary.gaps) {
-      items.push(
-        `<li><b>Sem coleta</b> de ${fmtTraceTime(gap.from)} até ${fmtTraceTime(gap.to)} (<b>${gap.minutes} min</b>) — agendador do GitHub atrasou${traceEvidenceLink(gap.entry)}</li>`
-      );
+      const ev = gap.failure
+        ? `<b class="sev-critical">Coleta falhou</b> de ${fmtTraceTime(gap.from)} até ${fmtTraceTime(gap.to)} (<b>${gap.minutes} min</b>) — ${escapeHtml(gap.failure.error_type)}${traceEvidenceLink(gap.entry)}`
+        : `<b>Sem coleta</b> de ${fmtTraceTime(gap.from)} até ${fmtTraceTime(gap.to)} (<b>${gap.minutes} min</b>) — agendador do GitHub atrasou${traceEvidenceLink(gap.entry)}`;
+      items.push(`<li>${ev}</li>`);
     }
     for (const down of summary.downWindows) {
       items.push(
@@ -762,6 +789,15 @@ async function renderAll() {
   DIAG.logsTotal = latest && Array.isArray(latest.logs) ? latest.logs.length : null;
   DIAG.tokenConfigured = Boolean(getSavedToken());
 
+  // Fetch failure markers for all days present in the trace so the health
+  // panel can distinguish real collection failures from scheduler delays.
+  const traceDays = [...new Set(
+    (trace?.entries ?? [])
+      .map((e) => e.timestamp ? String(e.timestamp).slice(0, 10) : null)
+      .filter(Boolean),
+  )];
+  const failureMarkers = await fetchFailureMarkers(traceDays);
+
   hideSkeleton();
   renderHeader(latest);
   renderHero(latest);
@@ -773,7 +809,7 @@ async function renderAll() {
   renderAccuracy(latest);
   renderPipeline(latest);
   renderStale(latest);
-  renderTrace(trace);
+  renderTrace(trace, failureMarkers);
   renderLogs(latest && latest.logs ? latest.logs : []);
 }
 

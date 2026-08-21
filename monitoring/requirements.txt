@@ -1,2 +1,6 @@
 cryptography==50.0.0
 sentry-sdk==2.68.0
+scikit-learn>=1.5
+prophet>=1.1
+numpy>=1.26
+pandas>=2.0

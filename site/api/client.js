@@ -207,4 +207,35 @@ export async function fetchTrace() {
   }
 }
 
+/**
+ * Fetch failure markers for a set of ISO-date strings (YYYY-MM-DD).
+ * Returns a Map<string, object> keyed by marker filename (without .json)
+ * whose values are the parsed failure JSON.  Missing files are silently
+ * skipped — the map only contains actual failure records.
+ */
+export async function fetchFailureMarkers(days) {
+  const markers = new Map();
+  if (!Array.isArray(days) || days.length === 0) return markers;
+  const fetches = days.map(async (day) => {
+    const api = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/data/${day}/failures?ref=${DATA_BRANCH}`;
+    try {
+      const res = await fetchTimeout(api);
+      if (!res || !res.ok) return;
+      const entries = await res.json();
+      if (!Array.isArray(entries)) return;
+      for (const entry of entries) {
+        if (entry.type !== "file" || !entry.name.endsWith(".failure.json")) continue;
+        try {
+          const fileRes = await fetchTimeout(`${RAW_BASE}/data/${day}/failures/${entry.name}`);
+          if (fileRes && fileRes.ok) {
+            markers.set(entry.name.replace(/\.json$/, ""), await fileRes.json());
+          }
+        } catch { /* skip unreadable marker */ }
+      }
+    } catch { /* day has no failures folder — expected */ }
+  });
+  await Promise.all(fetches);
+  return markers;
+}
+
 export { mockEmptyData };

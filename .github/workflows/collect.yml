@@ -172,7 +172,17 @@ jobs:
           set -e
           DATE="${{ steps.stamp.outputs.date }}"
           STAMP="${{ steps.stamp.outputs.stamp }}"
-          [ ! -f "out/${STAMP}.json" ] && exit 0
+          HAS_SNAPSHOT="false"
+          HAS_FAILURE="false"
+          if [ -f "out/${STAMP}.json" ]; then
+            HAS_SNAPSHOT="true"
+          fi
+          if [ -f "out/${STAMP}.json.failure.json" ]; then
+            HAS_FAILURE="true"
+          fi
+          if [ "$HAS_SNAPSHOT" = "false" ] && [ "$HAS_FAILURE" = "false" ]; then
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin data 2>/dev/null || true
@@ -182,10 +192,16 @@ jobs:
             git worktree add data-branch -b data
           fi
           cd data-branch
-          mkdir -p "data/${DATE}"
-          cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
-          if [ -f "../out/${STAMP}.prom" ]; then
-            cp "../out/${STAMP}.prom" "data/${DATE}/${STAMP}.prom"
+          if [ "$HAS_SNAPSHOT" = "true" ]; then
+            mkdir -p "data/${DATE}"
+            cp "../out/${STAMP}.json" "data/${DATE}/${STAMP}.json"
+            if [ -f "../out/${STAMP}.prom" ]; then
+              cp "../out/${STAMP}.prom" "data/${DATE}/${STAMP}.prom"
+            fi
+          fi
+          if [ "$HAS_FAILURE" = "true" ]; then
+            mkdir -p "data/${DATE}/failures"
+            cp "../out/${STAMP}.json.failure.json" "data/${DATE}/failures/${STAMP}.failure.json"
           fi
           if [ -f "../out/calibration.json" ]; then
             cp "../out/calibration.json" calibration.json
