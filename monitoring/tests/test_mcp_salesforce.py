@@ -397,6 +397,60 @@ class TestAuth:
         client = SalesforceClient(client_id="c1")
         assert client.refresh_token == "env-rt-123"
 
+    def test_401_detection_uses_code_not_string(self):
+        """call_tool must trigger refresh based on the structured HTTP code,
+        not on the stringified message — a future copy change in the error
+        text must not silently disable token rotation.
+        """
+        server = MockMCPServer("unauthorized_once")
+        url = server.start()
+        token_endpoint = MockTokenEndpoint()
+        token_endpoint.start()
+        server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
+        try:
+            client = SalesforceClient(
+                url=url,
+                token="tok-expired",
+                client_id="client-1",
+                refresh_token="refresh-1",
+                discovery_url=f"{url}/.well-known/oauth-authorization-server",
+            )
+            # Sanity: code-based detection triggers refresh and the call succeeds
+            result = client.soql_query("SELECT Id FROM Log__c")
+            assert json.loads(result)["totalSize"] == 1
+            assert token_endpoint.refreshed == 1
+            assert client.token == "fresh-token-abc"
+        finally:
+            server.stop()
+            token_endpoint.stop()
+
+    def test_non_401_error_does_not_trigger_refresh(self):
+        """A 500/400 from the MCP server is a protocol/transport error and
+        must NOT trigger a token refresh — only 401 means "token expired".
+        """
+        server = MockMCPServer("flaky500", fail_until=10**9)
+        url = server.start()
+        token_endpoint = MockTokenEndpoint()
+        token_endpoint.start()
+        server._token_endpoint_url = f"http://127.0.0.1:{token_endpoint.port}/token"
+        try:
+            client = SalesforceClient(
+                url=url,
+                token="tok-1",
+                client_id="client-1",
+                refresh_token="refresh-1",
+                retries=2,
+                sleeper=lambda _: None,
+                discovery_url=f"{url}/.well-known/oauth-authorization-server",
+            )
+            with pytest.raises(RetryExhausted):
+                client.soql_query("SELECT Id FROM Log__c")
+            # Token endpoint was never contacted — refresh is reserved for 401
+            assert token_endpoint.refreshed == 0
+        finally:
+            server.stop()
+            token_endpoint.stop()
+
     def test_client_secret_is_sent_in_refresh(self, mock_server_401_once):
         """client_secret is included in the refresh request."""
         server, url = mock_server_401_once

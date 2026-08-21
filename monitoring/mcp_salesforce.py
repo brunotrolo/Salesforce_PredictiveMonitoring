@@ -116,7 +116,13 @@ class SalesforceClient:
         try:
             return self._call_tool(name, arguments)
         except SalesforceClientError as exc:
-            if "401" not in str(exc) or not self._can_refresh():
+            # 401 (Unauthorized) is the canonical "access token expired" signal
+            # — anything else is a real protocol/transport error and must NOT
+            # trigger a token refresh. We compare on the structured code field
+            # (set in _rpc_once/_notify's HTTPError handler) rather than on the
+            # stringified message: a future log change shouldn't silently break
+            # refresh.
+            if exc.code != 401 or not self._can_refresh():
                 raise
             self._refresh_token()
             return self._call_tool(name, arguments)
