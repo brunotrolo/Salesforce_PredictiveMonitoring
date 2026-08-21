@@ -72,7 +72,7 @@ jobs:
           set -e
           git fetch origin data 2>/dev/null || { echo "no previous snapshot (first run)"; exit 0; }
           git worktree add data-branch origin/data
-          LATEST=$(cd data-branch && find data -name '*.json' -type f | sort | tail -n 1)
+          LATEST=$(cd data-branch && find data -name '*.json' -not -name '*.failure.json' -type f | sort | tail -n 1)
           if [ -n "$LATEST" ]; then
             mkdir -p out
             cp "data-branch/${LATEST}" out/previous.json
@@ -251,6 +251,7 @@ jobs:
           path: |
             out/${{ steps.stamp.outputs.stamp }}.json
             out/${{ steps.stamp.outputs.stamp }}.prom
+            out/${{ steps.stamp.outputs.stamp }}.json.failure.json
           if-no-files-found: warn
           retention-days: 7
 
