@@ -1067,17 +1067,19 @@ function syncModalCta() {
 
 /** Always use the public read-only endpoint (no token). */
 async function getLatestDispatchRun(sinceMs) {
-  const runs = await fetchWorkflowRuns();
-  if (!runs || runs.length === 0) return null;
+  const { runs, rateLimited } = await fetchWorkflowRuns();
+  if (rateLimited) return { run: null, rateLimited: true };
+  if (!runs || runs.length === 0) return { run: null, rateLimited: false };
   const run = runs[0];
   const started = new Date(run.started_at || run.created_at).getTime();
-  if (!Number.isFinite(started) || started < sinceMs - RUN_FRESH_MARGIN_MS) return null;
-  return run;
+  if (!Number.isFinite(started) || started < sinceMs - RUN_FRESH_MARGIN_MS)
+    return { run: null, rateLimited: false };
+  return { run, rateLimited: false };
 }
 
 /** Opens GitHub in a new tab for the user to trigger the workflow. */
 function startManualRun() {
-  if (!modalState || modalState.phase === "starting") return;
+  if (!modalState) return;
   window.open(
     "https://github.com/brunotrolo/Salesforce_PredictiveMonitoring/actions/workflows/collect.yml",
     "_blank",
@@ -1132,7 +1134,14 @@ async function pollModal() {
       failModal("Tempo esgotado: nenhuma execução detectada em 8 minutos.");
       return;
     }
-    const run = await getLatestDispatchRun(modalState.openedAt);
+    const { run, rateLimited } = await getLatestDispatchRun(modalState.openedAt);
+    if (rateLimited) {
+      modalState.rateLimited = true;
+      setModalStatus("Limite de requisições atingido — aguardando antes de consultar novamente.", "idle");
+      setModalHint("A API pública do GitHub limita a 60 requisições/hora. Aguarde 1 minuto e tente novamente.");
+      scheduleNextPoll();
+      return;
+    }
     if (run) {
       modalState.phase = "running";
       modalState.rateLimited = false;
@@ -1141,6 +1150,7 @@ async function pollModal() {
       setModalHint("");
       if (els.modalStart()) els.modalStart().disabled = true;
     } else {
+      modalState.rateLimited = false;
       setModalStatus("Aguardando a coleta começar no GitHub…", "idle");
       if (elapsedSec > MODAL_HINT_SEC) {
         setModalHint("Nenhuma execução detectada ainda — confira se clicou em Run workflow.");
@@ -1158,12 +1168,20 @@ async function pollModal() {
     renderModalSteps(fraction, false);
     updateModalBar(Math.min(92, Math.round(fraction * 92)));
 
-    const run = await getLatestDispatchRun(modalState.openedAt);
+    const { run, rateLimited } = await getLatestDispatchRun(modalState.openedAt);
+    if (rateLimited) {
+      modalState.rateLimited = true;
+      setModalStatus("Limite de requisições atingido — aguardando antes de consultar novamente.", "idle");
+      setModalHint("A API pública do GitHub limita a 60 requisições/hora. Aguarde 1 minuto e tente novamente.");
+      scheduleNextPoll();
+      return;
+    }
+    modalState.rateLimited = false;
     const concluded = run && (run.conclusion || run.status === "completed");
     if (run && run.conclusion === "failure") {
       failModal(
         "A coleta falhou no GitHub — confira o log do workflow.",
-        "Se o log mostrar \"invalid_grant: expired access/refresh token\", o token SF_REFRESH_TOKEN do pipeline (secret) expirou — regenere com o bootstrap e atualize o secret. O token salvo nesta página não é o problema."
+        'Se o log mostrar "invalid_grant: expired access/refresh token", o token SF_REFRESH_TOKEN do pipeline (secret) expirou — regenere com o bootstrap e atualize o secret. O token salvo nesta página não é o problema.'
       );
       return;
     }
@@ -1223,6 +1241,10 @@ function closeModal() {
 /* ---------------------------------------------------------------- wiring */
 
 function onRefresh() {
+  renderAll();
+}
+
+function onOpenModal() {
   openModal();
 }
 
@@ -1250,7 +1272,7 @@ async function boot() {
   document
     .getElementById("refresh-btn")
     ?.addEventListener("click", onRefresh);
-  els.staleRefresh()?.addEventListener("click", onRefresh);
+  els.staleRefresh()?.addEventListener("click", onOpenModal);
   els.modalClose()?.addEventListener("click", closeModal);
   els.modalStart()?.addEventListener("click", startManualRun);
   document.addEventListener("keydown", (event) => {
@@ -1260,7 +1282,7 @@ async function boot() {
 
   await renderAll();
   setInterval(() => {
-    if (!document.hidden) onRefresh();
+    if (!document.hidden) renderAll();
   }, REFRESH_MS);
 }
 

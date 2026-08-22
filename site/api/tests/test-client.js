@@ -257,31 +257,45 @@ describe("fetchRecentSnapshots", () => {
   });
 });
 describe("fetchWorkflowRuns", () => {
-  test("returns the runs array with token header", async () => {
+  test("returns runs array with rateLimited=false when successful", async () => {
     const runs = [
       { id: 1, status: "in_progress", started_at: "2026-08-19T12:00:00Z" },
     ];
     global.fetch.mockResolvedValueOnce(jsonRes({ workflow_runs: runs }));
     const got = await fetchWorkflowRuns("ghp_token");
-    expect(got).toEqual(runs);
+    expect(got).toEqual({ runs, rateLimited: false });
     const opts = global.fetch.mock.calls[0][1];
     expect(opts.headers.Authorization).toBe("Bearer ghp_token");
   });
 
-  test("returns null on HTTP error", async () => {
-    global.fetch.mockResolvedValueOnce(jsonRes(undefined, false));
-    expect(await fetchWorkflowRuns("tok")).toBeNull();
+  test("returns rateLimited=true on 403", async () => {
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 403 });
+    const got = await fetchWorkflowRuns("tok");
+    expect(got).toEqual({ runs: null, rateLimited: true });
   });
 
-  test("returns null on network error", async () => {
+  test("returns rateLimited=true on 429", async () => {
+    global.fetch.mockResolvedValueOnce({ ok: false, status: 429 });
+    const got = await fetchWorkflowRuns("tok");
+    expect(got).toEqual({ runs: null, rateLimited: true });
+  });
+
+  test("returns rateLimited=false on other HTTP error", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes(undefined, false));
+    const got = await fetchWorkflowRuns("tok");
+    expect(got).toEqual({ runs: null, rateLimited: false });
+  });
+
+  test("returns rateLimited=false on network error", async () => {
     global.fetch.mockRejectedValueOnce(new Error("down"));
-    expect(await fetchWorkflowRuns("tok")).toBeNull();
+    const got = await fetchWorkflowRuns("tok");
+    expect(got).toEqual({ runs: null, rateLimited: false });
   });
 
   test("works without a token (public read path)", async () => {
     global.fetch.mockResolvedValueOnce(jsonRes({ workflow_runs: [{ id: 1 }] }));
     const got = await fetchWorkflowRuns(null);
-    expect(got).toEqual([{ id: 1 }]);
+    expect(got).toEqual({ runs: [{ id: 1 }], rateLimited: false });
     const opts = global.fetch.mock.calls[0][1];
     expect(opts.headers).toBeUndefined();
   });

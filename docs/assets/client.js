@@ -66,12 +66,18 @@ export async function fetchWorkflowRuns(token) {
     7000,
     headers ? { headers } : undefined
   );
-  if (!res || !res.ok) return null;
+  if (!res) return { runs: null, rateLimited: false };
+  if (res.status === 403 || res.status === 429)
+    return { runs: null, rateLimited: true };
+  if (!res.ok) return { runs: null, rateLimited: false };
   try {
     const data = await res.json();
-    return data && Array.isArray(data.workflow_runs) ? data.workflow_runs : null;
+    return {
+      runs: Array.isArray(data.workflow_runs) ? data.workflow_runs : null,
+      rateLimited: false,
+    };
   } catch {
-    return null;
+    return { runs: null, rateLimited: false };
   }
 }
 
