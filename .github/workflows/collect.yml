@@ -54,13 +54,13 @@ jobs:
       # PAT-free rotation: mint a 1-hour installation token from the GitHub App.
       # Skipped while the App triplet is not configured.
       #
-      # The `permissions` block is required: without it, the token inherits
-      # the app's installation defaults, and the rotate step (which calls
+      # The `permission-*` inputs override the app's installation defaults:
+      # without `permission-secrets: write`, the rotate step (which calls
       # `gh secret set`) cannot persist the rotated refresh token back to
       # SF_REFRESH_TOKEN — observed on 2026-08-21 (cron was consuming tokens
       # faster than the secret could be updated). The GitHub App itself must
-      # have `secrets: write` granted at installation time; if it doesn't,
-      # the mint step below will fail with a 422 from the App APIs.
+      # also have `secrets: write` granted at installation time; if it
+      # doesn't, the mint step will fail with a 422 from the App APIs.
       - name: Mint GitHub App token (PAT-free rotation)
         id: app_token
         if: ${{ env.GH_APP_ID != '' && env.GH_APP_PRIVATE_KEY != '' }}
@@ -70,9 +70,8 @@ jobs:
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
-          permissions: |
-            contents: read
-            secrets: write
+          permission-contents: read
+          permission-secrets: write
 
       - name: Fetch previous snapshot (recurrence history)
         id: history

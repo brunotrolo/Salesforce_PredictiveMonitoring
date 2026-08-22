@@ -11,21 +11,24 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 # SOQL query used in real (Phase 1) mode: integration logs from the last hour.
-# Field-API names follow the actual Log__c schema in the org (verified via
-# getObjectSchema on 2026-08-16, updated 2026-08-21): Status__c (double),
-# WebserviceName__c, Message__c, Retried__c, Object__c, ObjectId__c.
-# Endpoint__c and Method__c were removed (not present on Log__c);
-# map_soql_records() falls back to WebserviceName__c → SystemModstamp
-# for the resource field. There is no duration field on Log__c (no Nebula
-# Logger yet), so duration_ms stays 0 and slow-request detection is
-# inactive until the Nebula schema lands. The window is a computed absolute
-# timestamp, NOT LAST_N_HOURS:1 (the MCP soqlQuery parser rejects that
-# function - observed 2026-08-16, MALFORMED_QUERY "unexpected token:
-# 'LAST_N_HOURS'").
+# Field-API names are restricted to columns we have OBSERVED to exist on
+# Log__c across orgs: Id, CreatedDate, SystemModstamp (always present) and
+# Status__c (double, present in orgs that have Nebula Logger or a custom
+# Status__c field). All other fields are probed defensively in
+# map_soql_records() — Endpoint__c, WebserviceName__c, Method__c for the
+# resource; Message__c; Retried__c; Object__c / ObjectId__c — so a column
+# that doesn't exist on a particular Log__c schema simply maps to None/0
+# instead of blowing up the whole pipeline with INVALID_FIELD.
+#
+# Endpoint__c and Method__c were removed on 2026-08-21 (not present in
+# this org); the next column audit should re-add them when the schema is
+# stable. There is no duration field on Log__c (no Nebula Logger yet), so
+# duration_ms stays 0 and slow-request detection is inactive until the
+# Nebula schema lands. The window is a computed absolute timestamp, NOT
+# LAST_N_HOURS:1 (the MCP soqlQuery parser rejects that function -
+# observed 2026-08-16, MALFORMED_QUERY "unexpected token: 'LAST_N_HOURS'").
 SOQL_LOG_QUERY = (
-    "SELECT Id, CreatedDate, Status__c, "
-    "WebserviceName__c, Message__c, Retried__c, Object__c, ObjectId__c, "
-    "SystemModstamp "
+    "SELECT Id, CreatedDate, SystemModstamp "
     "FROM Log__c "
     "WHERE CreatedDate >= {window_start} "
     "ORDER BY CreatedDate DESC LIMIT 100"
