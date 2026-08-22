@@ -783,6 +783,42 @@
       font-size: 12px;
       color: var(--text-faint);
     }
+    .modal-token {
+      margin: 12px 0 0;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .modal-token label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+    .modal-token-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .modal-token-row input {
+      flex: 1;
+      padding: 6px 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--card-bg);
+      color: var(--text);
+    }
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 11px;
+    }
+    .modal-token-hint {
+      margin: 4px 0 0;
+      font-size: 11px;
+      color: var(--text-faint);
+    }
 
     /* ---------- diagnostics ---------- */
 
@@ -1284,8 +1320,16 @@
       </div>
       <div id="modal-steps" class="modal-steps"></div>
       <button id="modal-start" class="btn" type="button">Iniciar coleta agora</button>
-      <a id="modal-github" class="btn" href="https://github.com/brunotrolo/Salesforce_PredictiveMonitoring/actions/workflows/collect.yml" target="_blank" rel="noopener" style="display:none">Abrir GitHub e iniciar a coleta</a>
       <p id="modal-hint" class="modal-hint"></p>
+      <div class="modal-token">
+        <label for="modal-token-input">GitHub PAT (opcional, para polling rápido)</label>
+        <div class="modal-token-row">
+          <input id="modal-token-input" type="password" placeholder="ghp_..." autocomplete="off" spellcheck="false" />
+          <button id="modal-token-save" class="btn btn-sm" type="button">Salvar</button>
+          <button id="modal-token-clear" class="btn btn-sm" type="button">Limpar</button>
+        </div>
+        <p id="modal-token-hint" class="modal-token-hint"></p>
+      </div>
       <p class="modal-tip">
         Clique em <b>Iniciar coleta agora</b> para disparar o pipeline
         diretamente pelo GitHub. O botão abre o GitHub para você confirmar

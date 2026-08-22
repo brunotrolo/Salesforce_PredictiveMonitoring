@@ -126,9 +126,12 @@ const els = {
   modalStatus: () => document.getElementById("modal-status"),
   modalBar: () => document.getElementById("modal-bar"),
   modalSteps: () => document.getElementById("modal-steps"),
-  modalGithub: () => document.getElementById("modal-github"),
   modalStart: () => document.getElementById("modal-start"),
   modalHint: () => document.getElementById("modal-hint"),
+  modalTokenInput: () => document.getElementById("modal-token-input"),
+  modalTokenHint: () => document.getElementById("modal-token-hint"),
+  modalTokenSave: () => document.getElementById("modal-token-save"),
+  modalTokenClear: () => document.getElementById("modal-token-clear"),
   pageStatus: () => document.getElementById("page-status"),
   skeleton: () => document.getElementById("skeleton"),
   content: () => document.getElementById("content"),
@@ -1009,6 +1012,17 @@ const PIPELINE_STEP_WEIGHTS = {
 let modalTimer = null;
 let modalState = null;
 
+const GITHUB_TOKEN_KEY = "github_token";
+
+/** Read the optional GitHub PAT from localStorage (never persisted by the app). */
+function getGitHubToken() {
+  try {
+    return localStorage.getItem(GITHUB_TOKEN_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
 function getModalSteps() {
   const fromSnapshot = DIAG.snapshot && DIAG.snapshot.pipeline && DIAG.snapshot.pipeline.steps;
   return Array.isArray(fromSnapshot) && fromSnapshot.length > 0 ? fromSnapshot : DEFAULT_STEPS;
@@ -1059,15 +1073,26 @@ function updateModalBar(pct, state = "idle") {
   }
 }
 
-/** Swaps the modal CTA: always show GitHub link. */
 function syncModalCta() {
   if (els.modalStart()) els.modalStart().style.display = "";
-  if (els.modalGithub()) els.modalGithub().style.display = "none";
+  const tokenInput = els.modalTokenInput();
+  const tokenHint = els.modalTokenHint();
+  if (tokenInput) {
+    const stored = getGitHubToken();
+    if (stored) {
+      tokenInput.value = stored;
+      tokenInput.type = "password";
+      if (tokenHint) tokenHint.textContent = "Token GitHub salvo — polling autenticado (5 000 req/hora).";
+    } else {
+      tokenInput.value = "";
+      if (tokenHint) tokenHint.textContent = "Sem token: 60 req/hora — pode atingir o limite. Cole um PAT para polling rápido.";
+    }
+  }
 }
 
-/** Always use the public read-only endpoint (no token). */
 async function getLatestDispatchRun(sinceMs) {
-  const { runs, rateLimited } = await fetchWorkflowRuns();
+  const token = getGitHubToken();
+  const { runs, rateLimited } = await fetchWorkflowRuns(token);
   if (rateLimited) return { run: null, rateLimited: true };
   if (!runs || runs.length === 0) return { run: null, rateLimited: false };
   const run = runs[0];
@@ -1091,9 +1116,11 @@ function startManualRun() {
 function scheduleNextPoll() {
   if (!modalState || modalState.phase === "failed" || modalState.phase === "done") return;
   const elapsedSec = (Date.now() - modalState.openedAt) / 1000;
+  const hasToken = !!getGitHubToken();
   let delay = MODAL_POLL_MS;
   if (modalState.rateLimited) delay = 30000;
-  else if (elapsedSec > 60) delay = 15000;
+  else if (!hasToken && elapsedSec > 60) delay = 30000;
+  else if (!hasToken && elapsedSec > 10) delay = 15000;
   modalTimer = setTimeout(pollModal, delay);
 }
 
@@ -1226,6 +1253,27 @@ function openModal() {
     "idle"
   );
   els.refreshModal()?.classList.remove("hidden");
+
+  const tokenSave = els.modalTokenSave();
+  const tokenClear = els.modalTokenClear();
+  if (tokenSave && !tokenSave._wired) {
+    tokenSave._wired = true;
+    tokenSave.addEventListener("click", () => {
+      const val = (els.modalTokenInput()?.value || "").trim();
+      if (!val) return;
+      try { localStorage.setItem(GITHUB_TOKEN_KEY, val); } catch { /* quota */ }
+      syncModalCta();
+    });
+  }
+  if (tokenClear && !tokenClear._wired) {
+    tokenClear._wired = true;
+    tokenClear.addEventListener("click", () => {
+      try { localStorage.removeItem(GITHUB_TOKEN_KEY); } catch { /* noop */ }
+      if (els.modalTokenInput()) els.modalTokenInput().value = "";
+      syncModalCta();
+    });
+  }
+
   pollModal();
 }
 
