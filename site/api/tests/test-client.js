@@ -1,6 +1,7 @@
 import { jest } from "@jest/globals";
 import {
   fetchLatestSnapshot,
+  fetchLatestSnapshotFromTrace,
   fetchDay,
   fetchRecentSnapshots,
   fetchTrace,
@@ -90,24 +91,53 @@ describe("fetchDay", () => {
 describe("fetchLatestSnapshot", () => {
   const liveSnapshot = { risk_score: 0.83, timestamp: "2026-08-16T10:00:00Z", alerts: [] };
 
-  test("returns the most recent snapshot when data branch is populated", async () => {
-    const earlier = { risk_score: 0.4, timestamp: "2026-08-16T09:00:00Z" };
+  test("prefers the trace.json path (no rate-limit API call)", async () => {
+    const traceUrl = "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/trace.json";
+    const snapshotUrl = "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-16/2026-08-16T10-00-00Z.json";
     global.fetch
-      .mockResolvedValueOnce(jsonRes([{ type: "dir", name: "2026-08-16" }]))
       .mockResolvedValueOnce(
         jsonRes([
-          { type: "file", name: "2026-08-16T10-00-00Z.json" },
-          { type: "file", name: "2026-08-16T09-00-00Z.json" },
+          { timestamp: "2026-08-16T09:00:00Z", risk_score: 0.1, snapshot_raw: snapshotUrl },
+          { timestamp: "2026-08-16T10:00:00Z", risk_score: 0.83, snapshot_raw: snapshotUrl },
         ])
       )
-      .mockResolvedValueOnce(jsonRes(liveSnapshot))
-      .mockResolvedValueOnce(jsonRes(earlier));
+      .mockResolvedValueOnce(jsonRes(liveSnapshot));
+    const snap = await fetchLatestSnapshot();
+    expect(snap).toEqual(liveSnapshot);
+    // Only 2 fetches: trace.json + the snapshot. NO api.github.com calls.
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(global.fetch.mock.calls[0][0]).toBe(traceUrl);
+    expect(global.fetch.mock.calls[1][0]).toBe(snapshotUrl);
+  });
+
+  test("falls back to listing day folders when trace is empty", async () => {
+    global.fetch
+      .mockResolvedValueOnce(jsonRes([]))
+      .mockResolvedValueOnce(jsonRes([{ type: "dir", name: "2026-08-16" }]))
+      .mockResolvedValueOnce(
+        jsonRes([{ type: "file", name: "2026-08-16T10-00-00Z.json" }])
+      )
+      .mockResolvedValueOnce(jsonRes(liveSnapshot));
+    const snap = await fetchLatestSnapshot();
+    expect(snap).toEqual(liveSnapshot);
+  });
+
+  test("falls back to listing day folders when trace.json fetch fails", async () => {
+    global.fetch
+      .mockResolvedValueOnce(jsonRes(undefined, false))
+      .mockResolvedValueOnce(jsonRes([{ type: "dir", name: "2026-08-16" }]))
+      .mockResolvedValueOnce(
+        jsonRes([{ type: "file", name: "2026-08-16T10-00-00Z.json" }])
+      )
+      .mockResolvedValueOnce(jsonRes(liveSnapshot));
     const snap = await fetchLatestSnapshot();
     expect(snap).toEqual(liveSnapshot);
   });
 
   test("falls back to mock data when no days exist", async () => {
-    global.fetch.mockResolvedValueOnce(jsonRes([]));
+    global.fetch
+      .mockResolvedValueOnce(jsonRes([]))                // trace.json empty
+      .mockResolvedValueOnce(jsonRes([]));                // listDayFolders empty
     const snap = await fetchLatestSnapshot();
     expect(snap.risk_score).toBe(0.42);
   });
@@ -119,9 +149,85 @@ describe("fetchLatestSnapshot", () => {
   });
 });
 
-describe("fetchRecentSnapshots", () => {
-  test("collects snapshots across days up to limit", async () => {
+describe("fetchLatestSnapshotFromTrace", () => {
+  test("returns null when trace.json is missing", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes(undefined, false));
+    expect(await fetchLatestSnapshotFromTrace()).toBeNull();
+  });
+
+  test("returns null when trace.json is empty", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes([]));
+    expect(await fetchLatestSnapshotFromTrace()).toBeNull();
+  });
+
+  test("returns null when the last entry has no snapshot_raw", async () => {
+    global.fetch.mockResolvedValueOnce(jsonRes([{ timestamp: "x", risk_score: 0.1 }]));
+    expect(await fetchLatestSnapshotFromTrace()).toBeNull();
+  });
+
+  test("returns the parsed snapshot from snapshot_raw URL", async () => {
+    const snapshotUrl = "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/x/y.json";
+    const snap = { risk_score: 0.5, timestamp: "2026-08-16T10:00:00Z" };
     global.fetch
+      .mockResolvedValueOnce(jsonRes([{ snapshot_raw: snapshotUrl }]))
+      .mockResolvedValueOnce(jsonRes(snap));
+    expect(await fetchLatestSnapshotFromTrace()).toEqual(snap);
+  });
+
+  test("returns null when snapshot_raw fetch fails", async () => {
+    global.fetch
+      .mockResolvedValueOnce(jsonRes([{ snapshot_raw: "https://nope.example/missing.json" }]))
+      .mockResolvedValueOnce(jsonRes(undefined, false));
+    expect(await fetchLatestSnapshotFromTrace()).toBeNull();
+  });
+
+  test("returns null when the snapshot body is not valid JSON", async () => {
+    const snapshotUrl = "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/x/y.json";
+    global.fetch
+      .mockResolvedValueOnce(jsonRes([{ snapshot_raw: snapshotUrl }]))
+      .mockResolvedValueOnce({ ok: true, status: 200, json: () => Promise.reject(new SyntaxError("bad")) });
+    expect(await fetchLatestSnapshotFromTrace()).toBeNull();
+  });
+});
+
+describe("fetchRecentSnapshots", () => {
+  test("uses trace.json entries to resolve snapshots via snapshot_raw", async () => {
+    const url1 = "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-16/b.json";
+    const url2 = "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/2026-08-16/a.json";
+    global.fetch
+      .mockResolvedValueOnce(
+        jsonRes([
+          { timestamp: "2026-08-16T09:00:00Z", snapshot_raw: url2 },
+          { timestamp: "2026-08-16T10:00:00Z", snapshot_raw: url1 },
+        ])
+      )
+      .mockResolvedValueOnce(jsonRes({ id: 1 }))
+      .mockResolvedValueOnce(jsonRes({ id: 2 }));
+    const snaps = await fetchRecentSnapshots();
+    expect(snaps).toHaveLength(2);
+    // Newest first
+    expect(snaps[0].id).toBe(1);
+    expect(snaps[1].id).toBe(2);
+  });
+
+  test("skips entries without snapshot_raw and continues", async () => {
+    const url1 = "https://raw.githubusercontent.com/brunotrolo/Salesforce_PredictiveMonitoring/data/a.json";
+    global.fetch
+      .mockResolvedValueOnce(
+        jsonRes([
+          { timestamp: "2026-08-16T09:00:00Z" /* no snapshot_raw */ },
+          { timestamp: "2026-08-16T10:00:00Z", snapshot_raw: url1 },
+        ])
+      )
+      .mockResolvedValueOnce(jsonRes({ id: 9 }));
+    const snaps = await fetchRecentSnapshots();
+    expect(snaps).toHaveLength(1);
+    expect(snaps[0].id).toBe(9);
+  });
+
+  test("falls back to listing day folders when trace.json fails", async () => {
+    global.fetch
+      .mockResolvedValueOnce(jsonRes(undefined, false))
       .mockResolvedValueOnce(
         jsonRes([{ type: "dir", name: "2026-08-16" }, { type: "dir", name: "2026-08-15" }])
       )
@@ -142,7 +248,9 @@ describe("fetchRecentSnapshots", () => {
   });
 
   test("returns single mock snapshot when no data exists", async () => {
-    global.fetch.mockResolvedValueOnce(jsonRes([]));
+    global.fetch
+      .mockResolvedValueOnce(jsonRes([]))
+      .mockResolvedValueOnce(jsonRes([]));
     const snaps = await fetchRecentSnapshots();
     expect(snaps).toHaveLength(1);
     expect(snaps[0].risk_score).toBe(0.42);

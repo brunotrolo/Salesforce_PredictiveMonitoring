@@ -2,7 +2,7 @@
 
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import orchestrate
 
@@ -297,7 +297,9 @@ class TestMapSoqlRecords:
 
 class TestRunPipelineRealMode:
     def test_uses_mcp_client_to_fetch_logs(self):
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        now = datetime.now(timezone.utc)
+        today = now.strftime("%Y-%m-%d")
+        yesterday = (now - timedelta(days=1)).strftime("%Y-%m-%d")
         records = [
             {
                 "Id": "log-1",
@@ -318,7 +320,11 @@ class TestRunPipelineRealMode:
         result, raw_logs = orchestrate.run_pipeline(mode="real", client=client)
         assert len(client.calls) == 1
         assert "FROM Log__c" in client.calls[0]
-        assert f"CreatedDate >= {today}T" in client.calls[0]
+        # Window is 1h back — may cross midnight, so check today OR yesterday
+        assert any(
+            f"CreatedDate >= {d}T" in client.calls[0]
+            for d in (today, yesterday)
+        )
         assert "LAST_N_HOURS" not in client.calls[0]
         assert raw_logs[0]["log_id"] == "log-1"
         assert result["mode"] == "real"

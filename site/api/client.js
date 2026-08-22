@@ -14,6 +14,14 @@
  * The ONLY token-aware call is fetchWorkflowRuns(): it takes the user's
  * personal token from localStorage at call time and never persists it
  * anywhere but that browser profile.
+ *
+ * Fetching strategy (see fetchLatestSnapshot):
+ *   1. Primary: read trace.json via raw.githubusercontent.com (1 request, no
+ *      rate limit, no CORS friction), then read the snapshot_raw URL from
+ *      the last entry (1 more request, same path). Total: 2 requests.
+ *   2. Fallback: list day folders via api.github.com and walk files
+ *      (N+1 requests, subject to the 60/hr unauthenticated rate limit).
+ *      Used only when trace.json is missing or empty (e.g. very first run).
  */
 
 import { mockMonitoringData, mockEmptyData, mockTraceData } from "../monitoring/mock-data.js";
@@ -50,7 +58,7 @@ export async function fetchWorkflowRuns(token) {
   const res = await fetchTimeout(
     `${GH_API}/actions/workflows/collect.yml/runs?event=workflow_dispatch&per_page=1`,
     7000,
-    headers ? { headers } : {}
+    headers ? { headers } : undefined
   );
   if (!res || !res.ok) return null;
   try {
@@ -104,10 +112,50 @@ export async function fetchDay(day) {
 }
 
 /**
+ * Resolve the latest snapshot via the rolling 24h trace.
+ *
+ * The backend persists the raw GitHub URL of every snapshot it writes to
+ * the trace entry under `snapshot_raw` (see orchestrate._trace_entry_from_result).
+ * Reading that URL through raw.githubusercontent.com is rate-limit-free
+ * (CDN) and avoids the api.github.com Contents API entirely — that API
+ * is the bottleneck (60 requests/hour for unauthenticated browsers).
+ *
+ * Returns the parsed snapshot or null if the trace is missing/empty/
+ * malformed or the latest entry has no snapshot_raw.
+ */
+export async function fetchLatestSnapshotFromTrace() {
+  const traceRes = await fetchTimeout(`${RAW_BASE}/trace.json`);
+  if (!traceRes || !traceRes.ok) return null;
+  let entries;
+  try {
+    entries = await traceRes.json();
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(entries) || entries.length === 0) return null;
+  // Trace is sorted oldest -> newest; the last entry is the latest cycle.
+  const latest = entries[entries.length - 1];
+  const url = latest && latest.snapshot_raw;
+  if (!url || typeof url !== "string") return null;
+  const snapRes = await fetchTimeout(url);
+  if (!snapRes || !snapRes.ok) return null;
+  try {
+    return await snapRes.json();
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Return the single most recent snapshot across all day folders,
  * or `mockMonitoringData` when the data branch is empty / unreachable.
+ *
+ * Primary path (preferred): trace.json → snapshot_raw URL (2 raw requests,
+ * no rate limit). Fallback: list day folders + walk files (rate-limited).
  */
 export async function fetchLatestSnapshot() {
+  const fromTrace = await fetchLatestSnapshotFromTrace();
+  if (fromTrace) return fromTrace;
   const days = await listDayFolders();
   for (const day of days) {
     const snapshots = await fetchDay(day);
@@ -119,8 +167,33 @@ export async function fetchLatestSnapshot() {
 /**
  * Roll-up of the last `limit` snapshots (newest first), useful for trend charts.
  * Falls back to a single mock snapshot when no live data exists.
+ *
+ * Strategy: read trace.json for the lightweight summary (one entry per
+ * cycle, no rate limit), then dereference each entry's snapshot_raw for
+ * the full snapshot only when we actually need it (the chart needs the
+ * full record). Skips entries whose snapshot_raw is missing (defensive).
  */
 export async function fetchRecentSnapshots(limit = 12) {
+  const traceRes = await fetchTimeout(`${RAW_BASE}/trace.json`);
+  if (traceRes && traceRes.ok) {
+    try {
+      const entries = await traceRes.json();
+      if (Array.isArray(entries) && entries.length > 0) {
+        const newest = entries.slice(-limit).reverse();
+        const snapshots = [];
+        for (const entry of newest) {
+          if (!entry || !entry.snapshot_raw) continue;
+          const res = await fetchTimeout(entry.snapshot_raw);
+          if (res && res.ok) {
+            try {
+              snapshots.push(await res.json());
+            } catch { /* skip malformed snapshot */ }
+          }
+        }
+        if (snapshots.length > 0) return snapshots;
+      }
+    } catch { /* fall through to legacy path */ }
+  }
   const days = await listDayFolders();
   const collected = [];
   for (const day of days) {
